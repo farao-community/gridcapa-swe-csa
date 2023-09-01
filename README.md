@@ -1,8 +1,8 @@
-# GridCapa Rao logs dispatcher application
+# SWE CSA
 
 [![MPL-2.0 License](https://img.shields.io/badge/license-MPL_2.0-blue.svg)](https://www.mozilla.org/en-US/MPL/2.0/)
 
-This repository contains a service dedicated to dispatching logs coming from rao-runner pool to caller applications. 
+This repository contains a service dedicated to receiving csa requests, converting csa profiles to farao inputs, launching rao and providing csa rao schedule as a result. 
 
 ## Build application
 
@@ -23,5 +23,5 @@ mvn install
 Then build docker image
 
 ```bash
-docker build -t farao/gridcapa-rao-logs-dispatcher .
+docker build -t farao/gridcapa-swe-csa .
 ```
