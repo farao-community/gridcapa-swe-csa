@@ -1,0 +1,18 @@
+version: '3'
+services:
+  rabbitmq:
+    image: rabbitmq:3.8.14-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+  minio:
+    image: minio/minio:RELEASE.2021-06-17T00-10-46Z.fips
+    ports:
+      - "9000:9000"
+    command: server /data
+
+  rao-runner:
+    image: farao/gridcapa-rao-runner:latest
+    volumes:
+      - ./config/rao-runner-application.yml:/config/application.yml
+      - ./config/rao-runner-itools.yml:/home/farao/.itools/config.yml

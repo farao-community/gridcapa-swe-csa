@@ -1,0 +1,26 @@
+server:
+  port: 9090
+spring:
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+minio:
+  default-bucket: "rao-integration-data"
+  outputs-bucket: "rao-integration-outputs"
+  access:
+    name: minioadmin
+    secret: minioadmin
+  url: http://localhost:9000/
+rao-runner-server:
+  amqp:
+    client-app-id: swe-csa-runner
+    expiration: 5400000 # 1h30min (90*60*1000), same as time-out
+      # take it quite large, as rao-runner might not prefetch more than one rao-request. Rao-request
+    # must therefore stay in queue until a rao-runner is free, or until the time-out is reached
+    queue-name: swe-csa-rao-request-queue

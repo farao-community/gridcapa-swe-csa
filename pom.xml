@@ -10,10 +10,14 @@
     <artifactId>gridcapa-swe-csa</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>swe-csa-service</name>
-    <description>Service responsible for converting csa profiles to rao inputs, launching calculation and providing a csa rao schedule as a result.
+    <description>Service responsible for converting csa profiles to rao inputs, launching calculation and providing a
+        csa rao schedule as a result.
     </description>
 
     <properties>
+        <rao.runner.version>3.3.2</rao.runner.version>
+        <minio.version>7.1.0</minio.version>
+        <io.springfox.version>2.9.2</io.springfox.version>
     </properties>
 
     <build>
@@ -41,6 +45,26 @@
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-stream-binder-rabbit</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.rte-france.farao</groupId>
+            <artifactId>rao-runner-spring-boot-starter</artifactId>
+            <version>${rao.runner.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+            <version>${minio.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.springfox</groupId>
+            <artifactId>springfox-swagger2</artifactId>
+            <version>${io.springfox.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.springfox</groupId>
+            <artifactId>springfox-swagger-ui</artifactId>
+            <version>${io.springfox.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
