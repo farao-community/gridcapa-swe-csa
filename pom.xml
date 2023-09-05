@@ -16,6 +16,7 @@
 
     <properties>
         <powsybl.core.version>5.0.0</powsybl.core.version>
+        <com.farao-community.farao.version>4.2.4.1</com.farao-community.farao.version>
         <rao.runner.version>3.3.2</rao.runner.version>
         <minio.version>7.1.0</minio.version>
         <io.springfox.version>2.9.2</io.springfox.version>
@@ -61,6 +62,21 @@
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-iidm-xml-converter</artifactId>
             <version>${powsybl.core.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.farao-community.farao</groupId>
+            <artifactId>farao-rao-api</artifactId>
+            <version>${com.farao-community.farao.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.farao-community.farao</groupId>
+            <artifactId>farao-crac-impl</artifactId>
+            <version>${com.farao-community.farao.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.farao-community.farao</groupId>
+            <artifactId>farao-crac-api</artifactId>
+            <version>${com.farao-community.farao.version}</version>
         </dependency>
         <dependency>
             <groupId>io.minio</groupId>

@@ -1,6 +1,8 @@
 package com.farao_community.farao.gridcapa.swe_csa;
 
+import com.farao_community.farao.data.crac_io_api.CracExporters;
 import com.powsybl.iidm.network.*;
+import com.farao_community.farao.data.crac_api.*;
 
 import com.rte_france.farao.rao_runner.api.resource.RaoRequest;
 import com.rte_france.farao.rao_runner.starter.AsynchronousRaoRunnerClient;
@@ -8,9 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -30,21 +30,18 @@ public class CsaService {
     }
 
     public ResponseEntity runRao(MultipartFile inputFilesArchive, Instant utcInstant) throws IOException {
-        // create a deployment with rao runner, minio and rabbitmq
-
         // TODO import zip  to have a network and crac , as in unit tests
         //Network network = importNetwork(inputFilesArchive);
         // Crac crac = importCrac(inputFilesArchive);
 
-
-        // TODO upload crac and network in minio (minio launched locally with docker compose)
         Network network = null;
+        Crac crac = null;
         String taskId = UUID.randomUUID().toString();
         String networkFileUrl = uploadIidmNetworkToMinio(taskId, network, utcInstant);
-        // String cracFileUrl = uploadCracToMinio(destination, network, fileName, utcInstant);
+        String cracFileUrl = uploadJsonCrac(taskId, crac, utcInstant);
 
         // create a rao request network and crac links
-        RaoRequest raoRequest = new RaoRequest(taskId, networkFileUrl, "cracFileUrl");
+        RaoRequest raoRequest = new RaoRequest(taskId, networkFileUrl, cracFileUrl);
         asynchronousRaoRunnerClient.runRaoAsynchronously(raoRequest);
         // call RAO.run
         return ResponseEntity.accepted().build();
@@ -58,5 +55,17 @@ public class CsaService {
             minioAdapter.uploadFile(iidmNetworkDestinationPath, iidmNetworkInputStream);
         }
         return minioAdapter.generatePreSignedUrl(iidmNetworkDestinationPath);
+    }
+
+    private String uploadJsonCrac(String taskId, Crac crac, Instant utcInstant) {
+            String jsonCracFilePath = String.format("%s/inputs/cracs/%s", taskId, HOURLY_NAME_FORMATTER.format(utcInstant).concat(".json"));
+            ByteArrayOutputStream cracByteArrayOutputStream = new ByteArrayOutputStream();
+            CracExporters.exportCrac(crac, "Json", cracByteArrayOutputStream);
+            try (InputStream is = new ByteArrayInputStream(cracByteArrayOutputStream.toByteArray())) {
+                minioAdapter.uploadFile(jsonCracFilePath, is);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        return minioAdapter.generatePreSignedUrl(jsonCracFilePath);
     }
 }
