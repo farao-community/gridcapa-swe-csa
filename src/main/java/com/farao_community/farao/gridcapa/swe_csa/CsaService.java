@@ -29,7 +29,7 @@ public class CsaService {
         this.minioAdapter = minioAdapter;
     }
 
-    public ResponseEntity runRao(MultipartFile inputFilesArchive) throws IOException {
+    public ResponseEntity runRao(MultipartFile inputFilesArchive, Instant utcInstant) throws IOException {
         // create a deployment with rao runner, minio and rabbitmq
 
         // TODO import zip  to have a network and crac , as in unit tests
@@ -39,20 +39,21 @@ public class CsaService {
 
         // TODO upload crac and network in minio (minio launched locally with docker compose)
         Network network = null;
-        String networkFileUrl = uploadIidmNetworkToMinio("destination", network, "fileName", Instant.now());
+        String taskId = UUID.randomUUID().toString();
+        String networkFileUrl = uploadIidmNetworkToMinio(taskId, network, utcInstant);
         // String cracFileUrl = uploadCracToMinio(destination, network, fileName, utcInstant);
 
         // create a rao request network and crac links
-        RaoRequest raoRequest = new RaoRequest(UUID.randomUUID().toString(), networkFileUrl, "cracFileUrl");
+        RaoRequest raoRequest = new RaoRequest(taskId, networkFileUrl, "cracFileUrl");
         asynchronousRaoRunnerClient.runRaoAsynchronously(raoRequest);
         // call RAO.run
         return ResponseEntity.accepted().build();
     }
-
-    private String uploadIidmNetworkToMinio(String destination, Network network, String fileName, Instant utcInstant) throws IOException {
-        Path iidmTmpPath = new File("/tmp", fileName).toPath();
+//
+    private String uploadIidmNetworkToMinio(String taskId, Network network, Instant utcInstant) throws IOException {
+        Path iidmTmpPath = new File("/tmp", "network").toPath();
         network.write("XIIDM", null, iidmTmpPath);
-        String iidmNetworkDestinationPath = String.format("%s/inputs/networks/%s", "destinationKey", HOURLY_NAME_FORMATTER.format(utcInstant).concat(".xiidm"));
+        String iidmNetworkDestinationPath = String.format("%s/inputs/networks/%s", taskId, HOURLY_NAME_FORMATTER.format(utcInstant).concat(".xiidm"));
         try (FileInputStream iidmNetworkInputStream = new FileInputStream(iidmTmpPath.toString())) {
             minioAdapter.uploadFile(iidmNetworkDestinationPath, iidmNetworkInputStream);
         }

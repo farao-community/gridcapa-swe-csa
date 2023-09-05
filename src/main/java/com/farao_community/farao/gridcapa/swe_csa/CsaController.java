@@ -9,6 +9,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.time.Instant;
 
 
 @RestController
@@ -27,8 +28,10 @@ public class CsaController {
     @ApiOperation(value = "Create and Start a  RAO computation task and returns it's status.", tags = "RAO computation")
     @ApiResponses(value = {@ApiResponse(code = 201, message = "The RAO task has been created successfully."),
             @ApiResponse(code = 400, message = "Invalid inputs.")})
-    public ResponseEntity runDailyRao(@ApiParam(value = "Input files ZIP archive") @RequestPart MultipartFile inputFilesArchive) throws IOException {
-        return ResponseEntity.ok().body(csaService.runRao(inputFilesArchive));
-    }
+    public ResponseEntity runDailyRao(@ApiParam(value = "Input files ZIP archive") @RequestPart MultipartFile inputFilesArchive,
+                                      @ApiParam(value = "UTC instant as a string") @RequestParam(name = "utcInstant") String utcInstant) throws IOException {
+        Instant instant = Instant.parse(utcInstant);
 
+        return ResponseEntity.ok().body(csaService.runRao(inputFilesArchive, instant));
+    }
 }
