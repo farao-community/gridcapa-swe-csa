@@ -1,6 +1,15 @@
 package com.farao_community.farao.gridcapa.swe_csa;
 
+import com.farao_community.farao.data.crac_creation.creator.csa_profile.crac_creator.CsaProfileCracCreationContext;
+import com.farao_community.farao.data.crac_creation.creator.csa_profile.crac_creator.CsaProfileCracCreator;
 import com.farao_community.farao.data.crac_io_api.CracExporters;
+import com.farao_community.farao.data.crac_api.Crac;
+import com.farao_community.farao.data.crac_creation.creator.api.parameters.CracCreationParameters;
+import com.farao_community.farao.data.crac_creation.creator.csa_profile.CsaProfileCrac;
+import com.farao_community.farao.data.crac_creation.creator.csa_profile.importer.CsaProfileCracImporter;
+import com.google.common.base.Suppliers;
+import com.powsybl.computation.local.LocalComputationManager;
+import com.powsybl.iidm.network.ImportConfig;
 import com.powsybl.iidm.network.*;
 import com.farao_community.farao.data.crac_api.*;
 
@@ -12,10 +21,15 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.Properties;
 import java.util.UUID;
+
 
 @Service
 public class CsaService {
@@ -31,11 +45,8 @@ public class CsaService {
 
     public ResponseEntity runRao(MultipartFile inputFilesArchive, Instant utcInstant) throws IOException {
         // TODO import zip  to have a network and crac , as in unit tests
-        //Network network = importNetwork(inputFilesArchive);
-        // Crac crac = importCrac(inputFilesArchive);
-
-        Network network = null;
-        Crac crac = null;
+        Network network = importNetwork(inputFilesArchive);
+        Crac crac = importCrac(inputFilesArchive, network, utcInstant);
         String taskId = UUID.randomUUID().toString();
         String networkFileUrl = uploadIidmNetworkToMinio(taskId, network, utcInstant);
         String cracFileUrl = uploadJsonCrac(taskId, crac, utcInstant);
@@ -58,14 +69,32 @@ public class CsaService {
     }
 
     private String uploadJsonCrac(String taskId, Crac crac, Instant utcInstant) {
-            String jsonCracFilePath = String.format("%s/inputs/cracs/%s", taskId, HOURLY_NAME_FORMATTER.format(utcInstant).concat(".json"));
-            ByteArrayOutputStream cracByteArrayOutputStream = new ByteArrayOutputStream();
-            CracExporters.exportCrac(crac, "Json", cracByteArrayOutputStream);
-            try (InputStream is = new ByteArrayInputStream(cracByteArrayOutputStream.toByteArray())) {
-                minioAdapter.uploadFile(jsonCracFilePath, is);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+        String jsonCracFilePath = String.format("%s/inputs/cracs/%s", taskId, HOURLY_NAME_FORMATTER.format(utcInstant).concat(".json"));
+        ByteArrayOutputStream cracByteArrayOutputStream = new ByteArrayOutputStream();
+        CracExporters.exportCrac(crac, "Json", cracByteArrayOutputStream);
+        try (InputStream is = new ByteArrayInputStream(cracByteArrayOutputStream.toByteArray())) {
+            minioAdapter.uploadFile(jsonCracFilePath, is);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         return minioAdapter.generatePreSignedUrl(jsonCracFilePath);
+    }
+
+    private Network importNetwork(MultipartFile inputFilesArchive) {
+        Network network = Network.read(Paths.get(inputFilesArchive.toString()), LocalComputationManager.getDefault(), Suppliers.memoize(ImportConfig::load).get(), new Properties());
+        return network;
+    }
+
+    private Crac importCrac(MultipartFile inputFilesArchive, Network network, Instant utcInstant) {
+        CsaProfileCracImporter cracImporter = new CsaProfileCracImporter();
+        CsaProfileCrac nativeCrac = null;
+        try {
+            nativeCrac = cracImporter.importNativeCrac(inputFilesArchive.getInputStream());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        CsaProfileCracCreator cracCreator = new CsaProfileCracCreator();
+        CsaProfileCracCreationContext cracCreationContext = cracCreator.createCrac(nativeCrac, network, utcInstant.atOffset(ZoneOffset.UTC), new CracCreationParameters());
+        return cracCreationContext.getCrac();
     }
 }
