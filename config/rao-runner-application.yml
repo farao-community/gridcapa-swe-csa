@@ -1,0 +1,25 @@
+spring:
+  rabbitmq:
+    host: rabbitmq
+    port: 5672
+    username: guest
+    password: guest
+    template:
+      reply-timeout: 7200000
+
+minio:
+  bucket: swe-csa-bucket
+  base-path:
+  access:
+    name: minioadmin
+    secret: minioadmin
+  url: http://minio:9000/
+
+rao-runner:
+  messages:
+    rao-request:
+      queue-name: rao-request-queue
+  url:
+    whitelist:
+      - http://minio:9000/
+

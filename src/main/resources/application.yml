@@ -11,8 +11,7 @@ spring:
     username: guest
     password: guest
 minio:
-  default-bucket: "rao-integration-data"
-  outputs-bucket: "rao-integration-outputs"
+  default-bucket: "swe-csa-bucket"
   access:
     name: minioadmin
     secret: minioadmin
