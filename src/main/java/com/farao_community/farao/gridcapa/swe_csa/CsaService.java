@@ -23,13 +23,11 @@ import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Properties;
 import java.util.UUID;
-
 
 @Service
 public class CsaService {
@@ -57,7 +55,7 @@ public class CsaService {
         // call RAO.run
         return ResponseEntity.accepted().build();
     }
-//
+
     private String uploadIidmNetworkToMinio(String taskId, Network network, Instant utcInstant) throws IOException {
         Path iidmTmpPath = new File("/tmp", "network").toPath();
         network.write("XIIDM", null, iidmTmpPath);

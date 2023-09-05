@@ -17,7 +17,6 @@ import java.nio.file.StandardCopyOption;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-
 @Component
 public class MinioAdapter {
 
