@@ -16,6 +16,8 @@ public class MinioConfiguration {
     private String minioUrl;
     @Value("${minio.default-bucket}")
     private String defaultBucket;
+    @Value("${minio.outputs-bucket}")
+    private String outputsBucket;
 
     @Bean
     public MinioClient generateMinioClient() {
@@ -28,6 +30,10 @@ public class MinioConfiguration {
 
     public String getDefaultBucket() {
         return defaultBucket;
+    }
+
+    public String getOutputsBucket() {
+        return outputsBucket;
     }
 
 }

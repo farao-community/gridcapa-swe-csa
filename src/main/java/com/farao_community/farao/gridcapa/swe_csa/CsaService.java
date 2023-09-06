@@ -11,14 +11,17 @@ import com.google.common.base.Suppliers;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.ImportConfig;
 import com.powsybl.iidm.network.*;
+import com.farao_community.farao.data.crac_api.*;
+
 import com.rte_france.farao.rao_runner.api.resource.RaoRequest;
-import com.rte_france.farao.rao_runner.starter.RaoRunnerClient;
+import com.rte_france.farao.rao_runner.starter.AsynchronousRaoRunnerClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -30,15 +33,16 @@ import java.util.UUID;
 public class CsaService {
     private static final DateTimeFormatter HOURLY_NAME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd'_'HHmm").withZone(ZoneId.of("UTC"));
 
-    private final RaoRunnerClient raoRunnerClient;
+    private final AsynchronousRaoRunnerClient asynchronousRaoRunnerClient;
     private final MinioAdapter minioAdapter;
 
-    public CsaService(RaoRunnerClient raoRunnerClient, MinioAdapter minioAdapter) {
-        this.raoRunnerClient = raoRunnerClient;
+    public CsaService(AsynchronousRaoRunnerClient asynchronousRaoRunnerClient, MinioAdapter minioAdapter) {
+        this.asynchronousRaoRunnerClient = asynchronousRaoRunnerClient;
         this.minioAdapter = minioAdapter;
     }
 
     public ResponseEntity runRao(MultipartFile inputFilesArchive, Instant utcInstant) throws IOException {
+        // TODO import zip  to have a network and crac , as in unit tests
         Network network = importNetwork(inputFilesArchive);
         Crac crac = importCrac(inputFilesArchive, network, utcInstant);
         String taskId = UUID.randomUUID().toString();
@@ -47,7 +51,8 @@ public class CsaService {
 
         // create a rao request network and crac links
         RaoRequest raoRequest = new RaoRequest(taskId, networkFileUrl, cracFileUrl);
-        raoRunnerClient.runRao(raoRequest);
+        asynchronousRaoRunnerClient.runRaoAsynchronously(raoRequest);
+        // call RAO.run
         return ResponseEntity.accepted().build();
     }
 
@@ -74,7 +79,7 @@ public class CsaService {
     }
 
     private Network importNetwork(MultipartFile inputFilesArchive) {
-        Network network = Network.read(saveFileToTmpDirectory(inputFilesArchive), LocalComputationManager.getDefault(), Suppliers.memoize(ImportConfig::load).get(), new Properties());
+        Network network = Network.read(Paths.get(inputFilesArchive.toString()), LocalComputationManager.getDefault(), Suppliers.memoize(ImportConfig::load).get(), new Properties());
         return network;
     }
 
@@ -89,15 +94,5 @@ public class CsaService {
         CsaProfileCracCreator cracCreator = new CsaProfileCracCreator();
         CsaProfileCracCreationContext cracCreationContext = cracCreator.createCrac(nativeCrac, network, utcInstant.atOffset(ZoneOffset.UTC), new CracCreationParameters());
         return cracCreationContext.getCrac();
-    }
-
-    public Path saveFileToTmpDirectory(MultipartFile inputFilesArchive) {
-        Path tempFilePath = Path.of("/home/benrejebmoh/Documents", inputFilesArchive.getOriginalFilename());
-        try {
-            inputFilesArchive.transferTo(tempFilePath);
-            return tempFilePath;
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to save the file to the temporary directory.", e);
-        }
     }
 }
