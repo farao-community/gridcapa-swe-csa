@@ -24,20 +24,14 @@ public class MinioAdapter {
     private static final int DEFAULT_DOWNLOAD_LINK_EXPIRY_IN_DAYS = 7;
     private final MinioClient minioClient;
     private final String defaultBucket;
-    private final String outputsBucket;
 
     public MinioAdapter(MinioConfiguration minioConfiguration, MinioClient minioClient) {
         this.minioClient = minioClient;
         this.defaultBucket = minioConfiguration.getDefaultBucket();
-        this.outputsBucket = minioConfiguration.getOutputsBucket();
     }
 
     public String getDefaultBucket() {
         return defaultBucket;
-    }
-
-    public String getOutputsBucket() {
-        return outputsBucket;
     }
 
     public void createBucketIfDoesNotExist() {
