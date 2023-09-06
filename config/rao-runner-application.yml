@@ -9,17 +9,17 @@ spring:
 
 minio:
   bucket: swe-csa-bucket
-  base-path:
+  base-path: /
   access:
     name: minioadmin
     secret: minioadmin
-  url: http://minio:9000/
+  url: http://localhost:9000/
 
 rao-runner:
   messages:
     rao-request:
-      queue-name: rao-request-queue
+      queue-name: swe-csa-rao-request-queue
   url:
     whitelist:
-      - http://minio:9000/
+      - http://localhost:9000/
 
