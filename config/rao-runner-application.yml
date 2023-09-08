@@ -9,11 +9,11 @@ spring:
 
 minio:
   bucket: swe-csa-bucket
-  base-path: /
+  base-path:
   access:
     name: minioadmin
     secret: minioadmin
-  url: http://localhost:9000/
+  url: http://minio:9000/
 
 rao-runner:
   messages:

@@ -11,6 +11,7 @@ import java.time.Instant;
 
 @RestController
 @RequestMapping("/rao-integration")
+@CrossOrigin(origins = "*")
 public class CsaController {
 
     private static final String JSON_API_MIME_TYPE = "application/vnd.api+json";

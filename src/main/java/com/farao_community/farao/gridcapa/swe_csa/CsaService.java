@@ -7,6 +7,7 @@ import com.farao_community.farao.data.crac_api.Crac;
 import com.farao_community.farao.data.crac_creation.creator.api.parameters.CracCreationParameters;
 import com.farao_community.farao.data.crac_creation.creator.csa_profile.CsaProfileCrac;
 import com.farao_community.farao.data.crac_creation.creator.csa_profile.importer.CsaProfileCracImporter;
+import com.farao_community.farao.minio_adapter.starter.MinioAdapter;
 import com.farao_community.farao.rao_api.json.JsonRaoParameters;
 import com.farao_community.farao.rao_api.parameters.RaoParameters;
 import com.farao_community.farao.rao_runner.api.resource.RaoRequest;
@@ -55,21 +56,21 @@ public class CsaService {
     }
 
     private String uploadIidmNetworkToMinio(String taskId, Network network, Instant utcInstant) throws IOException {
-        Path iidmTmpPath = new File("/home/benrejebmoh/Documents", "network.xiidm").toPath();
+        Path iidmTmpPath = new File(System.getProperty("java.io.tmpdir"), "network.xiidm").toPath();
         network.write("XIIDM", null, iidmTmpPath);
-        String iidmNetworkDestinationPath = String.format("%s/inputs/networks/%s", taskId, HOURLY_NAME_FORMATTER.format(utcInstant).concat(".xiidm"));
+        String iidmNetworkDestinationPath = String.format("%s/networks/%s", taskId, HOURLY_NAME_FORMATTER.format(utcInstant).concat(".xiidm"));
         try (FileInputStream iidmNetworkInputStream = new FileInputStream(iidmTmpPath.toString())) {
-            minioAdapter.uploadFile(iidmNetworkDestinationPath, iidmNetworkInputStream);
+            minioAdapter.uploadArtifact(iidmNetworkDestinationPath, iidmNetworkInputStream);
         }
         return minioAdapter.generatePreSignedUrl(iidmNetworkDestinationPath);
     }
 
     private String uploadJsonCrac(String taskId, Crac crac, Instant utcInstant) {
-        String jsonCracFilePath = String.format("%s/inputs/cracs/%s", taskId, HOURLY_NAME_FORMATTER.format(utcInstant).concat(".json"));
+        String jsonCracFilePath = String.format("%s/cracs/%s", taskId, HOURLY_NAME_FORMATTER.format(utcInstant).concat(".json"));
         ByteArrayOutputStream cracByteArrayOutputStream = new ByteArrayOutputStream();
         CracExporters.exportCrac(crac, "Json", cracByteArrayOutputStream);
         try (InputStream is = new ByteArrayInputStream(cracByteArrayOutputStream.toByteArray())) {
-            minioAdapter.uploadFile(jsonCracFilePath, is);
+            minioAdapter.uploadArtifact(jsonCracFilePath, is);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -82,7 +83,7 @@ public class CsaService {
     }
 
     public Path saveFileToTmpDirectory(MultipartFile inputFilesArchive) {
-        Path tempFilePath = Path.of("/home/benrejebmoh/Documents", inputFilesArchive.getOriginalFilename());
+        Path tempFilePath = Path.of(System.getProperty("java.io.tmpdir"), inputFilesArchive.getOriginalFilename());
         try {
             inputFilesArchive.transferTo(tempFilePath);
             return tempFilePath;
@@ -105,12 +106,12 @@ public class CsaService {
     }
 
     String uploadRaoParameters(String taskId, Instant utcInstant) {
-        String raoParametersFilePath = String.format("%s/inputs/rao-parameters/%s", taskId, HOURLY_NAME_FORMATTER.format(utcInstant).concat(".json"));
+        String raoParametersFilePath = String.format("%s/rao-parameters/%s", taskId, HOURLY_NAME_FORMATTER.format(utcInstant).concat(".json"));
         RaoParameters raoParameters = RaoParameters.load();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         JsonRaoParameters.write(raoParameters, baos);
         ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-        minioAdapter.uploadFile(raoParametersFilePath, bais);
+        minioAdapter.uploadArtifact(raoParametersFilePath, bais);
         return minioAdapter.generatePreSignedUrl(raoParametersFilePath);
     }
 
