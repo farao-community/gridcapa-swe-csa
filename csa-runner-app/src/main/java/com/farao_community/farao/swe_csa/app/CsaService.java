@@ -1,4 +1,4 @@
-package com.farao_community.farao.gridcapa.swe_csa;
+package com.farao_community.farao.swe_csa.app;
 
 import com.farao_community.farao.data.crac_creation.creator.csa_profile.crac_creator.CsaProfileCracCreationContext;
 import com.farao_community.farao.data.crac_creation.creator.csa_profile.crac_creator.CsaProfileCracCreator;

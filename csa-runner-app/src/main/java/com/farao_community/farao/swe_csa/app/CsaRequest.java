@@ -1,4 +1,4 @@
-package com.farao_community.farao.gridcapa.swe_csa;
+package com.farao_community.farao.swe_csa.app;
 
 public class CsaRequest {
 
