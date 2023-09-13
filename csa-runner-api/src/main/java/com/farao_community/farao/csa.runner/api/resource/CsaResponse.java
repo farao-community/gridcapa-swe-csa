@@ -20,20 +20,11 @@ public class CsaResponse {
     @Id
     private final String id;
     private final Status status;
-    private final String errorMessage; // only if status is REJECTED or ERROR, otherwise empty
-
-    @JsonCreator
-    public CsaResponse(@JsonProperty("id") String id, @JsonProperty("status") String status, @JsonProperty("error-message") String errorMessage) {
-        this.id = id;
-        this.status = Status.valueOf(status);
-        this.errorMessage = errorMessage;
-    }
 
     @JsonCreator
     public CsaResponse(@JsonProperty("id") String id, @JsonProperty("status") String status) {
         this.id = id;
         this.status = Status.valueOf(status);
-        this.errorMessage = "none";
     }
 
     public String getId() {
@@ -42,10 +33,6 @@ public class CsaResponse {
 
     public Status getStatus() {
         return status;
-    }
-
-    public String getErrorMessage() {
-        return errorMessage;
     }
 
     @Override

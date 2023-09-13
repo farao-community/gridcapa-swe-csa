@@ -50,7 +50,6 @@ public class CsaRunner {
     private final JsonApiConverter jsonApiConverter = new JsonApiConverter();
     private final StreamBridge streamBridge;
 
-
     public CsaRunner(RaoRunnerClient raoRunnerClient, MinioAdapter minioAdapter, StreamBridge streamBridge) {
         this.raoRunnerClient = raoRunnerClient;
         this.minioAdapter = minioAdapter;

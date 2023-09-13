@@ -67,7 +67,6 @@ class JsonApiConverterTest {
 
         assertEquals("id", response.getId());
         assertEquals(Status.ACCEPTED, response.getStatus());
-        assertEquals("", response.getErrorMessage());
     }
 
     @Test
