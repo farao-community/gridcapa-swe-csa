@@ -16,10 +16,10 @@ public class CsaController {
 
     private static final String JSON_API_MIME_TYPE = "application/vnd.api+json";
 
-    private final CsaService csaService;
+    private final CsaRunner csaRunner;
 
-    public CsaController(CsaService csaService) {
-        this.csaService = csaService;
+    public CsaController(CsaRunner csaRunner) {
+        this.csaRunner = csaRunner;
     }
 
     @PostMapping(value = "/run", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE}, produces = JSON_API_MIME_TYPE)
@@ -27,6 +27,6 @@ public class CsaController {
                                        @RequestParam String utcInstant) throws IOException {
         Instant instant = Instant.parse(utcInstant);
 
-        return ResponseEntity.ok().body(csaService.runRao(inputFilesArchive, instant));
+        return ResponseEntity.ok().body(csaRunner.runRao(inputFilesArchive, instant));
     }
 }

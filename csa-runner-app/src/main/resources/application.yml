@@ -10,6 +10,20 @@ spring:
     port: 5672
     username: guest
     password: guest
+  cloud:
+    stream:
+      function:
+        definition: request
+      default:
+        binder: rabbit
+      bindings:
+        request-in-0:
+          destination: csa-request
+        request-out-0:
+          destination: csa-response
+        acknowledgement:
+          destination: csa-request-ack
+
 minio-adapter:
   bucket: swe-csa-bucket
   base-path:

@@ -11,7 +11,5 @@ package com.farao_community.farao.csa.runner.api.resource;
  */
 public enum Status {
     ACCEPTED,
-    REJECTED,
-    ERROR,
     FINISHED
 }

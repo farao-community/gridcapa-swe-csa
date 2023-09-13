@@ -29,6 +29,13 @@ public class CsaResponse {
         this.errorMessage = errorMessage;
     }
 
+    @JsonCreator
+    public CsaResponse(@JsonProperty("id") String id, @JsonProperty("status") String status) {
+        this.id = id;
+        this.status = Status.valueOf(status);
+        this.errorMessage = "none";
+    }
+
     public String getId() {
         return id;
     }
