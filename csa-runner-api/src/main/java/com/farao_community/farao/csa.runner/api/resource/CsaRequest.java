@@ -1,4 +1,4 @@
-package com.farao_community.farao.swe_csa.api.resource;
+package com.farao_community.farao.csa.runner.api.resource;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -11,7 +11,7 @@ public class CsaRequest {
     @Id
     private final String id;
     private String businessTimestamp;
-    private Profiles commonProfiles;
+    private CommonProfiles commonProfiles;
     private Profiles frProfiles;
     private Profiles esProfiles;
     private Profiles ptProfiles;
@@ -20,7 +20,7 @@ public class CsaRequest {
     @JsonCreator
     public CsaRequest(@JsonProperty("id") String id,
                       @JsonProperty("businessTimestamp") String businessTimestamp,
-                      @JsonProperty("commonProfiles") Profiles commonProfiles,
+                      @JsonProperty("commonProfiles") CommonProfiles commonProfiles,
                       @JsonProperty("frProfiles") Profiles frProfiles,
                       @JsonProperty("esProfiles") Profiles esProfiles,
                       @JsonProperty("ptProfiles") Profiles ptProfiles,
@@ -46,11 +46,11 @@ public class CsaRequest {
         this.businessTimestamp = businessTimestamp;
     }
 
-    public Profiles getCommonProfiles() {
+    public CommonProfiles getCommonProfiles() {
         return commonProfiles;
     }
 
-    public void setCommonProfiles(Profiles commonProfiles) {
+    public void setCommonProfiles(CommonProfiles commonProfiles) {
         this.commonProfiles = commonProfiles;
     }
 
@@ -86,18 +86,59 @@ public class CsaRequest {
         this.resultsUri = resultsUri;
     }
 
+    public static class CommonProfiles {
+        private String tpbdProfileUri;
+        private String eqbdProfileUri;
+        private String svProfileUri;
+
+        public String getTpbdProfileUri() {
+            return tpbdProfileUri;
+        }
+
+        public void setTpbdProfileUri(String tpbdProfileUri) {
+            this.tpbdProfileUri = tpbdProfileUri;
+        }
+
+        public String getEqbdProfileUri() {
+            return eqbdProfileUri;
+        }
+
+        public void setEqbdProfileUri(String eqbdProfileUri) {
+            this.eqbdProfileUri = eqbdProfileUri;
+        }
+
+        public String getSvProfileUri() {
+            return svProfileUri;
+        }
+
+        public void setSvProfileUri(String svProfileUri) {
+            this.svProfileUri = svProfileUri;
+        }
+    }
+
     public static class Profiles {
         private String sshProfileUri;
+
         private String tpProfileUri;
+
         private String eqProfileUri;
+
         private String aeProfileUri;
+
         private String coProfileUri;
+
         private String raProfileUri;
+
         private String erProfileUri;
+
         private String ssiProfileUri;
+
         private String sisProfileUri;
+
         private String maProfileUri;
+
         private String smProfileUri;
+
         private String asProfileUri;
 
         public String getSshProfileUri() {
