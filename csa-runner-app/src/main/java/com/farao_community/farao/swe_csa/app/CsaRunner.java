@@ -63,6 +63,7 @@ public class CsaRunner {
         try {
             CsaRequest csaRequest = jsonApiConverter.fromJsonMessage(req, CsaRequest.class);
             LOGGER.info("Csa request received : {}", csaRequest);
+            // todo create a mock app that pushes files to minio and return a request json file with presigned urls
             // todo browse request and download files from minio
             // todo create inputFilesArchive (ongoing by JP)
             MultipartFile inputFilesArchive = null;

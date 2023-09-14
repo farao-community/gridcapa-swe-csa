@@ -29,7 +29,7 @@ minio-adapter:
   base-path:
   access-key: minioadmin
   secret-key: minioadmin
-  url: http://minio:9000
+  url: http://localhost:9000
 rao-runner-server:
   amqp:
     client-app-id: swe-csa-runner
@@ -37,3 +37,6 @@ rao-runner-server:
       # take it quite large, as rao-runner might not prefetch more than one rao-request. Rao-request
     # must therefore stay in queue until a rao-runner is free, or until the time-out is reached
     queue-name: swe-csa-rao-request-queue
+
+rao-integration:
+  async-time-out: 4500000 # 1h15min (75*60*1000)
