@@ -51,19 +51,21 @@ public class CsaRunner {
     private final MinioAdapter minioAdapter;
     private final JsonApiConverter jsonApiConverter = new JsonApiConverter();
     private final StreamBridge streamBridge;
+    private final MockCsaRequest mockCsaRequest;
+
     private byte[] resultBytes;
 
-    public CsaRunner(AsynchronousRaoRunnerClient asynchronousRaoRunnerClient, MinioAdapter minioAdapter, StreamBridge streamBridge) {
+    public CsaRunner(AsynchronousRaoRunnerClient asynchronousRaoRunnerClient, MinioAdapter minioAdapter, StreamBridge streamBridge, MockCsaRequest mockCsaRequest) {
         this.asynchronousRaoRunnerClient = asynchronousRaoRunnerClient;
         this.minioAdapter = minioAdapter;
         this.streamBridge = streamBridge;
+        this.mockCsaRequest = mockCsaRequest;
     }
 
     public byte[] launchCsaRequest(byte[] req) {
         try {
             CsaRequest csaRequest = jsonApiConverter.fromJsonMessage(req, CsaRequest.class);
             LOGGER.info("Csa request received : {}", csaRequest);
-            // todo create a mock app that pushes files to minio and return a request json file with presigned urls
             // todo browse request and download files from minio
             // todo create inputFilesArchive (ongoing by JP)
             MultipartFile inputFilesArchive = null;
@@ -103,9 +105,9 @@ public class CsaRunner {
     }
 
     public ResponseEntity runRao(MultipartFile inputFilesArchive, Instant utcInstant) throws IOException, ExecutionException, InterruptedException {
+        String taskId = UUID.randomUUID().toString();
         Network network = importNetwork(inputFilesArchive);
         Crac crac = importCrac(inputFilesArchive, network, utcInstant);
-        String taskId = UUID.randomUUID().toString();
         String networkFileUrl = uploadIidmNetworkToMinio(taskId, network, utcInstant);
         String cracFileUrl = uploadJsonCrac(taskId, crac, utcInstant);
         String raoParametersUrl = uploadRaoParameters(taskId, utcInstant);
@@ -177,4 +179,5 @@ public class CsaRunner {
     public void setResultBytes(byte[] resultBytes) {
         this.resultBytes = resultBytes;
     }
+
 }

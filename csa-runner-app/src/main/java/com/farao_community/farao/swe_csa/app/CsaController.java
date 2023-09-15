@@ -18,16 +18,26 @@ public class CsaController {
     private static final String JSON_API_MIME_TYPE = "application/vnd.api+json";
 
     private final CsaRunner csaRunner;
+    private final MockCsaRequest mockCsaRequest;
 
-    public CsaController(CsaRunner csaRunner) {
+    public CsaController(CsaRunner csaRunner, MockCsaRequest mockCsaRequest) {
         this.csaRunner = csaRunner;
+        this.mockCsaRequest = mockCsaRequest;
     }
 
     @PostMapping(value = "/run", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE}, produces = JSON_API_MIME_TYPE)
-    public ResponseEntity runDailyRao(@RequestPart MultipartFile inputFilesArchive,
+    public ResponseEntity runCsaByZip(@RequestPart MultipartFile inputFilesArchive,
                                        @RequestParam String utcInstant) throws IOException, ExecutionException, InterruptedException {
         Instant instant = Instant.parse(utcInstant);
 
         return ResponseEntity.ok().body(csaRunner.runRao(inputFilesArchive, instant));
+    }
+
+    @PostMapping(value = "/convert-to-request", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE}, produces = JSON_API_MIME_TYPE)
+    public ResponseEntity convertZipToCsaRequest(@RequestPart MultipartFile inputFilesArchive,
+                                      @RequestParam String utcInstant) throws IOException {
+        Instant instant = Instant.parse(utcInstant);
+
+        return ResponseEntity.ok().body(mockCsaRequest.convertZipToCsaRequest(inputFilesArchive, instant));
     }
 }
