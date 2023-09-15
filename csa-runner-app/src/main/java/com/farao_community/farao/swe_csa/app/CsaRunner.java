@@ -24,6 +24,7 @@ import com.google.common.base.Suppliers;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.ImportConfig;
 import com.powsybl.iidm.network.*;
+import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cloud.stream.function.StreamBridge;
@@ -34,6 +35,7 @@ import org.springframework.mock.web.MockMultipartFile;
 
 import java.io.*;
 import java.net.URI;
+import java.net.URL;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -55,26 +57,21 @@ public class CsaRunner {
     private final MinioAdapter minioAdapter;
     private final JsonApiConverter jsonApiConverter = new JsonApiConverter();
     private final StreamBridge streamBridge;
-    private final MockCsaRequest mockCsaRequest;
-
     private byte[] resultBytes;
 
-    public CsaRunner(AsynchronousRaoRunnerClient asynchronousRaoRunnerClient, MinioAdapter minioAdapter, StreamBridge streamBridge, MockCsaRequest mockCsaRequest) {
+    public CsaRunner(AsynchronousRaoRunnerClient asynchronousRaoRunnerClient, MinioAdapter minioAdapter, StreamBridge streamBridge) {
         this.asynchronousRaoRunnerClient = asynchronousRaoRunnerClient;
         this.minioAdapter = minioAdapter;
         this.streamBridge = streamBridge;
-        this.mockCsaRequest = mockCsaRequest;
     }
 
     public byte[] launchCsaRequest(byte[] req) {
         try {
             CsaRequest csaRequest = jsonApiConverter.fromJsonMessage(req, CsaRequest.class);
             LOGGER.info("Csa request received : {}", csaRequest);
-            // todo browse request and download files from minio
-            // todo create inputFilesArchive (ongoing by JP)
-            Instant utcInstant = null;
+            Instant utcInstant = Instant.parse(csaRequest.getBusinessTimestamp());
             MultipartFile inputFilesArchive = zipDataCsaRequestFiles(csaRequest, utcInstant);
-            String requestId = "";
+            String requestId = csaRequest.getId();
 
             Network network = importNetwork(inputFilesArchive);
             Crac crac = importCrac(inputFilesArchive, network, utcInstant);
@@ -151,16 +148,17 @@ public class CsaRunner {
     }
 
     private void zipDataFile(String uriStr, ZipOutputStream zipOut) throws IOException {
-        File fileToZip = new File(URI.create(uriStr));
-        try (FileInputStream fis = new FileInputStream(fileToZip)) {
-            ZipEntry zipEntry = new ZipEntry(fileToZip.getName());
-            zipOut.putNextEntry(zipEntry);
-            byte[] bytes = new byte[1024];
-            int length;
-            while ((length = fis.read(bytes)) >= 0) {
-                zipOut.write(bytes, 0, length);
+        if (uriStr != null) {
+            URL url = new URL(uriStr);
+            try (InputStream fis = url.openStream()) {
+                ZipEntry zipEntry = new ZipEntry( FilenameUtils.getName(url.getPath()));
+                zipOut.putNextEntry(zipEntry);
+                byte[] bytes = new byte[1024];
+                int length;
+                while ((length = fis.read(bytes)) >= 0) {
+                    zipOut.write(bytes, 0, length);
+                }
             }
-            fis.close();
         }
     }
 
@@ -192,7 +190,7 @@ public class CsaRunner {
     }
 
     public Path saveFileToTmpDirectory(MultipartFile inputFilesArchive) {
-        Path tempFilePath = Path.of(System.getProperty("java.io.tmpdir"), inputFilesArchive.getOriginalFilename());
+        Path tempFilePath = Path.of(System.getProperty("java.io.tmpdir"), inputFilesArchive.getName());
         try {
             inputFilesArchive.transferTo(tempFilePath);
             return tempFilePath;

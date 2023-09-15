@@ -1,6 +1,8 @@
 
 package com.farao_community.farao.swe_csa.app;
 
+import com.farao_community.farao.csa.runner.api.JsonApiConverter;
+import com.farao_community.farao.csa.runner.api.resource.CsaRequest;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +21,7 @@ public class CsaController {
 
     private final CsaRunner csaRunner;
     private final MockCsaRequest mockCsaRequest;
+    private final JsonApiConverter jsonApiConverter = new JsonApiConverter();
 
     public CsaController(CsaRunner csaRunner, MockCsaRequest mockCsaRequest) {
         this.csaRunner = csaRunner;
@@ -38,6 +41,6 @@ public class CsaController {
                                       @RequestParam String utcInstant) throws IOException {
         Instant instant = Instant.parse(utcInstant);
 
-        return ResponseEntity.ok().body(mockCsaRequest.convertZipToCsaRequest(inputFilesArchive, instant));
+        return ResponseEntity.ok().body(jsonApiConverter.toJsonMessage(mockCsaRequest.convertZipToCsaRequest(inputFilesArchive, instant), CsaRequest.class));
     }
 }
