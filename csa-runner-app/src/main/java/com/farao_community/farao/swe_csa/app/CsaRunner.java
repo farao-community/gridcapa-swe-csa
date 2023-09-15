@@ -30,8 +30,10 @@ import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.mock.web.MockMultipartFile;
 
 import java.io.*;
+import java.net.URI;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -41,6 +43,8 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Service
 public class CsaRunner {
@@ -68,8 +72,8 @@ public class CsaRunner {
             LOGGER.info("Csa request received : {}", csaRequest);
             // todo browse request and download files from minio
             // todo create inputFilesArchive (ongoing by JP)
-            MultipartFile inputFilesArchive = null;
             Instant utcInstant = null;
+            MultipartFile inputFilesArchive = zipDataCsaRequestFiles(csaRequest, utcInstant);
             String requestId = "";
 
             Network network = importNetwork(inputFilesArchive);
@@ -114,6 +118,50 @@ public class CsaRunner {
         RaoRequest raoRequest = new RaoRequest(taskId, networkFileUrl, cracFileUrl, raoParametersUrl);
         asynchronousRaoRunnerClient.runRaoAsynchronously(raoRequest).get();
         return ResponseEntity.accepted().build();
+    }
+
+    private MultipartFile zipDataCsaRequestFiles(CsaRequest csaRequest, Instant utcInstant) throws IOException {
+        String zipName = String.format("csaProfileData_%s", HOURLY_NAME_FORMATTER.format(utcInstant).concat(".zip"));
+        FileOutputStream fos = new FileOutputStream(zipName);
+        ZipOutputStream zipOut = new ZipOutputStream(fos);
+        zipDataFile(csaRequest.getCommonProfiles().getSvProfileUri(), zipOut);
+        zipDataFile(csaRequest.getCommonProfiles().getEqbdProfileUri(), zipOut);
+        zipDataFile(csaRequest.getCommonProfiles().getTpbdProfileUri(), zipOut);
+        zipDataProfilesFiles(csaRequest.getEsProfiles(), zipOut);
+        zipDataProfilesFiles(csaRequest.getFrProfiles(), zipOut);
+        zipDataProfilesFiles(csaRequest.getPtProfiles(), zipOut);
+        zipOut.close();
+        fos.close();
+        return new MockMultipartFile(zipName, new FileInputStream(zipName));
+    }
+
+    private void zipDataProfilesFiles(CsaRequest.Profiles profiles, ZipOutputStream zipOut) throws IOException {
+        zipDataFile(profiles.getSshProfileUri(), zipOut);
+        zipDataFile(profiles.getTpProfileUri(), zipOut);
+        zipDataFile(profiles.getEqProfileUri(), zipOut);
+        zipDataFile(profiles.getAeProfileUri(), zipOut);
+        zipDataFile(profiles.getCoProfileUri(), zipOut);
+        zipDataFile(profiles.getRaProfileUri(), zipOut);
+        zipDataFile(profiles.getErProfileUri(), zipOut);
+        zipDataFile(profiles.getSsiProfileUri(), zipOut);
+        zipDataFile(profiles.getSisProfileUri(), zipOut);
+        zipDataFile(profiles.getMaProfileUri(), zipOut);
+        zipDataFile(profiles.getSmProfileUri(), zipOut);
+        zipDataFile(profiles.getAsProfileUri(), zipOut);
+    }
+
+    private void zipDataFile(String uriStr, ZipOutputStream zipOut) throws IOException {
+        File fileToZip = new File(URI.create(uriStr));
+        try (FileInputStream fis = new FileInputStream(fileToZip)) {
+            ZipEntry zipEntry = new ZipEntry(fileToZip.getName());
+            zipOut.putNextEntry(zipEntry);
+            byte[] bytes = new byte[1024];
+            int length;
+            while ((length = fis.read(bytes)) >= 0) {
+                zipOut.write(bytes, 0, length);
+            }
+            fis.close();
+        }
     }
 
     private String uploadIidmNetworkToMinio(String taskId, Network network, Instant utcInstant) throws IOException {
