@@ -71,7 +71,7 @@ public class CsaRunner {
             // todo browse request and download files from minio
             // todo create inputFilesArchive (ongoing by JP)
             Instant utcInstant = null;
-            MultipartFile inputFilesArchive = zipDataFiles(csaRequest, utcInstant);
+            MultipartFile inputFilesArchive = zipDataCsaRequestFiles(csaRequest, utcInstant);
             String requestId = "";
 
             Network network = importNetwork(inputFilesArchive);
@@ -118,23 +118,19 @@ public class CsaRunner {
         return ResponseEntity.accepted().build();
     }
 
-    private MultipartFile zipDataFiles(CsaRequest csaRequest, Instant utcInstant) throws IOException {
+    private MultipartFile zipDataCsaRequestFiles(CsaRequest csaRequest, Instant utcInstant) throws IOException {
         String zipName = String.format("csaProfileData_%s", HOURLY_NAME_FORMATTER.format(utcInstant).concat(".zip"));
         FileOutputStream fos = new FileOutputStream(zipName);
         ZipOutputStream zipOut = new ZipOutputStream(fos);
-        zipDataFiles(csaRequest, zipOut);
-        zipOut.close();
-        fos.close();
-        return new MockMultipartFile(zipName, new FileInputStream(zipName));
-    }
-
-    private void zipDataFiles(CsaRequest csaRequest, ZipOutputStream zipOut) throws IOException {
         zipDataFile(csaRequest.getCommonProfiles().getSvProfileUri(), zipOut);
         zipDataFile(csaRequest.getCommonProfiles().getEqbdProfileUri(), zipOut);
         zipDataFile(csaRequest.getCommonProfiles().getTpbdProfileUri(), zipOut);
         zipDataProfilesFiles(csaRequest.getEsProfiles(), zipOut);
         zipDataProfilesFiles(csaRequest.getFrProfiles(), zipOut);
         zipDataProfilesFiles(csaRequest.getPtProfiles(), zipOut);
+        zipOut.close();
+        fos.close();
+        return new MockMultipartFile(zipName, new FileInputStream(zipName));
     }
 
     private void zipDataProfilesFiles(CsaRequest.Profiles profiles, ZipOutputStream zipOut) throws IOException {
