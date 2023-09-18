@@ -19,7 +19,7 @@ import com.farao_community.farao.rao_api.json.JsonRaoParameters;
 import com.farao_community.farao.rao_api.parameters.RaoParameters;
 import com.farao_community.farao.rao_runner.api.resource.RaoRequest;
 import com.farao_community.farao.rao_runner.api.resource.RaoResponse;
-import com.farao_community.farao.rao_runner.starter.AsynchronousRaoRunnerClient;
+import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
 import com.google.common.base.Suppliers;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.ImportConfig;
@@ -46,7 +46,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -56,14 +55,14 @@ public class CsaRunner {
     private static final Logger LOGGER = LoggerFactory.getLogger(CsaRunner.class);
     private static final DateTimeFormatter HOURLY_NAME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd'_'HHmm").withZone(ZoneId.of("UTC"));
 
-    private final AsynchronousRaoRunnerClient asynchronousRaoRunnerClient;
+    private final RaoRunnerClient raoRunnerClient;
     private final MinioAdapter minioAdapter;
     private final JsonApiConverter jsonApiConverter = new JsonApiConverter();
     private final StreamBridge streamBridge;
     private byte[] resultBytes;
 
-    public CsaRunner(AsynchronousRaoRunnerClient asynchronousRaoRunnerClient, MinioAdapter minioAdapter, StreamBridge streamBridge) {
-        this.asynchronousRaoRunnerClient = asynchronousRaoRunnerClient;
+    public CsaRunner(RaoRunnerClient raoRunnerClient, MinioAdapter minioAdapter, StreamBridge streamBridge) {
+        this.raoRunnerClient = raoRunnerClient;
         this.minioAdapter = minioAdapter;
         this.streamBridge = streamBridge;
     }
@@ -90,19 +89,19 @@ public class CsaRunner {
             // send ack message
             streamBridge.send("acknowledgement", new CsaResponse(requestId, Status.ACCEPTED.toString()));
 
-            CompletableFuture<RaoResponse> raoResponseFuture = asynchronousRaoRunnerClient.runRaoAsynchronously(raoRequest);
-            raoResponseFuture.thenComposeAsync(raoResponse -> {
+            try {
+                RaoResponse raoResponse = raoRunnerClient.runRao(raoRequest);
                 LOGGER.info("RAO computation answer received  for TimeStamp: '{}'", raoRequest.getInstant());
                 // TODO create rao schedule and send to minio/sds
-                CsaResponse csaResponse = new CsaResponse(requestId, Status.FINISHED.toString());
+                CsaResponse csaResponse = new CsaResponse(raoResponse.getId(), Status.FINISHED.toString());
                 setResultBytes(jsonApiConverter.toJsonMessage(csaResponse, CsaResponse.class));
-                return null;
-            }).exceptionally(raoException -> {
+                throw new RuntimeException("empty ex");
+            } catch (Exception raoException) {
                 AbstractCsaException csaException = new CsaInternalException("Error during rao", raoException);
                 LOGGER.error(csaException.getDetails(), csaException);
                 setResultBytes(jsonApiConverter.toJsonMessage(csaException));
-                return null;
-            });
+            }
+
         } catch (Exception e) {
             AbstractCsaException csaException = new CsaInvalidDataException("Couldn't convert Csa data to farao data", e);
             LOGGER.error(csaException.getDetails(), csaException);
@@ -121,7 +120,7 @@ public class CsaRunner {
         String cracFileUrl = uploadJsonCrac(taskId, crac, utcInstant);
         String raoParametersUrl = uploadRaoParameters(taskId, utcInstant);
         RaoRequest raoRequest = new RaoRequest(taskId, networkFileUrl, cracFileUrl, raoParametersUrl);
-        asynchronousRaoRunnerClient.runRaoAsynchronously(raoRequest).get();
+        raoRunnerClient.runRao(raoRequest);
         return ResponseEntity.accepted().build();
     }
 
