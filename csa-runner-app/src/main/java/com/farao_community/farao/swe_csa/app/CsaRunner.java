@@ -95,7 +95,6 @@ public class CsaRunner {
                 // TODO create rao schedule and send to minio/sds
                 CsaResponse csaResponse = new CsaResponse(raoResponse.getId(), Status.FINISHED.toString());
                 setResultBytes(jsonApiConverter.toJsonMessage(csaResponse, CsaResponse.class));
-                throw new RuntimeException("empty ex");
             } catch (Exception raoException) {
                 AbstractCsaException csaException = new CsaInternalException("Error during rao", raoException);
                 LOGGER.error(csaException.getDetails(), csaException);
