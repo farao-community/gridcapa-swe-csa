@@ -31,17 +31,20 @@ import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.mock.web.MockMultipartFile;
 
 import java.io.*;
-import java.net.URI;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Properties;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -69,17 +72,20 @@ public class CsaRunner {
         try {
             CsaRequest csaRequest = jsonApiConverter.fromJsonMessage(req, CsaRequest.class);
             LOGGER.info("Csa request received : {}", csaRequest);
+
+            FileAttribute<Set<PosixFilePermission>> attr = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------"));
+            Path archiveTempPath = Files.createTempFile("csa-temp-inputs", "inputs.zip", attr);
+
             Instant utcInstant = Instant.parse(csaRequest.getBusinessTimestamp());
-            MultipartFile inputFilesArchive = zipDataCsaRequestFiles(csaRequest, utcInstant);
+            zipDataCsaRequestFiles(csaRequest, archiveTempPath);
             String requestId = csaRequest.getId();
 
-            Network network = importNetwork(inputFilesArchive);
-            Crac crac = importCrac(inputFilesArchive, network, utcInstant);
-            String taskId = UUID.randomUUID().toString();
-            String networkFileUrl = uploadIidmNetworkToMinio(taskId, network, utcInstant);
-            String cracFileUrl = uploadJsonCrac(taskId, crac, utcInstant);
-            String raoParametersUrl = uploadRaoParameters(taskId, utcInstant);
-            RaoRequest raoRequest = new RaoRequest(taskId, networkFileUrl, cracFileUrl, raoParametersUrl);
+            Network network = importNetwork(archiveTempPath);
+            Crac crac = importCrac(archiveTempPath, network, utcInstant);
+            String networkFileUrl = uploadIidmNetworkToMinio(requestId, network, utcInstant);
+            String cracFileUrl = uploadJsonCrac(requestId, crac, utcInstant);
+            String raoParametersUrl = uploadRaoParameters(requestId, utcInstant);
+            RaoRequest raoRequest = new RaoRequest(requestId, networkFileUrl, cracFileUrl, raoParametersUrl);
 
             // send ack message
             streamBridge.send("acknowledgement", new CsaResponse(requestId, Status.ACCEPTED.toString()));
@@ -107,8 +113,10 @@ public class CsaRunner {
 
     public ResponseEntity runRao(MultipartFile inputFilesArchive, Instant utcInstant) throws IOException, ExecutionException, InterruptedException {
         String taskId = UUID.randomUUID().toString();
-        Network network = importNetwork(inputFilesArchive);
-        Crac crac = importCrac(inputFilesArchive, network, utcInstant);
+        Path tempFilePath = Path.of(System.getProperty("java.io.tmpdir"), inputFilesArchive.getOriginalFilename());
+        saveFileToDirectory(inputFilesArchive, tempFilePath);
+        Network network = importNetwork(tempFilePath);
+        Crac crac = importCrac(tempFilePath, network, utcInstant);
         String networkFileUrl = uploadIidmNetworkToMinio(taskId, network, utcInstant);
         String cracFileUrl = uploadJsonCrac(taskId, crac, utcInstant);
         String raoParametersUrl = uploadRaoParameters(taskId, utcInstant);
@@ -117,9 +125,8 @@ public class CsaRunner {
         return ResponseEntity.accepted().build();
     }
 
-    private MultipartFile zipDataCsaRequestFiles(CsaRequest csaRequest, Instant utcInstant) throws IOException {
-        String zipName = String.format("csaProfileData_%s", HOURLY_NAME_FORMATTER.format(utcInstant).concat(".zip"));
-        FileOutputStream fos = new FileOutputStream(zipName);
+    private void zipDataCsaRequestFiles(CsaRequest csaRequest, Path archiveTempPath) throws IOException {
+        FileOutputStream fos = new FileOutputStream(archiveTempPath.toFile());
         ZipOutputStream zipOut = new ZipOutputStream(fos);
         zipDataFile(csaRequest.getCommonProfiles().getSvProfileUri(), zipOut);
         zipDataFile(csaRequest.getCommonProfiles().getEqbdProfileUri(), zipOut);
@@ -129,7 +136,6 @@ public class CsaRunner {
         zipDataProfilesFiles(csaRequest.getPtProfiles(), zipOut);
         zipOut.close();
         fos.close();
-        return new MockMultipartFile(zipName, new FileInputStream(zipName));
     }
 
     private void zipDataProfilesFiles(CsaRequest.Profiles profiles, ZipOutputStream zipOut) throws IOException {
@@ -151,7 +157,7 @@ public class CsaRunner {
         if (uriStr != null) {
             URL url = new URL(uriStr);
             try (InputStream fis = url.openStream()) {
-                ZipEntry zipEntry = new ZipEntry( FilenameUtils.getName(url.getPath()));
+                ZipEntry zipEntry = new ZipEntry(FilenameUtils.getName(url.getPath()));
                 zipOut.putNextEntry(zipEntry);
                 byte[] bytes = new byte[1024];
                 int length;
@@ -184,26 +190,23 @@ public class CsaRunner {
         return minioAdapter.generatePreSignedUrl(jsonCracFilePath);
     }
 
-    private Network importNetwork(MultipartFile inputFilesArchive) {
-        Network network = Network.read(saveFileToTmpDirectory(inputFilesArchive), LocalComputationManager.getDefault(), Suppliers.memoize(ImportConfig::load).get(), new Properties());
-        return network;
+    private Network importNetwork(Path archiveTempPath) {
+        return Network.read(archiveTempPath, LocalComputationManager.getDefault(), Suppliers.memoize(ImportConfig::load).get(), new Properties());
     }
 
-    public Path saveFileToTmpDirectory(MultipartFile inputFilesArchive) {
-        Path tempFilePath = Path.of(System.getProperty("java.io.tmpdir"), inputFilesArchive.getName());
+    public void saveFileToDirectory(MultipartFile inputFilesArchive, Path directory) {
         try {
-            inputFilesArchive.transferTo(tempFilePath);
-            return tempFilePath;
+            inputFilesArchive.transferTo(directory);
         } catch (IOException e) {
             throw new RuntimeException("Failed to save the file to the temporary directory.", e);
         }
     }
 
-    private Crac importCrac(MultipartFile inputFilesArchive, Network network, Instant utcInstant) {
+    private Crac importCrac(Path archiveTempPath, Network network, Instant utcInstant) {
         CsaProfileCracImporter cracImporter = new CsaProfileCracImporter();
         CsaProfileCrac nativeCrac;
         try {
-            nativeCrac = cracImporter.importNativeCrac(inputFilesArchive.getInputStream());
+            nativeCrac = cracImporter.importNativeCrac(new FileInputStream(archiveTempPath.toFile()));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
