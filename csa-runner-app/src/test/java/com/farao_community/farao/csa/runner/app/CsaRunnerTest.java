@@ -3,6 +3,7 @@ package com.farao_community.farao.csa.runner.app;
 import com.farao_community.farao.csa.runner.api.JsonApiConverter;
 import com.farao_community.farao.csa.runner.api.resource.CsaResponse;
 import com.farao_community.farao.csa.runner.api.resource.Status;
+import com.farao_community.farao.data.crac_api.Crac;
 import com.farao_community.farao.minio_adapter.starter.MinioAdapter;
 import com.farao_community.farao.rao_runner.api.resource.RaoResponse;
 import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
@@ -18,6 +19,7 @@ import org.springframework.cloud.stream.function.StreamBridge;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.Properties;
@@ -56,5 +58,22 @@ public class CsaRunnerTest {
         CsaResponse recievedCsaResponse = jsonApiConverter.fromJsonMessage(result, CsaResponse.class);
         assertEquals(expectedCsaResponse.getId(), recievedCsaResponse.getId());
         assertEquals(expectedCsaResponse.getStatus(), recievedCsaResponse.getStatus());
+    }
+
+    @Test
+    void testImportCrac() {
+        RaoRunnerClient raoRunnerClient = Mockito.mock(RaoRunnerClient.class);
+        MinioAdapter minioAdapter = Mockito.mock(MinioAdapter.class);
+        StreamBridge streamBridge = Mockito.mock(StreamBridge.class);
+        CsaRunner csaRunner = new CsaRunner(raoRunnerClient, minioAdapter, streamBridge);
+
+        Path filePath = Paths.get(new File(getClass().getResource("/TestCase_13_5_4.zip").getFile()).toString());
+        Network network = Network.read(Paths.get(new File(getClass().getResource("/TestCase_13_5_4.zip").getFile()).toString()), LocalComputationManager.getDefault(), Suppliers.memoize(ImportConfig::load).get(), new Properties());
+
+        Crac crac = csaRunner.importCrac(filePath, network, Instant.parse("2023-08-08T15:30:00Z"));
+
+        assertEquals(1, crac.getContingencies().size());
+        assertEquals(6, crac.getFlowCnecs().size());
+        assertEquals(3, crac.getStates().size());
     }
 }
