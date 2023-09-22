@@ -68,7 +68,7 @@ public class CsaRunnerTest {
         CsaRunner csaRunner = new CsaRunner(raoRunnerClient, minioAdapter, streamBridge);
 
         Path filePath = Paths.get(new File(getClass().getResource("/TestCase_13_5_4.zip").getFile()).toString());
-        Network network = Network.read(Paths.get(new File(getClass().getResource("/TestCase_13_5_4.zip").getFile()).toString()), LocalComputationManager.getDefault(), Suppliers.memoize(ImportConfig::load).get(), new Properties());
+        Network network = csaRunner.importNetwork(Paths.get(new File(getClass().getResource("/TestCase_13_5_4.zip").getFile()).toString()));
 
         Crac crac = csaRunner.importCrac(filePath, network, Instant.parse("2023-08-08T15:30:00Z"));
 
