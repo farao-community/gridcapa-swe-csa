@@ -53,6 +53,7 @@ import java.util.zip.ZipOutputStream;
 @Service
 public class CsaRunner {
     private static final Logger LOGGER = LoggerFactory.getLogger(CsaRunner.class);
+    private static final String ACK_BRIDGE_NAME = "acknowledgement";
     private static final DateTimeFormatter HOURLY_NAME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd'_'HHmm").withZone(ZoneId.of("UTC"));
 
     private final RaoRunnerClient raoRunnerClient;
@@ -87,7 +88,7 @@ public class CsaRunner {
             RaoRequest raoRequest = new RaoRequest(requestId, networkFileUrl, cracFileUrl, raoParametersUrl);
 
             // send ack message
-            streamBridge.send("acknowledgement", new CsaResponse(requestId, Status.ACCEPTED.toString()));
+            streamBridge.send(ACK_BRIDGE_NAME, jsonApiConverter.toJsonMessage(new CsaResponse(requestId, Status.ACCEPTED.toString()), CsaResponse.class));
 
             try {
                 RaoResponse raoResponse = raoRunnerClient.runRao(raoRequest);
