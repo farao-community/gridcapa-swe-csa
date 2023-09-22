@@ -123,7 +123,7 @@ public class CsaRunner {
         return ResponseEntity.accepted().build();
     }
 
-    private void zipDataCsaRequestFiles(CsaRequest csaRequest, Path archiveTempPath) throws IOException {
+    public void zipDataCsaRequestFiles(CsaRequest csaRequest, Path archiveTempPath) throws IOException {
         FileOutputStream fos = new FileOutputStream(archiveTempPath.toFile());
         ZipOutputStream zipOut = new ZipOutputStream(fos);
         zipDataFile(csaRequest.getCommonProfiles().getSvProfileUri(), zipOut);
@@ -151,7 +151,7 @@ public class CsaRunner {
         zipDataFile(profiles.getAsProfileUri(), zipOut);
     }
 
-    private void zipDataFile(String uriStr, ZipOutputStream zipOut) throws IOException {
+    public void zipDataFile(String uriStr, ZipOutputStream zipOut) throws IOException {
         if (uriStr != null) {
             URL url = new URL(uriStr);
             try (InputStream fis = url.openStream()) {
@@ -188,7 +188,7 @@ public class CsaRunner {
         return minioAdapter.generatePreSignedUrl(jsonCracFilePath);
     }
 
-    private Network importNetwork(Path archiveTempPath) {
+    public Network importNetwork(Path archiveTempPath) {
         return Network.read(archiveTempPath, LocalComputationManager.getDefault(), Suppliers.memoize(ImportConfig::load).get(), new Properties());
     }
 
@@ -200,7 +200,7 @@ public class CsaRunner {
         }
     }
 
-    private Crac importCrac(Path archiveTempPath, Network network, Instant utcInstant) {
+    public Crac importCrac(Path archiveTempPath, Network network, Instant utcInstant) {
         CsaProfileCracImporter cracImporter = new CsaProfileCracImporter();
         CsaProfileCrac nativeCrac;
         try {
@@ -226,5 +226,4 @@ public class CsaRunner {
     public void setResultBytes(byte[] resultBytes) {
         this.resultBytes = resultBytes;
     }
-
 }
