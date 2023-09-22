@@ -1,0 +1,9 @@
+{
+  "data": {
+    "type": "csa-rao-response",
+    "id": "id",
+    "attributes": {
+      "status": "ACCEPTED"
+    }
+  }
+}

@@ -10,12 +10,26 @@ spring:
     port: 5672
     username: guest
     password: guest
+  cloud:
+    stream:
+      function:
+        definition: request
+      default:
+        binder: rabbit
+      bindings:
+        request-in-0:
+          destination: csa-request
+        request-out-0:
+          destination: csa-response
+        acknowledgement:
+          destination: csa-request-ack
+
 minio-adapter:
   bucket: swe-csa-bucket
   base-path:
   access-key: minioadmin
   secret-key: minioadmin
-  url: http://minio:9000
+  url: http://localhost:9000
 rao-runner-server:
   amqp:
     client-app-id: swe-csa-runner

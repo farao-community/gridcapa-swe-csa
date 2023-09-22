@@ -13,7 +13,7 @@ minio:
   access:
     name: minioadmin
     secret: minioadmin
-  url: http://minio:9000/
+  url: http://minio:9000
 
 rao-runner:
   messages:
@@ -22,4 +22,5 @@ rao-runner:
   url:
     whitelist:
       - http://localhost:9000/
+      - http://minio:9000/
 
