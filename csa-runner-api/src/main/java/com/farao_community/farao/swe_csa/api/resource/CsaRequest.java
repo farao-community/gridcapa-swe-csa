@@ -1,4 +1,4 @@
-package com.farao_community.farao.csa.runner.api.resource;
+package com.farao_community.farao.swe_csa.api.resource;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;

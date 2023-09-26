@@ -1,8 +1,8 @@
 
 package com.farao_community.farao.swe_csa.app;
 
-import com.farao_community.farao.csa.runner.api.JsonApiConverter;
-import com.farao_community.farao.csa.runner.api.resource.CsaRequest;
+import com.farao_community.farao.swe_csa.api.JsonApiConverter;
+import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
