@@ -10,7 +10,7 @@
     </parent>
 
     <artifactId>gridcapa-swe-csa</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>swe-csa-service</name>
     <description>Service responsible for converting csa profiles to rao inputs, launching calculation and providing a
