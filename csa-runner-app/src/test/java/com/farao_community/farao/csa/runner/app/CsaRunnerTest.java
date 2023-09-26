@@ -1,8 +1,8 @@
 package com.farao_community.farao.csa.runner.app;
 
-import com.farao_community.farao.csa.runner.api.JsonApiConverter;
-import com.farao_community.farao.csa.runner.api.resource.CsaResponse;
-import com.farao_community.farao.csa.runner.api.resource.Status;
+import com.farao_community.farao.swe_csa.api.JsonApiConverter;
+import com.farao_community.farao.swe_csa.api.resource.CsaResponse;
+import com.farao_community.farao.swe_csa.api.resource.Status;
 import com.farao_community.farao.data.crac_api.Crac;
 import com.farao_community.farao.minio_adapter.starter.MinioAdapter;
 import com.farao_community.farao.rao_runner.api.resource.RaoResponse;

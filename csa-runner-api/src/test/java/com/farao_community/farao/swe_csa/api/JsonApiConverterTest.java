@@ -4,13 +4,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.farao_community.farao.csa.runner.api;
+package com.farao_community.farao.swe_csa.api;
 
-import com.farao_community.farao.csa.runner.api.exception.AbstractCsaException;
-import com.farao_community.farao.csa.runner.api.exception.CsaInternalException;
-import com.farao_community.farao.csa.runner.api.resource.CsaRequest;
-import com.farao_community.farao.csa.runner.api.resource.CsaResponse;
-import com.farao_community.farao.csa.runner.api.resource.Status;
+import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
+import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
+import com.farao_community.farao.swe_csa.api.resource.CsaResponse;
+import com.farao_community.farao.swe_csa.api.resource.Status;
+import com.farao_community.farao.swe_csa.api.exception.AbstractCsaException;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -66,7 +67,7 @@ class JsonApiConverterTest {
         CsaResponse response = jsonApiConverter.fromJsonMessage(responseBytes, CsaResponse.class);
 
         assertEquals("id", response.getId());
-        assertEquals(Status.ACCEPTED, response.getStatus());
+        Assertions.assertEquals(Status.ACCEPTED, response.getStatus());
     }
 
     @Test

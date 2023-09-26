@@ -1,12 +1,12 @@
 package com.farao_community.farao.swe_csa.app;
 
-import com.farao_community.farao.csa.runner.api.JsonApiConverter;
-import com.farao_community.farao.csa.runner.api.exception.AbstractCsaException;
-import com.farao_community.farao.csa.runner.api.exception.CsaInternalException;
-import com.farao_community.farao.csa.runner.api.exception.CsaInvalidDataException;
-import com.farao_community.farao.csa.runner.api.resource.CsaRequest;
-import com.farao_community.farao.csa.runner.api.resource.CsaResponse;
-import com.farao_community.farao.csa.runner.api.resource.Status;
+import com.farao_community.farao.swe_csa.api.JsonApiConverter;
+import com.farao_community.farao.swe_csa.api.exception.AbstractCsaException;
+import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
+import com.farao_community.farao.swe_csa.api.exception.CsaInvalidDataException;
+import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
+import com.farao_community.farao.swe_csa.api.resource.CsaResponse;
+import com.farao_community.farao.swe_csa.api.resource.Status;
 import com.farao_community.farao.data.crac_creation.creator.csa_profile.crac_creator.CsaProfileCracCreationContext;
 import com.farao_community.farao.data.crac_creation.creator.csa_profile.crac_creator.CsaProfileCracCreator;
 import com.farao_community.farao.data.crac_io_api.CracExporters;

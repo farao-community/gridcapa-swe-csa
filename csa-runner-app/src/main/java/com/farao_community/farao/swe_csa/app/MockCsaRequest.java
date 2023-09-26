@@ -1,6 +1,6 @@
 package com.farao_community.farao.swe_csa.app;
 
-import com.farao_community.farao.csa.runner.api.resource.CsaRequest;
+import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.minio_adapter.starter.MinioAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
