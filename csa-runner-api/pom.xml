@@ -15,20 +15,6 @@
     <description>Client API to csa runner</description>
     <packaging>jar</packaging>
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-                    <classpathDependencyExcludes>
-                        <classpathDependencyExclude>com.powsybl:powsybl-config-classic</classpathDependencyExclude>
-                    </classpathDependencyExcludes>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
-
     <dependencies>
         <!-- Compile technical dependencies -->
         <dependency>
