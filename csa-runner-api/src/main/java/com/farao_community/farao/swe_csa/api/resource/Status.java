@@ -11,5 +11,7 @@ package com.farao_community.farao.swe_csa.api.resource;
  */
 public enum Status {
     ACCEPTED,
+    INTERRUPTED,
+
     FINISHED
 }

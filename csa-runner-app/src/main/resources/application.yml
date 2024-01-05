@@ -13,16 +13,20 @@ spring:
   cloud:
     stream:
       function:
-        definition: request
+        definition: interrupt;request
       default:
         binder: rabbit
       bindings:
+        interrupt-in-0:
+          destination: csa-interrupt
         request-in-0:
           destination: csa-request
         request-out-0:
           destination: csa-response
         acknowledgement:
           destination: csa-request-ack
+        stop-rao:
+          destination: stop-rao-runner
 
 minio-adapter:
   bucket: swe-csa-bucket

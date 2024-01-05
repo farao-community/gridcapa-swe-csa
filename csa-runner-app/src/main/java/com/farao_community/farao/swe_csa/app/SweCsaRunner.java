@@ -1,36 +1,29 @@
 package com.farao_community.farao.swe_csa.app;
 
-import com.farao_community.farao.swe_csa.api.JsonApiConverter;
-import com.farao_community.farao.swe_csa.api.exception.AbstractCsaException;
-import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
-import com.farao_community.farao.swe_csa.api.exception.CsaInvalidDataException;
-import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
-import com.farao_community.farao.swe_csa.api.resource.CsaResponse;
-import com.farao_community.farao.swe_csa.api.resource.Status;
-import com.farao_community.farao.data.crac_creation.creator.csa_profile.crac_creator.CsaProfileCracCreationContext;
-import com.farao_community.farao.data.crac_creation.creator.csa_profile.crac_creator.CsaProfileCracCreator;
-import com.farao_community.farao.data.crac_io_api.CracExporters;
 import com.farao_community.farao.data.crac_api.Crac;
 import com.farao_community.farao.data.crac_creation.creator.api.parameters.CracCreationParameters;
 import com.farao_community.farao.data.crac_creation.creator.csa_profile.CsaProfileCrac;
+import com.farao_community.farao.data.crac_creation.creator.csa_profile.crac_creator.CsaProfileCracCreationContext;
+import com.farao_community.farao.data.crac_creation.creator.csa_profile.crac_creator.CsaProfileCracCreator;
 import com.farao_community.farao.data.crac_creation.creator.csa_profile.importer.CsaProfileCracImporter;
+import com.farao_community.farao.data.crac_io_api.CracExporters;
 import com.farao_community.farao.minio_adapter.starter.MinioAdapter;
 import com.farao_community.farao.rao_api.json.JsonRaoParameters;
 import com.farao_community.farao.rao_api.parameters.RaoParameters;
 import com.farao_community.farao.rao_runner.api.resource.RaoRequest;
 import com.farao_community.farao.rao_runner.api.resource.RaoResponse;
 import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
+import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
+import com.farao_community.farao.swe_csa.api.resource.CsaResponse;
+import com.farao_community.farao.swe_csa.api.resource.Status;
 import com.google.common.base.Suppliers;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.ImportConfig;
-import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.Network;
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.cloud.stream.function.StreamBridge;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
 import java.net.URL;
@@ -45,83 +38,42 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Properties;
 import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 @Service
-public class CsaRunner {
-    private static final Logger LOGGER = LoggerFactory.getLogger(CsaRunner.class);
-    private static final String ACK_BRIDGE_NAME = "acknowledgement";
-    private static final DateTimeFormatter HOURLY_NAME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd'_'HHmm").withZone(ZoneId.of("UTC"));
+public class SweCsaRunner {
 
     private final RaoRunnerClient raoRunnerClient;
     private final MinioAdapter minioAdapter;
-    private final JsonApiConverter jsonApiConverter = new JsonApiConverter();
-    private final StreamBridge streamBridge;
-    private byte[] resultBytes;
+    private static final Logger LOGGER = LoggerFactory.getLogger(SweCsaRunner.class);
+    private static final DateTimeFormatter HOURLY_NAME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd'_'HHmm").withZone(ZoneId.of("UTC"));
 
-    public CsaRunner(RaoRunnerClient raoRunnerClient, MinioAdapter minioAdapter, StreamBridge streamBridge) {
+    public SweCsaRunner(RaoRunnerClient raoRunnerClient, MinioAdapter minioAdapter) {
         this.raoRunnerClient = raoRunnerClient;
         this.minioAdapter = minioAdapter;
-        this.streamBridge = streamBridge;
     }
 
-    public byte[] launchCsaRequest(byte[] req) {
-        try {
-            CsaRequest csaRequest = jsonApiConverter.fromJsonMessage(req, CsaRequest.class);
-            LOGGER.info("Csa request received : {}", csaRequest);
+    @Threadable
+    public CsaResponse run(CsaRequest csaRequest) throws IOException {
 
-            FileAttribute<Set<PosixFilePermission>> attr = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------"));
-            Path archiveTempPath = Files.createTempFile("csa-temp-inputs", "inputs.zip", attr);
+        String requestId = csaRequest.getId();
+        LOGGER.info("Csa request received : {}", csaRequest);
+        FileAttribute<Set<PosixFilePermission>> attr = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------"));
+        Path archiveTempPath = Files.createTempFile("csa-temp-inputs", "inputs.zip", attr);
 
-            Instant utcInstant = Instant.parse(csaRequest.getBusinessTimestamp());
-            zipDataCsaRequestFiles(csaRequest, archiveTempPath);
-            String requestId = csaRequest.getId();
+        Instant utcInstant = Instant.parse(csaRequest.getBusinessTimestamp());
+        zipDataCsaRequestFiles(csaRequest, archiveTempPath);
+        Network network = importNetwork(archiveTempPath);
+        Crac crac = importCrac(archiveTempPath, network, utcInstant);
+        String networkFileUrl = uploadIidmNetworkToMinio(requestId, network, utcInstant);
+        String cracFileUrl = uploadJsonCrac(requestId, crac, utcInstant);
+        String raoParametersUrl = uploadRaoParameters(requestId, utcInstant);
+        RaoRequest raoRequest = new RaoRequest(requestId, networkFileUrl, cracFileUrl, raoParametersUrl);
 
-            Network network = importNetwork(archiveTempPath);
-            Crac crac = importCrac(archiveTempPath, network, utcInstant);
-            String networkFileUrl = uploadIidmNetworkToMinio(requestId, network, utcInstant);
-            String cracFileUrl = uploadJsonCrac(requestId, crac, utcInstant);
-            String raoParametersUrl = uploadRaoParameters(requestId, utcInstant);
-            RaoRequest raoRequest = new RaoRequest(requestId, networkFileUrl, cracFileUrl, raoParametersUrl);
-
-            // send ack message
-            streamBridge.send(ACK_BRIDGE_NAME, jsonApiConverter.toJsonMessage(new CsaResponse(requestId, Status.ACCEPTED.toString()), CsaResponse.class));
-
-            try {
-                RaoResponse raoResponse = raoRunnerClient.runRao(raoRequest);
-                LOGGER.info("RAO computation answer received  for TimeStamp: '{}'", raoRequest.getInstant());
-                // TODO create rao schedule and send to minio/sds
-                CsaResponse csaResponse = new CsaResponse(raoResponse.getId(), Status.FINISHED.toString());
-                setResultBytes(jsonApiConverter.toJsonMessage(csaResponse, CsaResponse.class));
-            } catch (Exception raoException) {
-                AbstractCsaException csaException = new CsaInternalException("Error during rao", raoException);
-                LOGGER.error(csaException.getDetails(), csaException);
-                setResultBytes(jsonApiConverter.toJsonMessage(csaException));
-            }
-
-        } catch (Exception e) {
-            AbstractCsaException csaException = new CsaInvalidDataException("Couldn't convert Csa data to farao data", e);
-            LOGGER.error(csaException.getDetails(), csaException);
-            setResultBytes(jsonApiConverter.toJsonMessage(csaException));
-        }
-        return resultBytes;
-    }
-
-    public ResponseEntity runRao(MultipartFile inputFilesArchive, Instant utcInstant) throws IOException, ExecutionException, InterruptedException {
-        String taskId = UUID.randomUUID().toString();
-        Path tempFilePath = Path.of(System.getProperty("java.io.tmpdir"), inputFilesArchive.getOriginalFilename());
-        saveFileToDirectory(inputFilesArchive, tempFilePath);
-        Network network = importNetwork(tempFilePath);
-        Crac crac = importCrac(tempFilePath, network, utcInstant);
-        String networkFileUrl = uploadIidmNetworkToMinio(taskId, network, utcInstant);
-        String cracFileUrl = uploadJsonCrac(taskId, crac, utcInstant);
-        String raoParametersUrl = uploadRaoParameters(taskId, utcInstant);
-        RaoRequest raoRequest = new RaoRequest(taskId, networkFileUrl, cracFileUrl, raoParametersUrl);
-        raoRunnerClient.runRao(raoRequest);
-        return ResponseEntity.accepted().build();
+        RaoResponse raoResponse = raoRunnerClient.runRao(raoRequest);
+        LOGGER.info("RAO computation answer received for TimeStamp: '{}'", raoRequest.getInstant());
+        return new CsaResponse(raoResponse.getId(), Status.FINISHED.toString());
     }
 
     public void zipDataCsaRequestFiles(CsaRequest csaRequest, Path archiveTempPath) throws IOException {
@@ -193,14 +145,6 @@ public class CsaRunner {
         return Network.read(archiveTempPath, LocalComputationManager.getDefault(), Suppliers.memoize(ImportConfig::load).get(), new Properties());
     }
 
-    public void saveFileToDirectory(MultipartFile inputFilesArchive, Path directory) {
-        try {
-            inputFilesArchive.transferTo(directory);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to save the file to the temporary directory.", e);
-        }
-    }
-
     public Crac importCrac(Path archiveTempPath, Network network, Instant utcInstant) {
         CsaProfileCracImporter cracImporter = new CsaProfileCracImporter();
         CsaProfileCrac nativeCrac;
@@ -224,7 +168,4 @@ public class CsaRunner {
         return minioAdapter.generatePreSignedUrl(raoParametersFilePath);
     }
 
-    public void setResultBytes(byte[] resultBytes) {
-        this.resultBytes = resultBytes;
-    }
 }
