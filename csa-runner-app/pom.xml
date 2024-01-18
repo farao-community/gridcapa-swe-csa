@@ -81,7 +81,6 @@
             <groupId>com.farao-community.farao</groupId>
             <artifactId>farao-crac-io-json</artifactId>
         </dependency>
-
         <dependency>
             <groupId>com.farao-community.farao</groupId>
             <artifactId>farao-crac-impl</artifactId>
@@ -92,8 +91,22 @@
         </dependency>
         <dependency>
             <groupId>com.farao-community.farao</groupId>
+            <artifactId>farao-rao-result-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.farao-community.farao</groupId>
             <artifactId>farao-crac-creator-csa-profiles</artifactId>
             <version>4.5.0</version>   <!-- TODO REMOVE VERSION WHEN RELEASE FIXED -->
+        </dependency>
+        <dependency>
+            <groupId>com.farao-community.farao</groupId>
+            <artifactId>farao-dichotomy-api</artifactId>
+            <version>4.14.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.farao-community.farao</groupId>
+            <artifactId>farao-dichotomy-shift</artifactId>
+            <version>4.14.0</version>
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
