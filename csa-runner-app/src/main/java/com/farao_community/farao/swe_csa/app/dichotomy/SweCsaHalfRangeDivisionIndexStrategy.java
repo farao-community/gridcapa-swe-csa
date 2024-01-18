@@ -67,7 +67,6 @@ public class SweCsaHalfRangeDivisionIndexStrategy extends HalfRangeDivisionIndex
         return (maxSafeValue + minUnsafeValue) / 2;
     }
 
-
     boolean isSafeForBorder(RaoResult raoResult, String key) {
         if (key.equals(frEsIndexName)) {
             return isSafeForFrEs(raoResult);
@@ -87,6 +86,5 @@ public class SweCsaHalfRangeDivisionIndexStrategy extends HalfRangeDivisionIndex
         // TODO implement this
         return true;
     }
-
 
 }
