@@ -9,7 +9,7 @@ import java.util.function.Consumer;
 public class InterruptConfiguration {
 
     @Bean
-    public Consumer<String> interrupt(InterruptionService interruptionService) {
+    public Consumer<byte[]> interrupt(InterruptionService interruptionService) {
         return interruptionService::interruption;
     }
 }

@@ -52,7 +52,7 @@ public class RequestService {
                 setResultBytes(jsonApiConverter.toJsonMessage(new CsaResponse(csaRequest.getId(), Status.INTERRUPTED.toString()), CsaResponse.class));
             }
         } catch (Exception e) {
-            AbstractCsaException csaException = new CsaInvalidDataException("Exception happened", e); // TODO add more information
+            AbstractCsaException csaException = new CsaInvalidDataException("Exception happened", e); // TODO add more information, depends on when and where the exception occures
             LOGGER.error(csaException.getDetails(), csaException);
             setResultBytes(jsonApiConverter.toJsonMessage(csaException));
         }
