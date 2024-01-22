@@ -25,7 +25,7 @@
     <properties>
         <!-- BUSINESS DEPENDENCIES -->
         <csa.profiles.farao.version>4.5.0</csa.profiles.farao.version>
-        <farao.dependencies.version>1.19.0</farao.dependencies.version>
+        <farao.dependencies.version>1.23.0</farao.dependencies.version>
         <gridcapa.rao.runner.version>1.16.1</gridcapa.rao.runner.version>
         <gridcapa.starter.minio.adapter.version>0.2.0</gridcapa.starter.minio.adapter.version>
 
