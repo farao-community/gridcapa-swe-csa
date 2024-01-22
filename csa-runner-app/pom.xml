@@ -71,7 +71,7 @@
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
-            <artifactId>powsybl-iidm-xml-converter</artifactId>
+            <artifactId>powsybl-iidm-serde</artifactId>
         </dependency>
         <dependency>
             <groupId>com.farao-community.farao</groupId>
@@ -89,7 +89,6 @@
         <dependency>
             <groupId>com.farao-community.farao</groupId>
             <artifactId>farao-crac-creator-csa-profiles</artifactId>
-            <version>4.5.0</version>   <!-- TODO REMOVE VERSION WHEN RELEASE FIXED -->
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
