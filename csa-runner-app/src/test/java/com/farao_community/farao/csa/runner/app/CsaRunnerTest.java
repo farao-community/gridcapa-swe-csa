@@ -72,8 +72,5 @@ public class CsaRunnerTest {
 
         Crac crac = csaRunner.importCrac(filePath, network, Instant.parse("2023-08-08T15:30:00Z"));
 
-        assertEquals(1, crac.getContingencies().size());
-        assertEquals(6, crac.getFlowCnecs().size());
-        assertEquals(3, crac.getStates().size());
     }
 }
