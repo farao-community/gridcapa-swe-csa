@@ -7,10 +7,10 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class CounterTradeRangeActionTest {
+class CounterTradeRangeActionTest {
 
     @Test
-    public void testGetters() {
+    void testGetters() {
         // Arrange
         String ctRangeActionId = "CT123";
         double setPoint = 10.5;
