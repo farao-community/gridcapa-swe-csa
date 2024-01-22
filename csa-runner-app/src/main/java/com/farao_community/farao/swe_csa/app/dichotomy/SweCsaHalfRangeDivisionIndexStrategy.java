@@ -1,5 +1,14 @@
 package com.farao_community.farao.swe_csa.app.dichotomy;
+/*
+ * Copyright (c) 2024, RTE (http://www.rte-france.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
 
+/**
+ * @author Jean-Pierre Arnould {@literal <jean-pierre.arnould at rte-france.com>}
+ */
 import com.farao_community.farao.data.rao_result_api.RaoResult;
 
 import java.util.Map;
@@ -14,9 +23,7 @@ import java.util.stream.Collectors;
  *
  * @author Peter Mitri {@literal <peter.mitri at rte-france.com>}
  */
-// TODO : migrate this to gridcapa-swe-csa
-// careful : min and max values are related to exchange values, which is equal to initial exchange - countertrading
-// so when initializing index, min value should be 0 and max value should be initial exchange value
+
 public class SweCsaHalfRangeDivisionIndexStrategy extends HalfRangeDivisionIndexStrategy<MultipleDichotomyVariables> {
     private final String frEsIndexName;
     private final String ptEsIndexName;
@@ -51,11 +58,11 @@ public class SweCsaHalfRangeDivisionIndexStrategy extends HalfRangeDivisionIndex
         // Fetch tested exchange values for this border, for which the border is secure
         Set<Double> safeVariableValues = index.testedSteps().stream().filter(
             pair -> isSafeForBorder(pair.getRight().getRaoResult(), key)
-        ).map(p -> p.getLeft().values().get(key).value()).collect(Collectors.toSet());
+        ).map(p -> Double.valueOf(p.getLeft().values().get(key))).collect(Collectors.toSet());
         // Compute max
         double maxSafeValue = safeVariableValues.stream().mapToDouble(Double::doubleValue).max().orElseThrow();
         // Deduce tested values that are unsafe
-        Set<Double> unsafeVariableValues = index.testedSteps().stream().map(p -> p.getLeft().values().get(key).value()).collect(Collectors.toSet());
+        Set<Double> unsafeVariableValues = index.testedSteps().stream().map(p -> Double.valueOf(p.getLeft().values().get(key))).collect(Collectors.toSet());
         unsafeVariableValues.removeAll(safeVariableValues);
         // Compute min
         double minUnsafeValue = unsafeVariableValues.stream().mapToDouble(Double::doubleValue).min().orElseThrow();
