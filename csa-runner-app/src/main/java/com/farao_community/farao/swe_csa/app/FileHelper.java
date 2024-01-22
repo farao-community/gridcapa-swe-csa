@@ -10,6 +10,7 @@ import com.farao_community.farao.data.crac_io_api.CracExporters;
 import com.farao_community.farao.minio_adapter.starter.MinioAdapter;
 import com.farao_community.farao.rao_api.json.JsonRaoParameters;
 import com.farao_community.farao.rao_api.parameters.RaoParameters;
+import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
 import com.google.common.base.Suppliers;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.ImportConfig;
@@ -50,7 +51,7 @@ public class FileHelper {
         try (InputStream is = new ByteArrayInputStream(cracByteArrayOutputStream.toByteArray())) {
             minioAdapter.uploadArtifact(jsonCracFilePath, is);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new CsaInternalException(e.getMessage());
         }
         return minioAdapter.generatePreSignedUrl(jsonCracFilePath);
     }
@@ -65,7 +66,7 @@ public class FileHelper {
         try {
             nativeCrac = cracImporter.importNativeCrac(new FileInputStream(archiveTempPath.toFile()));
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new CsaInternalException(e.getMessage());
         }
         CsaProfileCracCreator cracCreator = new CsaProfileCracCreator();
         CsaProfileCracCreationContext cracCreationContext = cracCreator.createCrac(nativeCrac, network, utcInstant.atOffset(ZoneOffset.UTC), new CracCreationParameters());

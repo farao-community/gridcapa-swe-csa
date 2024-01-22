@@ -20,7 +20,7 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
-public class RaoResultWithCounterTradeRangeActionsTest {
+class RaoResultWithCounterTradeRangeActionsTest {
 
     private CounterTradingResult counterTradingResult;
     State preventiveState = Mockito.mock(State.class);
