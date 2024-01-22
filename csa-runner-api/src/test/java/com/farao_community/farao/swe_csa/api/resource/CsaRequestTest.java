@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 /**
  * @author mohamed.ben-rejeb {@literal <mohamed.ben-rejeb at rte-france.com>}
  */
-public class CsaRequestTest {
+class CsaRequestTest {
 
     @Test
     void testCsaRequestConstruction() {

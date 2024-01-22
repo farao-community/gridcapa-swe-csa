@@ -12,7 +12,7 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class CounterTradingResultTest {
+class CounterTradingResultTest {
 
     private CounterTradingResult counterTradingResult;
     State preventiveState = Mockito.mock(State.class);
@@ -23,7 +23,7 @@ public class CounterTradingResultTest {
     CounterTradeRangeAction ptEsCounterTradeRangeActionMock = Mockito.mock(CounterTradeRangeAction.class);
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         // Create a sample map for testing
         Mockito.when(preventiveState.isPreventive()).thenReturn(true);
 
@@ -62,13 +62,13 @@ public class CounterTradingResultTest {
     }
 
     @Test
-    public void testGetCounterTradeRangeActionResults() {
+    void testGetCounterTradeRangeActionResults() {
         Map<CounterTradeRangeAction, CounterTradeRangeActionResult> result = counterTradingResult.getCounterTradeRangeActionResults();
         assertEquals(4, result.size());
     }
 
     @Test
-    public void testIsActivatedDuringState() {
+    void testIsActivatedDuringState() {
         assertTrue(counterTradingResult.isActivatedDuringState(preventiveState, frEsCounterTradeRangeActionMock));
         assertTrue(counterTradingResult.isActivatedDuringState(preventiveState, esFrCounterTradeRangeActionMock));
         assertFalse(counterTradingResult.isActivatedDuringState(preventiveState, ptEsCounterTradeRangeActionMock));
@@ -76,7 +76,7 @@ public class CounterTradingResultTest {
     }
 
     @Test
-    public void testIsActivatedDuringStateWithCast() {
+    void testIsActivatedDuringStateWithCast() {
         assertTrue(counterTradingResult.isActivatedDuringState(preventiveState, (RemedialAction<?>) frEsCounterTradeRangeActionMock));
         assertTrue(counterTradingResult.isActivatedDuringState(preventiveState, (RemedialAction<?>) esFrCounterTradeRangeActionMock));
         assertFalse(counterTradingResult.isActivatedDuringState(preventiveState, (RemedialAction<?>) ptEsCounterTradeRangeActionMock));
@@ -84,7 +84,7 @@ public class CounterTradingResultTest {
     }
 
     @Test
-    public void testGetPreOptimizationSetPointOnState() {
+    void testGetPreOptimizationSetPointOnState() {
         assertEquals(0., counterTradingResult.getPreOptimizationSetPointOnState(preventiveState, frEsCounterTradeRangeActionMock));
         assertEquals(0., counterTradingResult.getPreOptimizationSetPointOnState(preventiveState, esFrCounterTradeRangeActionMock));
         assertEquals(0., counterTradingResult.getPreOptimizationSetPointOnState(preventiveState, ptEsCounterTradeRangeActionMock));
@@ -92,7 +92,7 @@ public class CounterTradingResultTest {
     }
 
     @Test
-    public void testGetOptimizedSetPointOnState() {
+    void testGetOptimizedSetPointOnState() {
         assertEquals(10., counterTradingResult.getOptimizedSetPointOnState(preventiveState, frEsCounterTradeRangeActionMock));
         assertEquals(-10., counterTradingResult.getOptimizedSetPointOnState(preventiveState, esFrCounterTradeRangeActionMock));
         assertEquals(0., counterTradingResult.getOptimizedSetPointOnState(preventiveState, ptEsCounterTradeRangeActionMock));
@@ -100,7 +100,7 @@ public class CounterTradingResultTest {
     }
 
     @Test
-    public void testGetActivatedRangeActionsDuringState() {
+    void testGetActivatedRangeActionsDuringState() {
         assertEquals(Set.of(esFrCounterTradeRangeActionMock, frEsCounterTradeRangeActionMock), counterTradingResult.getActivatedRangeActionsDuringState(preventiveState));
     }
 }

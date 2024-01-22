@@ -10,9 +10,9 @@ import java.util.function.Function;
 public class RequestConfiguration {
 
     @Bean
-    public Function<Flux<byte[]>, Flux<byte[]>> request(CsaRunner csaRunner) {
+    public Function<Flux<byte[]>, Flux<byte[]>> request(RequestService requestService) {
         return csaRequestFlux -> csaRequestFlux
-                .map(csaRunner::launchCsaRequest)
+                .map(requestService::launchCsaRequest)
                 .log();
     }
 

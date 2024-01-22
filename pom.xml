@@ -35,8 +35,10 @@
         <jackson.databind.version>2.11.0</jackson.databind.version>
         <jackson.datatype.version>2.13.0</jackson.datatype.version>
         <jsonapi.converter.version>0.10</jsonapi.converter.version>
-        <mockito.core.version>3.9.0</mockito.core.version>
+        <mockito.core.version>5.2.0</mockito.core.version>
         <logstash.version>7.0.1</logstash.version>
+        <awaitility.version>3.0.0</awaitility.version>
+
     </properties>
 
     <build>
@@ -96,8 +98,14 @@
             <!-- TEST DEPENDENCIES -->
             <dependency>
                 <groupId>org.mockito</groupId>
-                <artifactId>mockito-core</artifactId>
+                <artifactId>mockito-inline</artifactId>
                 <version>${mockito.core.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.awaitility</groupId>
+                <artifactId>awaitility</artifactId>
+                <version>${awaitility.version}</version>
                 <scope>test</scope>
             </dependency>
 
