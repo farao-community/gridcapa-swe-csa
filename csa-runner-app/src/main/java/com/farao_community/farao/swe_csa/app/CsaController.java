@@ -29,7 +29,7 @@ public class CsaController {
 
     @PostMapping(value = "/run", consumes = JSON_API_MIME_TYPE, produces = JSON_API_MIME_TYPE)
     public ResponseEntity runCsaByZip(@RequestPart byte[] jsonCsaRequest) throws IOException {
-        return ResponseEntity.ok().body(sweCsaRunner.runSingleRao(jsonApiConverter.fromJsonMessage(jsonCsaRequest, CsaRequest.class)));
+        return ResponseEntity.ok().body(sweCsaRunner.runRaoDichotomy(jsonApiConverter.fromJsonMessage(jsonCsaRequest, CsaRequest.class)));
     }
 
     @PostMapping(value = "/run-single-rao", consumes = JSON_API_MIME_TYPE, produces = JSON_API_MIME_TYPE)
