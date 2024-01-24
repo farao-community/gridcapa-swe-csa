@@ -27,7 +27,7 @@ import static com.farao_community.farao.commons.logs.FaraoLoggerProvider.BUSINES
  * @author Jean-Pierre Arnould {@literal <jean-pierre.arnould at rte-france.com>}
  */
 
-public final class LinearScaler implements NetworkShifter<SingleDichotomyVariable> {
+public final class LinearScaler implements NetworkShifter<MultipleDichotomyVariables> {
     private static final double DEFAULT_EPSILON = 1e-3;
 
     private final ZonalData<Scalable> zonalScalable;
@@ -45,7 +45,7 @@ public final class LinearScaler implements NetworkShifter<SingleDichotomyVariabl
     }
 
     @Override
-    public void shiftNetwork(SingleDichotomyVariable stepValue, Network network) throws GlskLimitationException, ShiftingException {
+    public void shiftNetwork(MultipleDichotomyVariables stepValue, Network network) throws GlskLimitationException, ShiftingException {
         BUSINESS_LOGS.info(String.format("Starting linear scaling on network %s with step value %.2f",
             network.getVariantManager().getWorkingVariantId(), stepValue.value()));
         Map<String, Double> scalingValuesByCountry = shiftDispatcher.dispatch(stepValue.value());
