@@ -35,7 +35,7 @@ public class DichotomyRunner {
         Pair<MultipleDichotomyVariables,MultipleDichotomyVariables> initialDichotomyVariable = getInitialDichotomyIndex(crac);
         DichotomyEngine<RaoResponse, MultipleDichotomyVariables> engine = new DichotomyEngine<RaoResponse, MultipleDichotomyVariables>(
             new Index<>(initialDichotomyVariable.getLeft(), initialDichotomyVariable.getRight(), 10),
-            new HalfRangeDivisionIndexStrategy<MultipleDichotomyVariables>(true),
+            new SweCsaHalfRangeDivisionIndexStrategy("CT_FRES", "CT_PTES"),
             new LinearScaler(importGlskFile(timestamp, network), getCsaSweShiftDispatcher()),
             validator);
         DichotomyResult<RaoResponse, MultipleDichotomyVariables> result = engine.run(network);

@@ -12,7 +12,6 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
  */
 
 import com.farao_community.farao.data.crac_api.Crac;
-import com.farao_community.farao.data.crac_io_json.JsonImport;
 import com.farao_community.farao.data.rao_result_api.RaoResult;
 import com.farao_community.farao.data.rao_result_json.RaoResultImporter;
 import com.farao_community.farao.dichotomy.api.NetworkValidator;
@@ -21,7 +20,6 @@ import com.farao_community.farao.dichotomy.api.results.DichotomyStepResult;
 import com.farao_community.farao.rao_runner.api.resource.RaoRequest;
 import com.farao_community.farao.rao_runner.api.resource.RaoResponse;
 import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
-import com.farao_community.farao.swe_csa.app.SweCsaRunner;
 import com.powsybl.iidm.network.Network;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

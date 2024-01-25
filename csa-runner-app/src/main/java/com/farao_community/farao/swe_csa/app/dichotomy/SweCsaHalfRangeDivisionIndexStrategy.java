@@ -6,9 +6,6 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-/**
- * @author Jean-Pierre Arnould {@literal <jean-pierre.arnould at rte-france.com>}
- */
 import com.farao_community.farao.data.rao_result_api.RaoResult;
 
 import java.util.Map;
