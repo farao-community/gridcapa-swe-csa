@@ -16,6 +16,7 @@ import com.powsybl.iidm.modification.scalable.ScalingParameters;
 import com.powsybl.iidm.network.Network;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
@@ -46,9 +47,12 @@ public final class LinearScaler implements NetworkShifter<MultipleDichotomyVaria
 
     @Override
     public void shiftNetwork(MultipleDichotomyVariables stepValue, Network network) throws GlskLimitationException, ShiftingException {
-        BUSINESS_LOGS.info(String.format("Starting linear scaling on network %s with step value %.2f",
-            network.getVariantManager().getWorkingVariantId(), stepValue.value()));
-        Map<String, Double> scalingValuesByCountry = shiftDispatcher.dispatch(stepValue.value());
+        Map<String, Double> scalingValuesByCountry = new HashMap<>();
+        for(Double value : stepValue.values().values()) {
+            BUSINESS_LOGS.info(String.format("Starting linear scaling on network %s with step value %.2f",
+                network.getVariantManager().getWorkingVariantId(), value));
+            scalingValuesByCountry = shiftDispatcher.dispatch(value);
+        }
         List<String> limitingCountries = new ArrayList<>();
         for (Map.Entry<String, Double> entry : scalingValuesByCountry.entrySet()) {
             String zoneId = entry.getKey();
