@@ -9,7 +9,6 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
 
 import com.farao_community.farao.dichotomy.api.exceptions.GlskLimitationException;
 import com.farao_community.farao.dichotomy.api.exceptions.ShiftingException;
-import com.farao_community.farao.dichotomy.shift.ShiftDispatcher;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.modification.scalable.ScalingParameters;
@@ -35,11 +34,11 @@ public final class LinearScaler implements NetworkShifter<MultipleDichotomyVaria
     private final ShiftDispatcher shiftDispatcher;
     private final double shiftEpsilon;
 
-    public LinearScaler(ZonalData<Scalable> zonalScalable, ShiftDispatcher shiftDispatcher) {
+    public LinearScaler(ZonalData<Scalable> zonalScalable, ShiftDispatcher<MultipleDichotomyVariables> shiftDispatcher) {
         this(zonalScalable, shiftDispatcher, DEFAULT_EPSILON);
     }
 
-    public LinearScaler(ZonalData<Scalable> zonalScalable, ShiftDispatcher shiftDispatcher, double shiftEpsilon) {
+    public LinearScaler(ZonalData<Scalable> zonalScalable, ShiftDispatcher<MultipleDichotomyVariables> shiftDispatcher, double shiftEpsilon) {
         this.zonalScalable = zonalScalable;
         this.shiftDispatcher = shiftDispatcher;
         this.shiftEpsilon = shiftEpsilon;
@@ -48,11 +47,9 @@ public final class LinearScaler implements NetworkShifter<MultipleDichotomyVaria
     @Override
     public void shiftNetwork(MultipleDichotomyVariables stepValue, Network network) throws GlskLimitationException, ShiftingException {
         Map<String, Double> scalingValuesByCountry = new HashMap<>();
-        for(Double value : stepValue.values().values()) {
-            BUSINESS_LOGS.info(String.format("Starting linear scaling on network %s with step value %.2f",
-                network.getVariantManager().getWorkingVariantId(), value));
-            scalingValuesByCountry = shiftDispatcher.dispatch(value);
-        }
+        BUSINESS_LOGS.info(String.format("Starting linear scaling on network %s with step value %.2f",
+            network.getVariantManager().getWorkingVariantId(), stepValue.print()));
+        scalingValuesByCountry = shiftDispatcher.dispatch(stepValue);
         List<String> limitingCountries = new ArrayList<>();
         for (Map.Entry<String, Double> entry : scalingValuesByCountry.entrySet()) {
             String zoneId = entry.getKey();

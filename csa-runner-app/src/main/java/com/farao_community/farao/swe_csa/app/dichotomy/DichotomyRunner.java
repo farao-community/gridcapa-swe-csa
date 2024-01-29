@@ -11,35 +11,60 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
  * @author Jean-Pierre Arnould {@literal <jean-pierre.arnould at rte-france.com>}
  */
 
+import com.farao_community.farao.commons.EICode;
 import com.farao_community.farao.data.crac_api.Crac;
 import com.farao_community.farao.data.crac_api.range_action.CounterTradeRangeAction;
 import com.farao_community.farao.dichotomy.shift.ShiftDispatcher;
 import com.farao_community.farao.dichotomy.shift.SplittingFactors;
 import com.farao_community.farao.rao_runner.api.resource.RaoResponse;
 import com.powsybl.glsk.commons.ZonalData;
+import com.powsybl.glsk.commons.ZonalDataImpl;
 import com.powsybl.glsk.ucte.UcteGlskDocument;
 import com.powsybl.iidm.modification.scalable.Scalable;
+import com.powsybl.iidm.network.Country;
+import com.powsybl.iidm.network.Generator;
+import com.powsybl.iidm.network.Injection;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.Substation;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class DichotomyRunner {
 
-    public RaoResponse launchDichotomy(Network network, Crac crac, String timestamp, SweCsaRaoValidator validator) throws IOException {
+    public RaoResponse launchDichotomy(Network network, Crac crac, String timestamp, SweCsaRaoValidator validator) {
 
         Pair<MultipleDichotomyVariables,MultipleDichotomyVariables> initialDichotomyVariable = getInitialDichotomyIndex(crac);
-        DichotomyEngine<RaoResponse, MultipleDichotomyVariables> engine = new DichotomyEngine<RaoResponse, MultipleDichotomyVariables>(
+        DichotomyEngine<RaoResponse, MultipleDichotomyVariables> engine = new DichotomyEngine<>(
             new Index<>(initialDichotomyVariable.getLeft(), initialDichotomyVariable.getRight(), 10),
             new SweCsaHalfRangeDivisionIndexStrategy("CT_FRES", "CT_PTES"),
-            new LinearScaler(importGlskFile(timestamp, network), getCsaSweShiftDispatcher()),
+            new LinearScaler(SweCsaZonalData.getZonalData(network, timestamp), new SweCsaShiftDispatcher(getInitialPositions(crac))),
             validator);
         DichotomyResult<RaoResponse, MultipleDichotomyVariables> result = engine.run(network);
         return result.getHighestValidStep().getValidationData();
+    }
+
+    private Map<String, Double>  getInitialPositions(Crac crac) {
+        CounterTradeRangeAction ctRaFrEs = crac.getCounterTradeRangeAction("CT_RA_FRES");
+        CounterTradeRangeAction ctRaPtEs = crac.getCounterTradeRangeAction("CT_RA_PTES");
+
+        double expFrEs = ctRaFrEs.getInitialSetpoint();
+        double expPtEs = ctRaPtEs.getInitialSetpoint();
+
+        return Map.of(
+            new EICode(Country.ES).getAreaCode(), expFrEs+expPtEs,
+            new EICode(Country.FR).getAreaCode(), -expFrEs,
+            new EICode(Country.PT).getAreaCode(), -expPtEs);
     }
 
     private Pair<MultipleDichotomyVariables,MultipleDichotomyVariables> getInitialDichotomyIndex(Crac crac) {
@@ -64,18 +89,4 @@ public class DichotomyRunner {
         return Pair.of(initMinIndex, initMaxIndex);
     }
 
-    //TODO : import real splitting factors parameterization
-    private ShiftDispatcher getCsaSweShiftDispatcher() {
-        Map<String, Double> factors = Map.of("FR", 0.3, "ES", 0.5, "PT", 0.2);
-        ShiftDispatcher csaSweShiftDispatcher = new SplittingFactors(factors);
-        return csaSweShiftDispatcher;
-    }
-
-    private ZonalData<Scalable> importGlskFile(String timestamp, Network network) throws IOException {
-        //TODO : import real glsk file
-        File glskFile = new File(getClass().getResource("/10VCORSWEPR-ENDE_18V0000000005KUU_SWE-GLSK-B22-A48-F008_20220617-111.xml").getFile());
-        InputStream inputStream = new FileInputStream(glskFile);
-        UcteGlskDocument ucteGlskDocument = UcteGlskDocument.importGlsk(inputStream);
-        return ucteGlskDocument.getZonalScalable(network, ucteGlskDocument.getGSKTimeInterval().getStart());
-    }
 }
