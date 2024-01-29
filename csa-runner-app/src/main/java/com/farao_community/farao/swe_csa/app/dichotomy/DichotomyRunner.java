@@ -14,41 +14,22 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
 import com.farao_community.farao.commons.EICode;
 import com.farao_community.farao.data.crac_api.Crac;
 import com.farao_community.farao.data.crac_api.range_action.CounterTradeRangeAction;
-import com.farao_community.farao.dichotomy.shift.ShiftDispatcher;
-import com.farao_community.farao.dichotomy.shift.SplittingFactors;
 import com.farao_community.farao.rao_runner.api.resource.RaoResponse;
-import com.powsybl.glsk.commons.ZonalData;
-import com.powsybl.glsk.commons.ZonalDataImpl;
-import com.powsybl.glsk.ucte.UcteGlskDocument;
-import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Country;
-import com.powsybl.iidm.network.Generator;
-import com.powsybl.iidm.network.Injection;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.Substation;
 import org.apache.commons.lang3.tuple.Pair;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class DichotomyRunner {
 
     public RaoResponse launchDichotomy(Network network, Crac crac, String timestamp, SweCsaRaoValidator validator) {
 
-        Pair<MultipleDichotomyVariables,MultipleDichotomyVariables> initialDichotomyVariable = getInitialDichotomyIndex(crac);
+        Pair<MultipleDichotomyVariables, MultipleDichotomyVariables> initialDichotomyVariable = getInitialDichotomyIndex(crac);
         DichotomyEngine<RaoResponse, MultipleDichotomyVariables> engine = new DichotomyEngine<>(
             new Index<>(initialDichotomyVariable.getLeft(), initialDichotomyVariable.getRight(), 10),
             new SweCsaHalfRangeDivisionIndexStrategy("CT_FRES", "CT_PTES"),
-            new LinearScaler(SweCsaZonalData.getZonalData(network, timestamp), new SweCsaShiftDispatcher(getInitialPositions(crac))),
+            new LinearScaler(SweCsaZonalData.getZonalData(network), new SweCsaShiftDispatcher(getInitialPositions(crac))),
             validator);
         DichotomyResult<RaoResponse, MultipleDichotomyVariables> result = engine.run(network);
         return result.getHighestValidStep().getValidationData();
@@ -62,12 +43,12 @@ public class DichotomyRunner {
         double expPtEs = ctRaPtEs.getInitialSetpoint();
 
         return Map.of(
-            new EICode(Country.ES).getAreaCode(), expFrEs+expPtEs,
+            new EICode(Country.ES).getAreaCode(), expFrEs + expPtEs,
             new EICode(Country.FR).getAreaCode(), -expFrEs,
             new EICode(Country.PT).getAreaCode(), -expPtEs);
     }
 
-    private Pair<MultipleDichotomyVariables,MultipleDichotomyVariables> getInitialDichotomyIndex(Crac crac) {
+    private Pair<MultipleDichotomyVariables, MultipleDichotomyVariables> getInitialDichotomyIndex(Crac crac) {
         CounterTradeRangeAction ctRaFrEs = crac.getCounterTradeRangeAction("CT_RA_FRES");
         CounterTradeRangeAction ctRaEsFr = crac.getCounterTradeRangeAction("CT_RA_ESFR");
         CounterTradeRangeAction ctRaPtEs = crac.getCounterTradeRangeAction("CT_RA_PTES");
@@ -78,9 +59,9 @@ public class DichotomyRunner {
         double expEsFr = ctRaEsFr.getInitialSetpoint();
         double expEsPt = ctRaEsPt.getInitialSetpoint();
 
-        double ctFrEsMax = expFrEs>=0 ? Math.min(Math.min(-ctRaFrEs.getMinAdmissibleSetpoint(expFrEs), ctRaEsFr.getMaxAdmissibleSetpoint(expEsFr)), expFrEs)
+        double ctFrEsMax = expFrEs >= 0 ? Math.min(Math.min(-ctRaFrEs.getMinAdmissibleSetpoint(expFrEs), ctRaEsFr.getMaxAdmissibleSetpoint(expEsFr)), expFrEs)
             : Math.min(Math.min(ctRaFrEs.getMaxAdmissibleSetpoint(expFrEs), -ctRaEsFr.getMinAdmissibleSetpoint(expEsFr)), -expFrEs);
-        double ctPtEsMax = expPtEs>=0 ? Math.min(Math.min(-ctRaPtEs.getMinAdmissibleSetpoint(expPtEs), ctRaEsPt.getMaxAdmissibleSetpoint(expEsPt)), expPtEs)
+        double ctPtEsMax = expPtEs >= 0 ? Math.min(Math.min(-ctRaPtEs.getMinAdmissibleSetpoint(expPtEs), ctRaEsPt.getMaxAdmissibleSetpoint(expEsPt)), expPtEs)
             : Math.min(Math.min(ctRaPtEs.getMaxAdmissibleSetpoint(expPtEs), -ctRaEsPt.getMinAdmissibleSetpoint(expEsPt)), -expPtEs);
 
         MultipleDichotomyVariables initMinIndex = new MultipleDichotomyVariables(Map.of("CT_FRES", 0.0, "CT_PTES", 0.0));

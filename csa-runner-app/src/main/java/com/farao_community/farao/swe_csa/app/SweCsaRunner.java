@@ -72,12 +72,12 @@ public class SweCsaRunner {
         String cracFileUrl = fileHelper.uploadJsonCrac(requestId, crac, utcInstant);
         String raoParametersUrl = fileHelper.uploadRaoParameters(requestId, utcInstant);
         RaoRequest raoRequest = new RaoRequest(requestId, networkFileUrl, cracFileUrl, raoParametersUrl);
-
-
         SweCsaRaoValidator validator = new SweCsaRaoValidator(raoRunnerClient, requestId, networkFileUrl, cracFileUrl, crac, raoParametersUrl);
+
         DichotomyRunner dichotomyRunner = new DichotomyRunner();
         RaoResponse raoResultAfterDichotomy = dichotomyRunner.launchDichotomy(network, crac, timestamp, validator);
         LOGGER.info("dichotomy RAO computation answer received for TimeStamp: '{}'", raoRequest.getInstant());
+
         return new CsaResponse(raoResultAfterDichotomy.getId(), Status.FINISHED.toString());
     }
 

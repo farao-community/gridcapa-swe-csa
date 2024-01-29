@@ -30,7 +30,11 @@ import java.util.stream.Collectors;
 
 public class SweCsaZonalData {
 
-    public static ZonalData<Scalable> getZonalData(Network network, String timestamp) {
+    private SweCsaZonalData() {
+        //private constructor
+    }
+
+    public static ZonalData<Scalable> getZonalData(Network network) {
         //TODO : import real glsk file
         return getCountryGeneratorsScalable(network);
     }
@@ -38,14 +42,14 @@ public class SweCsaZonalData {
     private static ZonalData<Scalable> getCountryGeneratorsScalable(Network network) {
         Map<Country, List<Generator>> generatorsByCountries = network.getGeneratorStream()
             .filter(inj -> isCorrect(inj))
-            .collect(Collectors.toMap(generator -> generator.getTerminal().getVoltageLevel().getSubstation().map(Substation::getNullableCountry).orElse(null)
-                , generator -> List.of(generator),
+            .collect(Collectors.toMap(generator -> generator.getTerminal().getVoltageLevel().getSubstation().map(Substation::getNullableCountry).orElse(null),
+                generator -> List.of(generator),
                 (list1, list2) -> {
                     list1.addAll(list2);
                     return list1;
                 }));
         ZonalData<Scalable> zonalData = new ZonalDataImpl<>(new HashMap<>());
-        for(Map.Entry<Country, List<Generator>> entry : generatorsByCountries.entrySet()) {
+        for (Map.Entry<Country, List<Generator>> entry : generatorsByCountries.entrySet()) {
             List<Scalable> scalables = new ArrayList<>();
             List<Double> percentages = new ArrayList<>();
             Country c = entry.getKey();

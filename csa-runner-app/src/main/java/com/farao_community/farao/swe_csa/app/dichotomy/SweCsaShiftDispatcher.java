@@ -4,8 +4,6 @@ import com.farao_community.farao.commons.EICode;
 import com.powsybl.iidm.network.Country;
 
 import java.util.Map;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
 
 public class SweCsaShiftDispatcher implements ShiftDispatcher<MultipleDichotomyVariables> {
     private final Map<String, Double> initialNetPositions;
@@ -22,9 +20,9 @@ public class SweCsaShiftDispatcher implements ShiftDispatcher<MultipleDichotomyV
 
     @Override
     public Map<String, Double> dispatch(MultipleDichotomyVariables variable) {
-        return Map.of(eicCodeEs, variable.values().get("CT_FRES")+variable.values().get("CT_PTES") - initialNetPositions.get(eicCodeEs),
-            eicCodeFr, - variable.values().get("CT_FRES") - initialNetPositions.get(eicCodeFr),
-            eicCodePt, - variable.values().get("CT_PTES") - initialNetPositions.get(eicCodePt));
+        return Map.of(eicCodeEs, variable.values().get("CT_FRES") + variable.values().get("CT_PTES") - initialNetPositions.get(eicCodeEs),
+            eicCodeFr, -variable.values().get("CT_FRES") - initialNetPositions.get(eicCodeFr),
+            eicCodePt, -variable.values().get("CT_PTES") - initialNetPositions.get(eicCodePt));
     }
 
 }
