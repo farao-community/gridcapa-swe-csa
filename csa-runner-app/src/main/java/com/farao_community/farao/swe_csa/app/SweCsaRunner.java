@@ -7,8 +7,6 @@ import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.api.resource.CsaResponse;
 import com.farao_community.farao.swe_csa.api.resource.Status;
-import com.farao_community.farao.swe_csa.app.dichotomy.DichotomyRunner;
-import com.farao_community.farao.swe_csa.app.dichotomy.SweCsaRaoValidator;
 import com.powsybl.iidm.network.Network;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,30 +53,4 @@ public class SweCsaRunner {
         LOGGER.info("RAO computation answer received for TimeStamp: '{}'", raoRequest.getInstant());
         return new CsaResponse(raoResponse.getId(), Status.FINISHED.toString());
     }
-
-    @Threadable
-    public CsaResponse runRaoDichotomy(CsaRequest csaRequest) throws IOException {
-        String requestId = csaRequest.getId();
-        LOGGER.info("Csa request received : {}", csaRequest);
-        FileAttribute<Set<PosixFilePermission>> attr = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------"));
-        Path archiveTempPath = Files.createTempFile("csa-temp-inputs", "inputs.zip", attr);
-
-        String timestamp = csaRequest.getBusinessTimestamp();
-        Instant utcInstant = Instant.parse(csaRequest.getBusinessTimestamp());
-        ZipHelper.zipDataCsaRequestFiles(csaRequest, archiveTempPath);
-        Network network = fileHelper.importNetwork(archiveTempPath);
-        Crac crac = fileHelper.importCrac(archiveTempPath, network, utcInstant);
-        String networkFileUrl = fileHelper.uploadIidmNetworkToMinio(requestId, network, utcInstant);
-        String cracFileUrl = fileHelper.uploadJsonCrac(requestId, crac, utcInstant);
-        String raoParametersUrl = fileHelper.uploadRaoParameters(requestId, utcInstant);
-        RaoRequest raoRequest = new RaoRequest(requestId, networkFileUrl, cracFileUrl, raoParametersUrl);
-        SweCsaRaoValidator validator = new SweCsaRaoValidator(raoRunnerClient, requestId, networkFileUrl, cracFileUrl, crac, raoParametersUrl);
-
-        DichotomyRunner dichotomyRunner = new DichotomyRunner();
-        RaoResponse raoResultAfterDichotomy = dichotomyRunner.launchDichotomy(network, crac, timestamp, validator);
-        LOGGER.info("dichotomy RAO computation answer received for TimeStamp: '{}'", raoRequest.getInstant());
-
-        return new CsaResponse(raoResultAfterDichotomy.getId(), Status.FINISHED.toString());
-    }
-
 }

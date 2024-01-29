@@ -14,6 +14,8 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
 import com.farao_community.farao.dichotomy.api.results.DichotomyStepResult;
 import com.farao_community.farao.dichotomy.api.results.LimitingCause;
 import com.farao_community.farao.dichotomy.api.results.ReasonInvalid;
+import com.farao_community.farao.swe_csa.app.dichotomy.index.Index;
+import com.farao_community.farao.swe_csa.app.dichotomy.variable.DichotomyVariable;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.tuple.Pair;

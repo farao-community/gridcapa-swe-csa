@@ -18,6 +18,10 @@ import com.farao_community.farao.dichotomy.api.exceptions.ShiftingException;
 import com.farao_community.farao.dichotomy.api.exceptions.ValidationException;
 import com.farao_community.farao.dichotomy.api.results.DichotomyStepResult;
 import com.farao_community.farao.dichotomy.api.results.ReasonInvalid;
+import com.farao_community.farao.swe_csa.app.dichotomy.index.Index;
+import com.farao_community.farao.swe_csa.app.dichotomy.index.IndexStrategy;
+import com.farao_community.farao.swe_csa.app.dichotomy.shifter.NetworkShifter;
+import com.farao_community.farao.swe_csa.app.dichotomy.variable.DichotomyVariable;
 import com.powsybl.iidm.network.Network;
 
 import java.util.Objects;

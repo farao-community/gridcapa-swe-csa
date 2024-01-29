@@ -1,6 +1,7 @@
-package com.farao_community.farao.swe_csa.app.dichotomy;
+package com.farao_community.farao.swe_csa.app.dichotomy.dispatcher;
 
 import com.farao_community.farao.commons.EICode;
+import com.farao_community.farao.swe_csa.app.dichotomy.variable.MultipleDichotomyVariables;
 import com.powsybl.iidm.network.Country;
 
 import java.util.Map;

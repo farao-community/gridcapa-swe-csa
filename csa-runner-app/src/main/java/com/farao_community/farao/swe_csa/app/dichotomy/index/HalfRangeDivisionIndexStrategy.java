@@ -1,4 +1,4 @@
-package com.farao_community.farao.swe_csa.app.dichotomy;
+package com.farao_community.farao.swe_csa.app.dichotomy.index;
 
 /*
  * Copyright (c) 2024, RTE (http://www.rte-france.com)
@@ -10,6 +10,8 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
 /**
  * @author Jean-Pierre Arnould {@literal <jean-pierre.arnould at rte-france.com>}
  */
+
+import com.farao_community.farao.swe_csa.app.dichotomy.variable.DichotomyVariable;
 
 /**
  * Implementation of IndexStrategy that consists of a basic dichotomy between minimum index value and maximum one.

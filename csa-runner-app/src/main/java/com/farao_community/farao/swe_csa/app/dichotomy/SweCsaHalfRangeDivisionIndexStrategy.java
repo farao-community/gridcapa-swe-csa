@@ -7,6 +7,9 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
  */
 
 import com.farao_community.farao.data.rao_result_api.RaoResult;
+import com.farao_community.farao.swe_csa.app.dichotomy.index.HalfRangeDivisionIndexStrategy;
+import com.farao_community.farao.swe_csa.app.dichotomy.index.Index;
+import com.farao_community.farao.swe_csa.app.dichotomy.variable.MultipleDichotomyVariables;
 
 import java.util.Map;
 import java.util.Set;

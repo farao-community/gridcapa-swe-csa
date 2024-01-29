@@ -4,6 +4,7 @@ import com.farao_community.farao.swe_csa.api.JsonApiConverter;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.api.resource.CsaResponse;
 import com.farao_community.farao.swe_csa.api.resource.Status;
+import com.farao_community.farao.swe_csa.app.dichotomy.SweCsaDichotomyRunner;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -23,6 +24,8 @@ class RequestServiceTest {
 
     @MockBean
     SweCsaRunner sweCsaRunner;
+    @MockBean
+    SweCsaDichotomyRunner sweCsaDichotomyRunner;
     @MockBean
     StreamBridge streamBridge;
     @Autowired

@@ -1,4 +1,4 @@
-package com.farao_community.farao.swe_csa.app.dichotomy;
+package com.farao_community.farao.swe_csa.app.dichotomy.shifter;
 
 /*
  * Copyright (c) 2024, RTE (http://www.rte-france.com)
@@ -9,6 +9,8 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
 
 import com.farao_community.farao.dichotomy.api.exceptions.GlskLimitationException;
 import com.farao_community.farao.dichotomy.api.exceptions.ShiftingException;
+import com.farao_community.farao.swe_csa.app.dichotomy.dispatcher.ShiftDispatcher;
+import com.farao_community.farao.swe_csa.app.dichotomy.variable.MultipleDichotomyVariables;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.modification.scalable.ScalingParameters;

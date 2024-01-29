@@ -3,6 +3,7 @@ package com.farao_community.farao.swe_csa.app;
 
 import com.farao_community.farao.swe_csa.api.JsonApiConverter;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
+import com.farao_community.farao.swe_csa.app.dichotomy.SweCsaDichotomyRunner;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,17 +20,19 @@ public class CsaController {
     private static final String JSON_API_MIME_TYPE = "application/vnd.api+json";
 
     private final SweCsaRunner sweCsaRunner;
+    private final SweCsaDichotomyRunner sweCsaDichotomyRunner;
     private final MockCsaRequest mockCsaRequest;
     private final JsonApiConverter jsonApiConverter = new JsonApiConverter();
 
-    public CsaController(SweCsaRunner sweCsaRunner, MockCsaRequest mockCsaRequest) {
+    public CsaController(SweCsaRunner sweCsaRunner, SweCsaDichotomyRunner sweCsaDichotomyRunner, MockCsaRequest mockCsaRequest) {
         this.sweCsaRunner = sweCsaRunner;
+        this.sweCsaDichotomyRunner = sweCsaDichotomyRunner;
         this.mockCsaRequest = mockCsaRequest;
     }
 
     @PostMapping(value = "/run", consumes = JSON_API_MIME_TYPE, produces = JSON_API_MIME_TYPE)
     public ResponseEntity runCsaByZip(@RequestPart byte[] jsonCsaRequest) throws IOException {
-        return ResponseEntity.ok().body(sweCsaRunner.runRaoDichotomy(jsonApiConverter.fromJsonMessage(jsonCsaRequest, CsaRequest.class)));
+        return ResponseEntity.ok().body(sweCsaDichotomyRunner.runRaoDichotomy(jsonApiConverter.fromJsonMessage(jsonCsaRequest, CsaRequest.class)));
     }
 
     @PostMapping(value = "/run-single-rao", consumes = JSON_API_MIME_TYPE, produces = JSON_API_MIME_TYPE)

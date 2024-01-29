@@ -1,4 +1,4 @@
-package com.farao_community.farao.swe_csa.app.dichotomy;
+package com.farao_community.farao.swe_csa.app.dichotomy.index;
 
 /*
  * Copyright (c) 2024, RTE (http://www.rte-france.com)
@@ -14,6 +14,7 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
 import com.farao_community.farao.dichotomy.api.exceptions.DichotomyException;
 import com.farao_community.farao.dichotomy.api.results.DichotomyStepResult;
 import com.farao_community.farao.dichotomy.api.results.ReasonInvalid;
+import com.farao_community.farao.swe_csa.app.dichotomy.variable.DichotomyVariable;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.ArrayList;
