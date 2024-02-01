@@ -11,6 +11,9 @@ package com.farao_community.farao.swe_csa.app.dichotomy.variable;
  * @author Jean-Pierre Arnould {@literal <jean-pierre.arnould at rte-france.com>}
  */
 
+import com.farao_community.farao.dichotomy.api.exceptions.DichotomyException;
+
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -29,7 +32,7 @@ public class MultipleDichotomyVariables implements DichotomyVariable<MultipleDic
     @Override
     public boolean isGreaterThan(MultipleDichotomyVariables other) {
         if (!values.keySet().equals(other.values.keySet())) {
-            // TODO : throw
+            throw new DichotomyException("Impossible to compare 2 multiple dichotomy variables because they have not the same keys for values");
         }
         return values.entrySet().stream().anyMatch(
             e -> e.getValue() > other.values.get(e.getKey())
@@ -39,7 +42,7 @@ public class MultipleDichotomyVariables implements DichotomyVariable<MultipleDic
     @Override
     public double distanceTo(MultipleDichotomyVariables other) {
         if (!values.keySet().equals(other.values.keySet())) {
-            // TODO : throw
+            throw new DichotomyException("Impossible to compute distance between 2 multiple dichotomy variables because they have not the same keys for values");
         }
         return values.entrySet().stream().mapToDouble(
             e -> Math.abs(e.getValue() - other.values.get(e.getKey()))
@@ -48,6 +51,9 @@ public class MultipleDichotomyVariables implements DichotomyVariable<MultipleDic
 
     @Override
     public MultipleDichotomyVariables halfRangeWith(MultipleDichotomyVariables other) {
+        if (!values.keySet().equals(other.values.keySet())) {
+            throw new DichotomyException("Impossible to compute half range between 2 multiple dichotomy variables because they have not the same keys for values");
+        }
         return new MultipleDichotomyVariables(
             values.entrySet().stream().collect(Collectors.toMap(
                 Map.Entry::getKey,
@@ -57,6 +63,7 @@ public class MultipleDichotomyVariables implements DichotomyVariable<MultipleDic
 
     @Override
     public String print() {
-        return values.entrySet().stream().map(e -> String.format("%s : %.0f", e.getKey(), e.getValue())).collect(Collectors.joining(", "));
+        return values.entrySet().stream().sorted(Comparator.comparing(e -> e.getKey()))
+            .map(e -> String.format("%s : %.0f", e.getKey(), e.getValue())).collect(Collectors.joining(", "));
     }
 }

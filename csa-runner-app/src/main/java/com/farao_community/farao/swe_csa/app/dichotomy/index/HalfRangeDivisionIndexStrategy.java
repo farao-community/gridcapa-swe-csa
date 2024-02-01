@@ -7,10 +7,6 @@ package com.farao_community.farao.swe_csa.app.dichotomy.index;
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-/**
- * @author Jean-Pierre Arnould {@literal <jean-pierre.arnould at rte-france.com>}
- */
-
 import com.farao_community.farao.swe_csa.app.dichotomy.variable.DichotomyVariable;
 
 /**
@@ -21,6 +17,7 @@ import com.farao_community.farao.swe_csa.app.dichotomy.variable.DichotomyVariabl
  * if startWithMin is false then we start with max value then (min + max) / 2 value
  *
  * @author Marc Schwitzguebel {@literal <marc.schwitzguebel at rte-france.com>}
+ * @author Jean-Pierre Arnould {@literal <jean-pierre.arnould at rte-france.com>}
  */
 public class HalfRangeDivisionIndexStrategy<U extends DichotomyVariable<U>> implements IndexStrategy<U> {
 
