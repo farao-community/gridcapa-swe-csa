@@ -33,10 +33,10 @@ public class SweCsaShiftDispatcher implements ShiftDispatcher<MultipleDichotomyV
 
     @Override
     public Map<String, Double> dispatch(MultipleDichotomyVariables variable) {
-        return Map.of(eicCodeEs, variable.values().get(CounterTradingDirection.FR_ES)
-                + variable.values().get(CounterTradingDirection.PT_ES) - initialNetPositions.get(eicCodeEs),
-            eicCodeFr, -variable.values().get(CounterTradingDirection.FR_ES) - initialNetPositions.get(eicCodeFr),
-            eicCodePt, -variable.values().get(CounterTradingDirection.PT_ES) - initialNetPositions.get(eicCodePt));
+        return Map.of(eicCodeEs, variable.values().get(CounterTradingDirection.FR_ES.getName())
+                + variable.values().get(CounterTradingDirection.PT_ES.getName()) - initialNetPositions.get(eicCodeEs),
+            eicCodeFr, -variable.values().get(CounterTradingDirection.FR_ES.getName()) - initialNetPositions.get(eicCodeFr),
+            eicCodePt, -variable.values().get(CounterTradingDirection.PT_ES.getName()) - initialNetPositions.get(eicCodePt));
     }
 
 }
