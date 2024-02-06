@@ -26,7 +26,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class MultipleDichotomyVariablesTest {
 
-    MultipleDichotomyVariables mdv1, mdv2, mdv3, mdv4, mdv5, mdv6, mdv7;
+    MultipleDichotomyVariables mdv1;
+    MultipleDichotomyVariables mdv2;
+    MultipleDichotomyVariables mdv3;
+    MultipleDichotomyVariables mdv4;
+    MultipleDichotomyVariables mdv5;
+    MultipleDichotomyVariables mdv6;
+    MultipleDichotomyVariables mdv7;
+
     @BeforeEach
     void setup() {
         mdv1 = new MultipleDichotomyVariables(Map.of("k1", 1., "k2", 0.1));
@@ -45,6 +52,7 @@ public class MultipleDichotomyVariablesTest {
         assertEquals(5., mdv2.values().get("k2"));
         assertNull(mdv1.values().get("k3"));
     }
+
     @Test
     void testIsGreaterThan() {
         assertTrue(mdv2.isGreaterThan(mdv1));

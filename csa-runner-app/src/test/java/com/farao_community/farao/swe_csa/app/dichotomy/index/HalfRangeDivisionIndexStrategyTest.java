@@ -16,9 +16,7 @@ import com.farao_community.farao.swe_csa.app.dichotomy.CounterTradingDirection;
 import com.farao_community.farao.swe_csa.app.dichotomy.variable.MultipleDichotomyVariables;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnit;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -28,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class HalfRangeDivisionIndexStrategyTest {
     @Test
-    void testNextValue_precisionReached() {
+    void testNextValuePrecisionReached() {
         Index<Object, MultipleDichotomyVariables> index1 = new Index<>(new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 0.0, CounterTradingDirection.FR_ES.getName(), 0.0)),
             new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 1500.0, CounterTradingDirection.FR_ES.getName(), 1000.0)), 10);
         DichotomyStepResult dichotomyStepResult1 = Mockito.mock(DichotomyStepResult.class);
@@ -43,7 +41,7 @@ public class HalfRangeDivisionIndexStrategyTest {
     }
 
     @Test
-    void testNextValue_startWithMinTrue() {
+    void testNextValueStartWithMinTrue() {
         Index<Object, MultipleDichotomyVariables> index1 = new Index<>(new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 0.0, CounterTradingDirection.FR_ES.getName(), 0.0)),
             new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 1500.0, CounterTradingDirection.FR_ES.getName(), 1000.0)), 10);
         HalfRangeDivisionIndexStrategy<MultipleDichotomyVariables> indexStrategy1 = new HalfRangeDivisionIndexStrategy<>(true);
@@ -68,7 +66,7 @@ public class HalfRangeDivisionIndexStrategyTest {
     }
 
     @Test
-    void testNextValue_startWithMinFalse() {
+    void testNextValueStartWithMinFalse() {
         Index<Object, MultipleDichotomyVariables> index1 = new Index<>(new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 0.0, CounterTradingDirection.FR_ES.getName(), 0.0)),
             new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 1500.0, CounterTradingDirection.FR_ES.getName(), 1000.0)), 10);
         HalfRangeDivisionIndexStrategy<MultipleDichotomyVariables> indexStrategy1 = new HalfRangeDivisionIndexStrategy<>(false);
@@ -97,29 +95,29 @@ public class HalfRangeDivisionIndexStrategyTest {
         Index<Object, MultipleDichotomyVariables> index1 = new Index<>(new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 0.0, CounterTradingDirection.FR_ES.getName(), 0.0)),
             new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 1500.0, CounterTradingDirection.FR_ES.getName(), 1000.0)), 10);
         HalfRangeDivisionIndexStrategy<MultipleDichotomyVariables> indexStrategy1 = new HalfRangeDivisionIndexStrategy<>(false);
-        //always false when there's no step
+        // always false when there's no step
         assertFalse(indexStrategy1.precisionReached(index1));
 
         DichotomyStepResult dichotomyStepResult0 = Mockito.mock(DichotomyStepResult.class);
         Mockito.when(dichotomyStepResult0.isValid()).thenReturn(true);
         index1.addDichotomyStepResult(new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 700.0, CounterTradingDirection.FR_ES.getName(), 700.0)), dichotomyStepResult0);
-        //false when there's only valid step, away from max value
+        // false when there's only valid step, away from max value
         assertFalse(indexStrategy1.precisionReached(index1));
 
         Index<Object, MultipleDichotomyVariables> index2 = new Index<>(new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 0.0, CounterTradingDirection.FR_ES.getName(), 0.0)),
             new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 1500.0, CounterTradingDirection.FR_ES.getName(), 1000.0)), 10);
         DichotomyStepResult dichotomyStepResult1 = Mockito.mock(DichotomyStepResult.class);
         Mockito.when(dichotomyStepResult1.isValid()).thenReturn(false);
-        index2.addDichotomyStepResult(new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), HalfRangeDivisionIndexStrategy.EPSILON/2, CounterTradingDirection.FR_ES.getName(), HalfRangeDivisionIndexStrategy.EPSILON/2)), dichotomyStepResult1);
-        //true when lowestInvalidStep is nearer to index min value than EPSILON
+        index2.addDichotomyStepResult(new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), HalfRangeDivisionIndexStrategy.EPSILON / 2, CounterTradingDirection.FR_ES.getName(), HalfRangeDivisionIndexStrategy.EPSILON / 2)), dichotomyStepResult1);
+        // true when lowestInvalidStep is nearer to index min value than EPSILON
         assertTrue(indexStrategy1.precisionReached(index2));
 
         Index<Object, MultipleDichotomyVariables> index3 = new Index<>(new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 0.0, CounterTradingDirection.FR_ES.getName(), 0.0)),
             new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 1500.0, CounterTradingDirection.FR_ES.getName(), 1000.0)), 10);
         DichotomyStepResult dichotomyStepResult2 = Mockito.mock(DichotomyStepResult.class);
         Mockito.when(dichotomyStepResult2.isValid()).thenReturn(true);
-        index3.addDichotomyStepResult(new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 1500.0 - HalfRangeDivisionIndexStrategy.EPSILON/2, CounterTradingDirection.FR_ES.getName(), 1000.0 - HalfRangeDivisionIndexStrategy.EPSILON/2)), dichotomyStepResult2);
-        //true when highestValidStep is nearer to index max value than EPSILON
+        index3.addDichotomyStepResult(new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 1500.0 - HalfRangeDivisionIndexStrategy.EPSILON / 2, CounterTradingDirection.FR_ES.getName(), 1000.0 - HalfRangeDivisionIndexStrategy.EPSILON / 2)), dichotomyStepResult2);
+        // true when highestValidStep is nearer to index max value than EPSILON
         assertTrue(indexStrategy1.precisionReached(index3));
 
         Index<Object, MultipleDichotomyVariables> index4 = new Index<>(new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 0.0, CounterTradingDirection.FR_ES.getName(), 0.0)),
@@ -127,13 +125,13 @@ public class HalfRangeDivisionIndexStrategyTest {
         DichotomyStepResult dichotomyStepResult4 = Mockito.mock(DichotomyStepResult.class);
         Mockito.when(dichotomyStepResult4.isValid()).thenReturn(false);
         index4.addDichotomyStepResult(new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 100.0, CounterTradingDirection.FR_ES.getName(), 100.0)), dichotomyStepResult4);
-        //false because there's an invalidStep more away from min value than index precision, and no validStep
+        // false because there's an invalidStep more away from min value than index precision, and no validStep
         assertFalse(indexStrategy1.precisionReached(index4));
 
         DichotomyStepResult dichotomyStepResult5 = Mockito.mock(DichotomyStepResult.class);
         Mockito.when(dichotomyStepResult5.isValid()).thenReturn(true);
         index4.addDichotomyStepResult(new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 90.0, CounterTradingDirection.FR_ES.getName(), 90.0)), dichotomyStepResult5);
-        //true because distance between valid sted and valid step is equal to index precision
+        // true because distance between valid sted and valid step is equal to index precision
         assertTrue(indexStrategy1.precisionReached(index4));
     }
 }

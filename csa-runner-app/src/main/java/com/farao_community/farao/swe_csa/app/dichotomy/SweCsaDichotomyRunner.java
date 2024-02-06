@@ -75,13 +75,13 @@ public class SweCsaDichotomyRunner {
         RaoRequest raoRequest = new RaoRequest(requestId, networkFileUrl, cracFileUrl, raoParametersUrl);
         SweCsaRaoValidator validator = new SweCsaRaoValidator(raoRunnerClient, requestId, networkFileUrl, cracFileUrl, crac, raoParametersUrl);
 
-        RaoResponse raoResultAfterDichotomy = launchDichotomy(network, crac, timestamp, validator);
+        RaoResponse raoResultAfterDichotomy = getDichotomyResponse(network, crac, timestamp, validator);
         LOGGER.info("dichotomy RAO computation answer received for TimeStamp: '{}'", raoRequest.getInstant());
 
         return new CsaResponse(raoResultAfterDichotomy.getId(), Status.FINISHED.toString());
     }
 
-    private RaoResponse launchDichotomy(Network network, Crac crac, String timestamp, SweCsaRaoValidator validator) {
+    private RaoResponse getDichotomyResponse(Network network, Crac crac, String timestamp, SweCsaRaoValidator validator) {
 
         Pair<MultipleDichotomyVariables, MultipleDichotomyVariables> initialDichotomyVariable = getInitialDichotomyIndex(crac);
         DichotomyEngine<RaoResponse, MultipleDichotomyVariables> engine = new DichotomyEngine<>(
