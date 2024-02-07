@@ -2,11 +2,13 @@ package com.farao_community.farao.swe_csa.app.rao_result;
 
 import com.farao_community.farao.data.crac_api.RemedialAction;
 import com.farao_community.farao.data.crac_api.State;
+import com.farao_community.farao.data.crac_api.cnec.Cnec;
 import com.farao_community.farao.data.crac_api.range_action.CounterTradeRangeAction;
 import com.farao_community.farao.data.crac_api.range_action.RangeAction;
 import com.farao_community.farao.data.rao_result_api.RaoResult;
 import com.farao_community.farao.data.rao_result_api.RaoResultClone;
 import com.farao_community.farao.swe_csa.api.results.CounterTradingResult;
+import com.powsybl.iidm.network.Country;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -64,6 +66,11 @@ public class RaoResultWithCounterTradeRangeActions extends RaoResultClone {
     public Map<RangeAction<?>, Double> getOptimizedSetPointsOnState(State state) {
         // TODO to be tested when we have counter trade actions, we are not sure that range action keyset contains CT range actions , otherwise we have to fetch them from CounterTradeResult
         return raoResult.getOptimizedSetPointsOnState(state);
+    }
+
+    public Set<Cnec> getCnecsOnConstraintForCountry(Country country) {
+        Set<Cnec> cnecs = new HashSet<>();
+        return cnecs;
     }
 
 }

@@ -26,6 +26,7 @@ import com.farao_community.farao.swe_csa.app.Threadable;
 import com.farao_community.farao.swe_csa.app.ZipHelper;
 import com.farao_community.farao.swe_csa.app.dichotomy.dispatcher.SweCsaShiftDispatcher;
 import com.farao_community.farao.swe_csa.app.dichotomy.index.Index;
+import com.farao_community.farao.swe_csa.app.dichotomy.index.SweCsaHalfRangeDivisionIndexStrategy;
 import com.farao_community.farao.swe_csa.app.dichotomy.shifter.LinearScaler;
 import com.farao_community.farao.swe_csa.app.dichotomy.variable.MultipleDichotomyVariables;
 import com.powsybl.iidm.network.Country;
@@ -75,13 +76,13 @@ public class SweCsaDichotomyRunner {
         RaoRequest raoRequest = new RaoRequest(requestId, networkFileUrl, cracFileUrl, raoParametersUrl);
         SweCsaRaoValidator validator = new SweCsaRaoValidator(raoRunnerClient, requestId, networkFileUrl, cracFileUrl, crac, raoParametersUrl);
 
-        RaoResponse raoResultAfterDichotomy = getDichotomyResponse(network, crac, timestamp, validator);
+        RaoResponse raoResponseAfterDichotomy = getDichotomyResponse(network, crac, timestamp, validator);
         LOGGER.info("dichotomy RAO computation answer received for TimeStamp: '{}'", raoRequest.getInstant());
 
-        return new CsaResponse(raoResultAfterDichotomy.getId(), Status.FINISHED.toString());
+        return new CsaResponse(raoResponseAfterDichotomy.getId(), Status.FINISHED.toString());
     }
 
-    private RaoResponse getDichotomyResponse(Network network, Crac crac, String timestamp, SweCsaRaoValidator validator) {
+    protected RaoResponse getDichotomyResponse(Network network, Crac crac, String timestamp, SweCsaRaoValidator validator) {
 
         Pair<MultipleDichotomyVariables, MultipleDichotomyVariables> initialDichotomyVariable = getInitialDichotomyIndex(crac);
         DichotomyEngine<RaoResponse, MultipleDichotomyVariables> engine = new DichotomyEngine<>(
@@ -93,7 +94,7 @@ public class SweCsaDichotomyRunner {
         return result.getHighestValidStep().getValidationData();
     }
 
-    private Map<String, Double>  getInitialPositions(Crac crac) {
+    protected Map<String, Double>  getInitialPositions(Crac crac) {
         CounterTradeRangeAction ctRaFrEs = crac.getCounterTradeRangeAction("CT_RA_FRES");
         CounterTradeRangeAction ctRaPtEs = crac.getCounterTradeRangeAction("CT_RA_PTES");
 
