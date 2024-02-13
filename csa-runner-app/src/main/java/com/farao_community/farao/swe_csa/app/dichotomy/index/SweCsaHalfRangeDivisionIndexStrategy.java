@@ -6,19 +6,19 @@ package com.farao_community.farao.swe_csa.app.dichotomy.index;
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import com.farao_community.farao.data.crac_api.Instant;
-import com.farao_community.farao.data.crac_api.cnec.Cnec;
+import com.farao_community.farao.commons.Unit;
+import com.farao_community.farao.data.crac_api.Crac;
 import com.farao_community.farao.data.crac_api.cnec.FlowCnec;
-import com.farao_community.farao.data.rao_result_api.RaoResult;
 import com.farao_community.farao.dichotomy.api.results.DichotomyStepResult;
-import com.farao_community.farao.swe_csa.app.dichotomy.index.HalfRangeDivisionIndexStrategy;
-import com.farao_community.farao.swe_csa.app.dichotomy.index.Index;
+import com.farao_community.farao.swe_csa.app.dichotomy.CounterTradingDirection;
 import com.farao_community.farao.swe_csa.app.dichotomy.variable.MultipleDichotomyVariables;
 import com.farao_community.farao.swe_csa.app.rao_result.RaoResultWithCounterTradeRangeActions;
 import com.powsybl.iidm.network.Country;
+import com.powsybl.iidm.network.Network;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -32,13 +32,19 @@ import java.util.stream.Collectors;
  */
 
 public class SweCsaHalfRangeDivisionIndexStrategy extends HalfRangeDivisionIndexStrategy<MultipleDichotomyVariables> {
-    private final String frEsIndexName;
-    private final String ptEsIndexName;
+    private final Set<FlowCnec> frEsCnecs;
+    private final Set<FlowCnec> ptEsCnecs;
 
-    public SweCsaHalfRangeDivisionIndexStrategy(String frEsIndexName, String ptEsIndexName) {
+    public SweCsaHalfRangeDivisionIndexStrategy(Crac crac, Network network) {
         super(false);
-        this.frEsIndexName = frEsIndexName;
-        this.ptEsIndexName = ptEsIndexName;
+        this.frEsCnecs = getCnecsBorder(crac, network, Country.FR);
+        this.ptEsCnecs = getCnecsBorder(crac, network, Country.PT);
+    }
+
+    private Set<FlowCnec> getCnecsBorder(Crac crac, Network network, Country country) {
+        return crac.getFlowCnecs().stream()
+            .filter(flowCnec -> flowCnec.getLocation(network).contains(Optional.of(country)))
+            .collect(Collectors.toSet());
     }
 
     @Override
@@ -54,8 +60,8 @@ public class SweCsaHalfRangeDivisionIndexStrategy extends HalfRangeDivisionIndex
         }
 
         Map<String, Double> newValues = Map.of(
-            frEsIndexName, computeNextValue(index, frEsIndexName),
-            ptEsIndexName, computeNextValue(index, ptEsIndexName)
+            CounterTradingDirection.FR_ES.getName(), computeNextValue(index, CounterTradingDirection.FR_ES.getName()),
+            CounterTradingDirection.PT_ES.getName(), computeNextValue(index, CounterTradingDirection.PT_ES.getName())
         );
 
         return new MultipleDichotomyVariables(newValues);
@@ -65,15 +71,20 @@ public class SweCsaHalfRangeDivisionIndexStrategy extends HalfRangeDivisionIndex
         double maxSafeValue = Double.MIN_VALUE;
         double minUnsafeValue = Double.MAX_VALUE;
 
-        for(Pair<MultipleDichotomyVariables, ? extends DichotomyStepResult<?>> step : index.testedSteps()) {
-            boolean isSafe = isSafeForBorder((RaoResultWithCounterTradeRangeActions)step.getRight().getRaoResult(), key);
+        for (Pair<MultipleDichotomyVariables, ? extends DichotomyStepResult<?>> step : index.testedSteps()) {
+            boolean isSafe = isSafeForBorder((RaoResultWithCounterTradeRangeActions) step.getRight().getRaoResult(), key);
             Double value = Double.valueOf(step.getLeft().values().get(key));
-            if(isSafe && value>maxSafeValue) {
+            if (isSafe && value > maxSafeValue) {
                 maxSafeValue = value;
-            } else if(!isSafe && value<minUnsafeValue) {
+            } else if (!isSafe && value < minUnsafeValue) {
                 minUnsafeValue = value;
             }
         }
+
+        if(maxSafeValue == Double.MIN_VALUE || minUnsafeValue == Double.MAX_VALUE) {
+            throw new AssertionError("There's at least one valid step and one invalid step, so there must be at least one safe value and one unsafe value for the frontier " + key);
+        }
+
         // If precision is reached, keep max value
         if (Math.abs(maxSafeValue - minUnsafeValue) < index.precision()) {
             return maxSafeValue;
@@ -83,13 +94,22 @@ public class SweCsaHalfRangeDivisionIndexStrategy extends HalfRangeDivisionIndex
     }
 
     boolean isSafeForBorder(RaoResultWithCounterTradeRangeActions raoResult, String key) {
-        if (key.equals(frEsIndexName)) {
-            return raoResult.getCnecsOnConstraintForCountry(Country.FR).isEmpty();
+        if (key.equals(CounterTradingDirection.FR_ES.getName())) {
+            return !hasCnecNegativeMargin(raoResult, this.frEsCnecs);
         }
-        if (key.equals(ptEsIndexName)) {
-            return raoResult.getCnecsOnConstraintForCountry(Country.PT).isEmpty();
+        if (key.equals(CounterTradingDirection.PT_ES.getName())) {
+            return !hasCnecNegativeMargin(raoResult, this.ptEsCnecs);
         }
         return false; // TODO : throw
+    }
+
+    boolean hasCnecNegativeMargin(RaoResultWithCounterTradeRangeActions raoResult, Set<FlowCnec> cnecs) {
+        for (FlowCnec cnec : cnecs) {
+            if (raoResult.getMargin(cnec.getState().getInstant(), cnec, Unit.MEGAWATT) < 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

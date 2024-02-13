@@ -49,7 +49,7 @@ public final class LinearScaler implements NetworkShifter<MultipleDichotomyVaria
     @Override
     public void shiftNetwork(MultipleDichotomyVariables stepValue, Network network) throws GlskLimitationException, ShiftingException {
         Map<String, Double> scalingValuesByCountry = new HashMap<>();
-        BUSINESS_LOGS.info(String.format("Starting linear scaling on network %s with step value %.2f",
+        BUSINESS_LOGS.info(String.format("Starting linear scaling on network %s with step value %s",
             network.getVariantManager().getWorkingVariantId(), stepValue.print()));
         scalingValuesByCountry = shiftDispatcher.dispatch(stepValue);
         List<String> limitingCountries = new ArrayList<>();
@@ -58,7 +58,7 @@ public final class LinearScaler implements NetworkShifter<MultipleDichotomyVaria
             double asked = entry.getValue();
             BUSINESS_LOGS.info(String.format("Applying variation on zone %s (target: %.2f)", zoneId, asked));
             ScalingParameters scalingParameters = new ScalingParameters();
-            scalingParameters.setIterative(true); // TODO : deprecated, replace this
+            scalingParameters.setPriority(ScalingParameters.Priority.RESPECT_OF_VOLUME_ASKED);
             scalingParameters.setReconnect(true);
             double done = zonalScalable.getData(zoneId).scale(network, asked, scalingParameters);
             if (Math.abs(done - asked) > shiftEpsilon) {

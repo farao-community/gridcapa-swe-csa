@@ -11,7 +11,6 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
  * @author Jean-Pierre Arnould {@literal <jean-pierre.arnould at rte-france.com>}
  */
 
-import com.farao_community.farao.commons.EICode;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.glsk.commons.ZonalDataImpl;
 import com.powsybl.iidm.modification.scalable.Scalable;
@@ -45,15 +44,15 @@ public final class SweCsaZonalData {
             .collect(Collectors.toMap(generator -> generator.getTerminal().getVoltageLevel().getSubstation().map(Substation::getNullableCountry).orElse(null),
                 generator -> List.of(generator),
                 (list1, list2) -> {
-                    list1.addAll(list2);
-                    return list1;
+                    List<Generator> list3 = new ArrayList<>(list1);
+                    list3.addAll(list2);
+                    return list3;
                 }));
         ZonalData<Scalable> zonalData = new ZonalDataImpl<>(new HashMap<>());
         for (Map.Entry<Country, List<Generator>> entry : generatorsByCountries.entrySet()) {
             List<Scalable> scalables = new ArrayList<>();
             List<Double> percentages = new ArrayList<>();
             Country c = entry.getKey();
-            String eic = new EICode(c).getAreaCode();
             List<Generator> generators = entry.getValue();
             //calculate sum P of country's generators
             double totalCountryP = generators.stream().mapToDouble(g -> pseudoTargetP(g)).sum();
@@ -64,7 +63,7 @@ public final class SweCsaZonalData {
                 scalables.add(Scalable.onGenerator(generator.getId()));
             });
             Scalable scalable = Scalable.proportional(percentages, scalables);
-            zonalData.addAll(new ZonalDataImpl<>(Collections.singletonMap(eic, scalable)));
+            zonalData.addAll(new ZonalDataImpl<>(Collections.singletonMap(c.getName(), scalable)));
         }
 
         return zonalData;

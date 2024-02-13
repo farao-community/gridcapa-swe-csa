@@ -87,7 +87,7 @@ public class SweCsaDichotomyRunner {
         Pair<MultipleDichotomyVariables, MultipleDichotomyVariables> initialDichotomyVariable = getInitialDichotomyIndex(crac);
         DichotomyEngine<RaoResponse, MultipleDichotomyVariables> engine = new DichotomyEngine<>(
             new Index<>(initialDichotomyVariable.getLeft(), initialDichotomyVariable.getRight(), 10),
-            new SweCsaHalfRangeDivisionIndexStrategy("CT_FRES", "CT_PTES"),
+            new SweCsaHalfRangeDivisionIndexStrategy(crac, network),
             new LinearScaler(SweCsaZonalData.getZonalData(network), new SweCsaShiftDispatcher(getInitialPositions(crac))),
             validator);
         DichotomyResult<RaoResponse, MultipleDichotomyVariables> result = engine.run(network);
@@ -123,8 +123,8 @@ public class SweCsaDichotomyRunner {
         double ctPtEsMax = expPtEs >= 0 ? Math.min(Math.min(-ctRaPtEs.getMinAdmissibleSetpoint(expPtEs), ctRaEsPt.getMaxAdmissibleSetpoint(expEsPt)), expPtEs)
             : Math.min(Math.min(ctRaPtEs.getMaxAdmissibleSetpoint(expPtEs), -ctRaEsPt.getMinAdmissibleSetpoint(expEsPt)), -expPtEs);
 
-        MultipleDichotomyVariables initMinIndex = new MultipleDichotomyVariables(Map.of("CT_FRES", 0.0, "CT_PTES", 0.0));
-        MultipleDichotomyVariables initMaxIndex = new MultipleDichotomyVariables(Map.of("CT_FRES", ctFrEsMax, "CT_PTES", ctPtEsMax));
+        MultipleDichotomyVariables initMinIndex = new MultipleDichotomyVariables(Map.of(CounterTradingDirection.FR_ES.getName(), 0.0, CounterTradingDirection.PT_ES.getName(), 0.0));
+        MultipleDichotomyVariables initMaxIndex = new MultipleDichotomyVariables(Map.of(CounterTradingDirection.FR_ES.getName(), ctFrEsMax, CounterTradingDirection.PT_ES.getName(), ctPtEsMax));
 
         return Pair.of(initMinIndex, initMaxIndex);
     }
