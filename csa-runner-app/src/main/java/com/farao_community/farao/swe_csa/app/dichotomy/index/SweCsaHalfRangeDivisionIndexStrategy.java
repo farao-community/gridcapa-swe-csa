@@ -52,12 +52,6 @@ public class SweCsaHalfRangeDivisionIndexStrategy extends HalfRangeDivisionIndex
         if (precisionReached(index)) {
             throw new AssertionError("Dichotomy engine should not ask for next value if precision is reached");
         }
-        if (index.lowestInvalidStep() == null) {
-            return index.maxValue(); // minimum counter-trading, maximum exchange
-        }
-        if (index.highestValidStep() == null) {
-            return index.minValue(); // maximum counter-trading, minimum exchange
-        }
 
         Map<String, Double> newValues = Map.of(
             CounterTradingDirection.FR_ES.getName(), computeNextValue(index, CounterTradingDirection.FR_ES.getName()),
@@ -65,6 +59,14 @@ public class SweCsaHalfRangeDivisionIndexStrategy extends HalfRangeDivisionIndex
         );
 
         return new MultipleDichotomyVariables(newValues);
+    }
+
+    public Set<FlowCnec> getFrEsCnecs() {
+        return this.frEsCnecs;
+    }
+
+    public Set<FlowCnec> getPtEsCnecs() {
+        return this.ptEsCnecs;
     }
 
     double computeNextValue(Index<?, MultipleDichotomyVariables> index, String key) {
@@ -81,8 +83,12 @@ public class SweCsaHalfRangeDivisionIndexStrategy extends HalfRangeDivisionIndex
             }
         }
 
-        if(maxSafeValue == Double.MIN_VALUE || minUnsafeValue == Double.MAX_VALUE) {
-            throw new AssertionError("There's at least one valid step and one invalid step, so there must be at least one safe value and one unsafe value for the frontier " + key);
+        if (minUnsafeValue == Double.MAX_VALUE) { // if there's no unsafe value
+            return index.maxValue().values().get(key);
+        }
+
+        if (maxSafeValue == Double.MIN_VALUE) { // if there's no safe value
+            return index.minValue().values().get(key);
         }
 
         // If precision is reached, keep max value

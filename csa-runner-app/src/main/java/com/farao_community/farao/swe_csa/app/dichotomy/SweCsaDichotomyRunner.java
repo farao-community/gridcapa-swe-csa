@@ -14,6 +14,7 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
 import com.farao_community.farao.commons.EICode;
 import com.farao_community.farao.data.crac_api.Crac;
 import com.farao_community.farao.data.crac_api.range_action.CounterTradeRangeAction;
+import com.farao_community.farao.data.crac_api.usage_rule.UsageMethod;
 import com.farao_community.farao.rao_runner.api.resource.RaoRequest;
 import com.farao_community.farao.rao_runner.api.resource.RaoResponse;
 import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
@@ -45,6 +46,7 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class SweCsaDichotomyRunner {
@@ -65,7 +67,6 @@ public class SweCsaDichotomyRunner {
         FileAttribute<Set<PosixFilePermission>> attr = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------"));
         Path archiveTempPath = Files.createTempFile("csa-temp-inputs", "inputs.zip", attr);
 
-        String timestamp = csaRequest.getBusinessTimestamp();
         Instant utcInstant = Instant.parse(csaRequest.getBusinessTimestamp());
         ZipHelper.zipDataCsaRequestFiles(csaRequest, archiveTempPath);
         Network network = fileHelper.importNetwork(archiveTempPath);
@@ -73,21 +74,25 @@ public class SweCsaDichotomyRunner {
         String networkFileUrl = fileHelper.uploadIidmNetworkToMinio(requestId, network, utcInstant);
         String cracFileUrl = fileHelper.uploadJsonCrac(requestId, crac, utcInstant);
         String raoParametersUrl = fileHelper.uploadRaoParameters(requestId, utcInstant);
-        RaoRequest raoRequest = new RaoRequest(requestId, networkFileUrl, cracFileUrl, raoParametersUrl);
-        SweCsaRaoValidator validator = new SweCsaRaoValidator(raoRunnerClient, requestId, networkFileUrl, cracFileUrl, crac, raoParametersUrl);
 
-        RaoResponse raoResponseAfterDichotomy = getDichotomyResponse(network, crac, timestamp, validator);
+        RaoRequest raoRequest = new RaoRequest(requestId, networkFileUrl, cracFileUrl, raoParametersUrl);
+        SweCsaHalfRangeDivisionIndexStrategy indexStrategy = new SweCsaHalfRangeDivisionIndexStrategy(crac, network);
+        SweCsaRaoValidator validator = new SweCsaRaoValidator(raoRunnerClient, requestId, networkFileUrl, cracFileUrl, crac, raoParametersUrl,
+            indexStrategy.getFrEsCnecs().stream().map(cnec -> cnec.getId()).collect(Collectors.toList()),
+            indexStrategy.getPtEsCnecs().stream().map(cnec -> cnec.getId()).collect(Collectors.toList()));
+        RaoResponse raoResponseAfterDichotomy = getDichotomyResponse(network, crac, validator, indexStrategy);
         LOGGER.info("dichotomy RAO computation answer received for TimeStamp: '{}'", raoRequest.getInstant());
 
         return new CsaResponse(raoResponseAfterDichotomy.getId(), Status.FINISHED.toString());
     }
 
-    protected RaoResponse getDichotomyResponse(Network network, Crac crac, String timestamp, SweCsaRaoValidator validator) {
+    protected RaoResponse getDichotomyResponse(Network network, Crac crac, SweCsaRaoValidator validator, SweCsaHalfRangeDivisionIndexStrategy indexStrategy) {
 
         Pair<MultipleDichotomyVariables, MultipleDichotomyVariables> initialDichotomyVariable = getInitialDichotomyIndex(crac);
-        DichotomyEngine<RaoResponse, MultipleDichotomyVariables> engine = new DichotomyEngine<>(
+        this.updateCrac(crac, initialDichotomyVariable);
+        SweCsaDichotomyEngine engine = new SweCsaDichotomyEngine(
             new Index<>(initialDichotomyVariable.getLeft(), initialDichotomyVariable.getRight(), 10),
-            new SweCsaHalfRangeDivisionIndexStrategy(crac, network),
+            indexStrategy,
             new LinearScaler(SweCsaZonalData.getZonalData(network), new SweCsaShiftDispatcher(getInitialPositions(crac))),
             validator);
         DichotomyResult<RaoResponse, MultipleDichotomyVariables> result = engine.run(network);
@@ -127,6 +132,29 @@ public class SweCsaDichotomyRunner {
         MultipleDichotomyVariables initMaxIndex = new MultipleDichotomyVariables(Map.of(CounterTradingDirection.FR_ES.getName(), ctFrEsMax, CounterTradingDirection.PT_ES.getName(), ctPtEsMax));
 
         return Pair.of(initMinIndex, initMaxIndex);
+    }
+
+    private void updateCrac(Crac crac, Pair<MultipleDichotomyVariables, MultipleDichotomyVariables> initialDichotomyVariable) {
+        crac.newCounterTradeRangeAction()
+            .withId(CounterTradingDirection.PT_ES.getName())
+            .withOperator("REN")
+            .newRange().withMin(initialDichotomyVariable.getLeft().values().getOrDefault(CounterTradingDirection.PT_ES.getName(), 0.0))
+                .withMax(initialDichotomyVariable.getRight().values().getOrDefault(CounterTradingDirection.PT_ES.getName(), 0.0)).add()
+            .newOnInstantUsageRule().withInstant("PREVENTIVE").withUsageMethod(UsageMethod.AVAILABLE).add()
+            .newOnInstantUsageRule().withInstant("CURATIVE").withUsageMethod(UsageMethod.AVAILABLE).add()
+            .withExportingCountry(Country.PT)
+            .withImportingCountry(Country.ES)
+            .add();
+        crac.newCounterTradeRangeAction()
+            .withId(CounterTradingDirection.PT_ES.getName())
+            .withOperator("RTE")
+            .newRange().withMin(initialDichotomyVariable.getLeft().values().getOrDefault(CounterTradingDirection.FR_ES.getName(), 0.0))
+                .withMax(initialDichotomyVariable.getRight().values().getOrDefault(CounterTradingDirection.FR_ES.getName(), 0.0)).add()
+            .newOnInstantUsageRule().withInstant("PREVENTIVE").withUsageMethod(UsageMethod.AVAILABLE).add()
+            .newOnInstantUsageRule().withInstant("CURATIVE").withUsageMethod(UsageMethod.AVAILABLE).add()
+            .withExportingCountry(Country.FR)
+            .withImportingCountry(Country.ES)
+            .add();
     }
 
 }

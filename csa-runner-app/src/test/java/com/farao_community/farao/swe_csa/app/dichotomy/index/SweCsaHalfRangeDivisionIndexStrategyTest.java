@@ -11,11 +11,8 @@ package com.farao_community.farao.swe_csa.app.dichotomy.index;
  * @author Jean-Pierre Arnould {@literal <jean-pierre.arnould at rte-france.com>}
  */
 
-import com.farao_community.farao.commons.Unit;
 import com.farao_community.farao.data.crac_api.Crac;
 import com.farao_community.farao.data.crac_api.cnec.FlowCnec;
-import com.farao_community.farao.data.crac_io_json.JsonImport;
-import com.farao_community.farao.data.rao_result_api.RaoResult;
 import com.farao_community.farao.dichotomy.api.results.DichotomyStepResult;
 import com.farao_community.farao.swe_csa.app.FileHelper;
 import com.farao_community.farao.swe_csa.app.dichotomy.CounterTradingDirection;
@@ -28,7 +25,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.io.File;
-import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
@@ -75,18 +71,10 @@ public class SweCsaHalfRangeDivisionIndexStrategyTest {
 
         //lowestInvalidStep is null
         assertEquals(result1.print(), indexStrategy1.nextValue(index1).print());
-
-        DichotomyStepResult dichotomyStepResult1 = Mockito.mock(DichotomyStepResult.class);
-        Mockito.when(dichotomyStepResult1.isValid()).thenReturn(false);
-        DichotomyStepResult dichotomyStepResult2 = Mockito.mock(DichotomyStepResult.class);
-        Mockito.when(dichotomyStepResult2.isValid()).thenReturn(true);
-        index1.addDichotomyStepResult(new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 500.0, CounterTradingDirection.FR_ES.getName(), 400.0)), dichotomyStepResult1);
-        //highestValidStep is null
-        assertEquals(result2.print(), indexStrategy1.nextValue(index1).print());
     }
 
     @Test
-    void testNextValueGeneralCase() {
+    void testNextValue() {
         Index<Object, MultipleDichotomyVariables> index1 = new Index<>(new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 0.0, CounterTradingDirection.FR_ES.getName(), 0.0)),
             new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 1500.0, CounterTradingDirection.FR_ES.getName(), 1000.0)), 10);
         Path filePath = Paths.get(new File(getClass().getResource("/CSA_42_CustomExample.zip").getFile()).toString());
@@ -108,7 +96,7 @@ public class SweCsaHalfRangeDivisionIndexStrategyTest {
         Mockito.when(dichotomyStepResult1.getRaoResult()).thenReturn(raoResultCTMock1);
         Mockito.when(dichotomyStepResult2.getRaoResult()).thenReturn(raoResultCTMock2);
 
-        MultipleDichotomyVariables result3 = new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 350.0, CounterTradingDirection.FR_ES.getName(), 250.0));
+        MultipleDichotomyVariables result3 = new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 1500.0, CounterTradingDirection.FR_ES.getName(), 550.0));
         index1.addDichotomyStepResult(new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 1000.0, CounterTradingDirection.FR_ES.getName(), 1000.0)), dichotomyStepResult1);
         index1.addDichotomyStepResult(new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 200.0, CounterTradingDirection.FR_ES.getName(), 100.0)), dichotomyStepResult2);
         //in general case
