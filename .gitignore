@@ -3,3 +3,5 @@
 /target
 csa-runner-api/target
 csa-runner-app/target
+csa-runner-app/src/test/java/com/farao_community/farao/swe_csa/app/dichotomy/SweCsaDichotomyRunnerTest.java
+csa-runner-app/src/test/resources/TestCase_1_14.zip
