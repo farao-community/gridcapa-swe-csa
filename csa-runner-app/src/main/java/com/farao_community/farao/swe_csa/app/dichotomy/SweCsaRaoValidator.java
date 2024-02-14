@@ -67,7 +67,7 @@ public class SweCsaRaoValidator implements NetworkValidator<RaoResponse> {
             LOGGER.info("RAO response received: {}", raoResponse);
             RaoResult raoResult = new RaoResultImporter().importRaoResult(new URL(raoResponse.getRaoResultFileUrl()).openStream(), crac);
             RaoResultWithCounterTradeRangeActions raoResultWithCounterTradeRangeActions = this.createRaoResultWithCtRa(raoResult);
-            return DichotomyStepResult.fromNetworkValidationResult(this.createRaoResultWithCtRa(raoResult), raoResponse);
+            return DichotomyStepResult.fromNetworkValidationResult(this.createRaoResultWithCtRa(raoResultWithCounterTradeRangeActions), raoResponse);
         } catch (RuntimeException | IOException e) {
             throw new ValidationException("RAO run failed. Nested exception: " + e.getMessage());
         }

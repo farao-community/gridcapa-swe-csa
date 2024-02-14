@@ -33,7 +33,7 @@ public final class LinearScaler implements NetworkShifter<MultipleDichotomyVaria
     private static final double DEFAULT_EPSILON = 1e-3;
 
     private final ZonalData<Scalable> zonalScalable;
-    private final ShiftDispatcher shiftDispatcher;
+    private final ShiftDispatcher<MultipleDichotomyVariables>  shiftDispatcher;
     private final double shiftEpsilon;
 
     public LinearScaler(ZonalData<Scalable> zonalScalable, ShiftDispatcher<MultipleDichotomyVariables> shiftDispatcher) {
@@ -48,10 +48,9 @@ public final class LinearScaler implements NetworkShifter<MultipleDichotomyVaria
 
     @Override
     public void shiftNetwork(MultipleDichotomyVariables stepValue, Network network) throws GlskLimitationException, ShiftingException {
-        Map<String, Double> scalingValuesByCountry = new HashMap<>();
         BUSINESS_LOGS.info(String.format("Starting linear scaling on network %s with step value %s",
             network.getVariantManager().getWorkingVariantId(), stepValue.print()));
-        scalingValuesByCountry = shiftDispatcher.dispatch(stepValue);
+        Map<String, Double> scalingValuesByCountry = shiftDispatcher.dispatch(stepValue);
         List<String> limitingCountries = new ArrayList<>();
         for (Map.Entry<String, Double> entry : scalingValuesByCountry.entrySet()) {
             String zoneId = entry.getKey();
