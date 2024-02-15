@@ -12,6 +12,7 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
  */
 
 import com.farao_community.farao.commons.EICode;
+import com.farao_community.farao.data.crac_api.cnec.Cnec;
 import com.farao_community.farao.data.crac_api.Crac;
 import com.farao_community.farao.data.crac_api.range_action.CounterTradeRangeAction;
 import com.farao_community.farao.data.crac_api.usage_rule.UsageMethod;
@@ -31,6 +32,7 @@ import com.farao_community.farao.swe_csa.app.dichotomy.index.SweCsaHalfRangeDivi
 import com.farao_community.farao.swe_csa.app.dichotomy.shifter.LinearScaler;
 import com.farao_community.farao.swe_csa.app.dichotomy.variable.MultipleDichotomyVariables;
 import com.powsybl.iidm.network.Country;
+import com.powsybl.iidm.network.Identifiable;
 import com.powsybl.iidm.network.Network;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -44,6 +46,7 @@ import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -53,7 +56,7 @@ public class SweCsaDichotomyRunner {
 
     private final RaoRunnerClient raoRunnerClient;
     private final FileHelper fileHelper;
-    private static final Logger LOGGER = LoggerFactory.getLogger(SweCsaRunner.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SweCsaDichotomyRunner.class);
 
     public SweCsaDichotomyRunner(RaoRunnerClient raoRunnerClient, FileHelper fileHelper) {
         this.raoRunnerClient = raoRunnerClient;
@@ -77,9 +80,9 @@ public class SweCsaDichotomyRunner {
 
         RaoRequest raoRequest = new RaoRequest(requestId, networkFileUrl, cracFileUrl, raoParametersUrl);
         SweCsaHalfRangeDivisionIndexStrategy indexStrategy = new SweCsaHalfRangeDivisionIndexStrategy(crac, network);
-        SweCsaRaoValidator validator = new SweCsaRaoValidator(raoRunnerClient, requestId, networkFileUrl, cracFileUrl, crac, raoParametersUrl,
-            indexStrategy.getFrEsCnecs().stream().map(cnec -> cnec.getId()).collect(Collectors.toList()),
-            indexStrategy.getPtEsCnecs().stream().map(cnec -> cnec.getId()).collect(Collectors.toList()));
+        Pair<List<String>, List<String>> cnecsIds = Pair.of(indexStrategy.getFrEsCnecs().stream().map(Cnec::getId).collect(Collectors.toList()),
+            indexStrategy.getPtEsCnecs().stream().map(Cnec::getId).collect(Collectors.toList()));
+        SweCsaRaoValidator validator = new SweCsaRaoValidator(raoRunnerClient, requestId, networkFileUrl, cracFileUrl, crac, raoParametersUrl, cnecsIds);
         RaoResponse raoResponseAfterDichotomy = getDichotomyResponse(network, crac, validator, indexStrategy);
         LOGGER.info("dichotomy RAO computation answer received for TimeStamp: '{}'", raoRequest.getInstant());
 

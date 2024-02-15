@@ -63,7 +63,7 @@ public class MultipleDichotomyVariables implements DichotomyVariable<MultipleDic
 
     @Override
     public String print() {
-        return values.entrySet().stream().sorted(Comparator.comparing(e -> e.getKey()))
+        return values.entrySet().stream().sorted(Map.Entry.comparingByKey())
             .map(e -> String.format("%s : %.0f", e.getKey(), e.getValue())).collect(Collectors.joining(", "));
     }
 }

@@ -73,9 +73,9 @@ public class SweCsaHalfRangeDivisionIndexStrategy extends HalfRangeDivisionIndex
         double maxSafeValue = Double.MIN_VALUE;
         double minUnsafeValue = Double.MAX_VALUE;
 
-        for (Pair<MultipleDichotomyVariables, ? extends DichotomyStepResult<?>> step : index.testedSteps()) {
+        for (Pair<MultipleDichotomyVariables, DichotomyStepResult<T> step : index.testedSteps()) {
             boolean isSafe = isSafeForBorder((RaoResultWithCounterTradeRangeActions) step.getRight().getRaoResult(), key);
-            Double value = Double.valueOf(step.getLeft().values().get(key));
+            Double value = step.getLeft().values().get(key);
             if (isSafe && value > maxSafeValue) {
                 maxSafeValue = value;
             } else if (!isSafe && value < minUnsafeValue) {

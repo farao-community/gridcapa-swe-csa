@@ -26,6 +26,7 @@ import com.farao_community.farao.swe_csa.api.results.CounterTradingResult;
 import com.farao_community.farao.swe_csa.app.dichotomy.variable.MultipleDichotomyVariables;
 import com.farao_community.farao.swe_csa.app.rao_result.RaoResultWithCounterTradeRangeActions;
 import com.powsybl.iidm.network.Network;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,15 +48,15 @@ public class SweCsaRaoValidator implements NetworkValidator<RaoResponse> {
     private List<String> frEsCnecs;
     private List<String> ptEsCnecs;
 
-    public SweCsaRaoValidator(RaoRunnerClient raoRunnerClient, String requestId, String networkFileUrl, String cracFileUrl, Crac crac, String raoParametersUrl, List<String> frEsCencs, List<String> ptEsCnecs) {
+    public SweCsaRaoValidator(RaoRunnerClient raoRunnerClient, String requestId, String networkFileUrl, String cracFileUrl, Crac crac, String raoParametersUrl, Pair<List<String>, List<String>> cnecs) {
         this.raoRunnerClient = raoRunnerClient;
         this.requestId = requestId;
         this.networkFileUrl = networkFileUrl;
         this.cracFileUrl = cracFileUrl;
         this.crac = crac;
         this.raoParametersUrl = raoParametersUrl;
-        this.frEsCnecs = frEsCencs;
-        this.ptEsCnecs = ptEsCnecs;
+        this.frEsCnecs = cnecs.getLeft();
+        this.ptEsCnecs = cnecs.getRight();
     }
 
     @Override
@@ -83,8 +84,7 @@ public class SweCsaRaoValidator implements NetworkValidator<RaoResponse> {
             crac.getCounterTradeRangeAction(CounterTradingDirection.PT_ES.getName()), counterTradeRangeActionResultPtEs
         );
         CounterTradingResult counterTradingResult = new CounterTradingResult(counterTradeRangeActionResults);
-        RaoResultWithCounterTradeRangeActions raoResultWithCounterTradeRangeActions = new RaoResultWithCounterTradeRangeActions(raoResult, counterTradingResult);
-        return  raoResultWithCounterTradeRangeActions;
+        return new RaoResultWithCounterTradeRangeActions(raoResult, counterTradingResult);
     }
 
     public void setCounterTradingValue(MultipleDichotomyVariables counterTradingValue) {
