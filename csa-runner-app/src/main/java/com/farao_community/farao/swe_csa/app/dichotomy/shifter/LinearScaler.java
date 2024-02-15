@@ -17,7 +17,6 @@ import com.powsybl.iidm.modification.scalable.ScalingParameters;
 import com.powsybl.iidm.network.Network;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
