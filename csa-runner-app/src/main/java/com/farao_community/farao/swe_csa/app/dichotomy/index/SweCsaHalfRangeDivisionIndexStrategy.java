@@ -10,6 +10,7 @@ import com.farao_community.farao.commons.Unit;
 import com.farao_community.farao.data.crac_api.Crac;
 import com.farao_community.farao.data.crac_api.cnec.FlowCnec;
 import com.farao_community.farao.dichotomy.api.results.DichotomyStepResult;
+import com.farao_community.farao.rao_runner.api.resource.RaoResponse;
 import com.farao_community.farao.swe_csa.app.dichotomy.CounterTradingDirection;
 import com.farao_community.farao.swe_csa.app.dichotomy.variable.MultipleDichotomyVariables;
 import com.farao_community.farao.swe_csa.app.rao_result.RaoResultWithCounterTradeRangeActions;
@@ -54,8 +55,8 @@ public class SweCsaHalfRangeDivisionIndexStrategy extends HalfRangeDivisionIndex
         }
 
         Map<String, Double> newValues = Map.of(
-            CounterTradingDirection.FR_ES.getName(), computeNextValue(index, CounterTradingDirection.FR_ES.getName()),
-            CounterTradingDirection.PT_ES.getName(), computeNextValue(index, CounterTradingDirection.PT_ES.getName())
+            CounterTradingDirection.FR_ES.getName(), computeNextValue((Index<RaoResponse, MultipleDichotomyVariables>) index, CounterTradingDirection.FR_ES.getName()),
+            CounterTradingDirection.PT_ES.getName(), computeNextValue((Index<RaoResponse, MultipleDichotomyVariables>) index, CounterTradingDirection.PT_ES.getName())
         );
 
         return new MultipleDichotomyVariables(newValues);
@@ -69,11 +70,11 @@ public class SweCsaHalfRangeDivisionIndexStrategy extends HalfRangeDivisionIndex
         return this.ptEsCnecs;
     }
 
-    double computeNextValue(Index<?, MultipleDichotomyVariables> index, String key) {
+    double computeNextValue(Index<RaoResponse, MultipleDichotomyVariables> index, String key) {
         double maxSafeValue = Double.MIN_VALUE;
         double minUnsafeValue = Double.MAX_VALUE;
 
-        for (Pair<MultipleDichotomyVariables, DichotomyStepResult<T> step : index.testedSteps()) {
+        for (Pair<MultipleDichotomyVariables, DichotomyStepResult<RaoResponse>> step : index.testedSteps()) {
             boolean isSafe = isSafeForBorder((RaoResultWithCounterTradeRangeActions) step.getRight().getRaoResult(), key);
             Double value = step.getLeft().values().get(key);
             if (isSafe && value > maxSafeValue) {

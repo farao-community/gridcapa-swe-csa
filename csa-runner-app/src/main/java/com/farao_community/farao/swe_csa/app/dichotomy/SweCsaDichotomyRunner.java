@@ -23,7 +23,6 @@ import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.api.resource.CsaResponse;
 import com.farao_community.farao.swe_csa.api.resource.Status;
 import com.farao_community.farao.swe_csa.app.FileHelper;
-import com.farao_community.farao.swe_csa.app.SweCsaRunner;
 import com.farao_community.farao.swe_csa.app.Threadable;
 import com.farao_community.farao.swe_csa.app.ZipHelper;
 import com.farao_community.farao.swe_csa.app.dichotomy.dispatcher.SweCsaShiftDispatcher;
@@ -32,7 +31,6 @@ import com.farao_community.farao.swe_csa.app.dichotomy.index.SweCsaHalfRangeDivi
 import com.farao_community.farao.swe_csa.app.dichotomy.shifter.LinearScaler;
 import com.farao_community.farao.swe_csa.app.dichotomy.variable.MultipleDichotomyVariables;
 import com.powsybl.iidm.network.Country;
-import com.powsybl.iidm.network.Identifiable;
 import com.powsybl.iidm.network.Network;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;

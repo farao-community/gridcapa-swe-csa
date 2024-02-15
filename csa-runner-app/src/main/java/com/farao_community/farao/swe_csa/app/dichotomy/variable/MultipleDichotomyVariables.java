@@ -13,7 +13,6 @@ package com.farao_community.farao.swe_csa.app.dichotomy.variable;
 
 import com.farao_community.farao.dichotomy.api.exceptions.DichotomyException;
 
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
