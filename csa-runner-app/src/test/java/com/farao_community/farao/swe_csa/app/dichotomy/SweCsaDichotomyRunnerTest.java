@@ -1,29 +1,21 @@
 package com.farao_community.farao.swe_csa.app.dichotomy;
 
 import com.farao_community.farao.data.crac_api.Crac;
-import com.farao_community.farao.data.crac_api.cnec.Cnec;
-import com.farao_community.farao.rao_runner.api.resource.RaoResponse;
-import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
 import com.farao_community.farao.swe_csa.app.FileHelper;
 import com.farao_community.farao.swe_csa.app.dichotomy.dispatcher.SweCsaShiftDispatcher;
 import com.farao_community.farao.swe_csa.app.dichotomy.index.SweCsaHalfRangeDivisionIndexStrategy;
 import com.farao_community.farao.swe_csa.app.dichotomy.shifter.LinearScaler;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
-import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -76,12 +68,11 @@ public class SweCsaDichotomyRunnerTest {
         assertEquals(Country.ES, crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.FR_ES.getName()).getImportingCountry());
         assertEquals(-600.0, crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.FR_ES.getName()).getInitialSetpoint());
 
-
         assertEquals("CT_FRES : 600, CT_PTES : 500", dichotomyEngine.getIndex().maxValue().print());
         assertEquals("CT_FRES : 0, CT_PTES : 0", dichotomyEngine.getIndex().minValue().print());
 
-        assertEquals(5, ((SweCsaHalfRangeDivisionIndexStrategy)dichotomyEngine.getIndexStrategy()).getFrEsCnecs().size());
-        assertEquals(0, ((SweCsaHalfRangeDivisionIndexStrategy)dichotomyEngine.getIndexStrategy()).getPtEsCnecs().size());
+        assertEquals(5, ((SweCsaHalfRangeDivisionIndexStrategy) dichotomyEngine.getIndexStrategy()).getFrEsCnecs().size());
+        assertEquals(0, ((SweCsaHalfRangeDivisionIndexStrategy) dichotomyEngine.getIndexStrategy()).getPtEsCnecs().size());
 
         LinearScaler linearScaler = (LinearScaler) dichotomyEngine.getNetworkShifter();
         SweCsaShiftDispatcher shiftDispatcher = (SweCsaShiftDispatcher) linearScaler.getShiftDispatcher();
