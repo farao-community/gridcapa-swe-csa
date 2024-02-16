@@ -8,6 +8,7 @@ package com.farao_community.farao.swe_csa.app.dichotomy.index;
 
 import com.farao_community.farao.commons.Unit;
 import com.farao_community.farao.data.crac_api.Crac;
+import com.farao_community.farao.data.crac_api.cnec.AngleCnec;
 import com.farao_community.farao.data.crac_api.cnec.FlowCnec;
 import com.farao_community.farao.dichotomy.api.results.DichotomyStepResult;
 import com.farao_community.farao.rao_runner.api.resource.RaoResponse;
@@ -33,18 +34,30 @@ import java.util.stream.Collectors;
  */
 
 public class SweCsaHalfRangeDivisionIndexStrategy extends HalfRangeDivisionIndexStrategy<MultipleDichotomyVariables> {
-    private final Set<FlowCnec> frEsCnecs;
-    private final Set<FlowCnec> ptEsCnecs;
+    private Set<FlowCnec> frEsFlowCnecs;
+    private Set<FlowCnec> ptEsFlowCnecs;
+    private Set<AngleCnec> frEsAngleCnecs;
+    private Set<AngleCnec> ptEsAngleCnecs;
 
     public SweCsaHalfRangeDivisionIndexStrategy(Crac crac, Network network) {
         super(false);
-        this.frEsCnecs = getCnecsBorder(crac, network, Country.FR);
-        this.ptEsCnecs = getCnecsBorder(crac, network, Country.PT);
+        getCnecsBorder(crac, network, Country.FR);
+        getCnecsBorder(crac, network, Country.PT);
     }
 
-    private Set<FlowCnec> getCnecsBorder(Crac crac, Network network, Country country) {
-        return crac.getFlowCnecs().stream()
-            .filter(flowCnec -> flowCnec.getLocation(network).contains(Optional.of(country)))
+    private void getCnecsBorder(Crac crac, Network network, Country country) {
+        //TODO : implement association between cnecs and borders (CSA-67)
+        this.frEsFlowCnecs = crac.getFlowCnecs().stream()
+            .filter(flowCnec -> flowCnec.getLocation(network).contains(Optional.of(Country.FR)))
+            .collect(Collectors.toSet());
+        this.ptEsFlowCnecs = crac.getFlowCnecs().stream()
+            .filter(flowCnec -> flowCnec.getLocation(network).contains(Optional.of(Country.PT)))
+            .collect(Collectors.toSet());
+        this.frEsAngleCnecs = crac.getAngleCnecs().stream()
+            .filter(angleCnec -> angleCnec.getLocation(network).contains(Optional.of(Country.FR)))
+            .collect(Collectors.toSet());
+        this.ptEsAngleCnecs = crac.getAngleCnecs().stream()
+            .filter(angleCnec -> angleCnec.getLocation(network).contains(Optional.of(Country.PT)))
             .collect(Collectors.toSet());
     }
 
@@ -62,12 +75,20 @@ public class SweCsaHalfRangeDivisionIndexStrategy extends HalfRangeDivisionIndex
         return new MultipleDichotomyVariables(newValues);
     }
 
-    public Set<FlowCnec> getFrEsCnecs() {
-        return this.frEsCnecs;
+    public Set<FlowCnec> getFrEsFlowCnecs() {
+        return this.frEsFlowCnecs;
     }
 
-    public Set<FlowCnec> getPtEsCnecs() {
-        return this.ptEsCnecs;
+    public Set<FlowCnec> getPtEsFlowCnecs() {
+        return this.ptEsFlowCnecs;
+    }
+
+    public Set<AngleCnec> getFrEsAngleCnecs() {
+        return this.frEsAngleCnecs;
+    }
+
+    public Set<AngleCnec> getPtEsAngleCnecs() {
+        return this.ptEsAngleCnecs;
     }
 
     double computeNextValue(Index<RaoResponse, MultipleDichotomyVariables> index, String key) {
@@ -102,17 +123,17 @@ public class SweCsaHalfRangeDivisionIndexStrategy extends HalfRangeDivisionIndex
 
     boolean isSafeForBorder(RaoResultWithCounterTradeRangeActions raoResult, String key) {
         if (key.equals(CounterTradingDirection.FR_ES.getName())) {
-            return !hasCnecNegativeMargin(raoResult, this.frEsCnecs);
+            return !hasFlowCnecNegativeMargin(raoResult, this.frEsFlowCnecs);
         }
         if (key.equals(CounterTradingDirection.PT_ES.getName())) {
-            return !hasCnecNegativeMargin(raoResult, this.ptEsCnecs);
+            return !hasFlowCnecNegativeMargin(raoResult, this.ptEsFlowCnecs);
         }
         return false; // TODO : throw
     }
 
-    boolean hasCnecNegativeMargin(RaoResultWithCounterTradeRangeActions raoResult, Set<FlowCnec> cnecs) {
-        for (FlowCnec cnec : cnecs) {
-            if (raoResult.getMargin(cnec.getState().getInstant(), cnec, Unit.MEGAWATT) < 0) {
+    boolean hasFlowCnecNegativeMargin(RaoResultWithCounterTradeRangeActions raoResult, Set<FlowCnec> flowCnecs) {
+        for (FlowCnec flowCnec : flowCnecs) {
+            if (raoResult.getMargin(flowCnec.getState().getInstant(), flowCnec, Unit.MEGAWATT) < 0) {
                 return true;
             }
         }

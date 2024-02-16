@@ -71,8 +71,10 @@ public class SweCsaDichotomyRunnerTest {
         assertEquals("CT_FRES : 600, CT_PTES : 500", dichotomyEngine.getIndex().maxValue().print());
         assertEquals("CT_FRES : 0, CT_PTES : 0", dichotomyEngine.getIndex().minValue().print());
 
-        assertEquals(5, ((SweCsaHalfRangeDivisionIndexStrategy) dichotomyEngine.getIndexStrategy()).getFrEsCnecs().size());
-        assertEquals(0, ((SweCsaHalfRangeDivisionIndexStrategy) dichotomyEngine.getIndexStrategy()).getPtEsCnecs().size());
+        assertEquals(5, ((SweCsaHalfRangeDivisionIndexStrategy) dichotomyEngine.getIndexStrategy()).getFrEsFlowCnecs().size());
+        assertEquals(0, ((SweCsaHalfRangeDivisionIndexStrategy) dichotomyEngine.getIndexStrategy()).getPtEsFlowCnecs().size());
+        assertEquals(0, ((SweCsaHalfRangeDivisionIndexStrategy) dichotomyEngine.getIndexStrategy()).getFrEsAngleCnecs().size());
+        assertEquals(0, ((SweCsaHalfRangeDivisionIndexStrategy) dichotomyEngine.getIndexStrategy()).getPtEsAngleCnecs().size());
 
         LinearScaler linearScaler = (LinearScaler) dichotomyEngine.getNetworkShifter();
         SweCsaShiftDispatcher shiftDispatcher = (SweCsaShiftDispatcher) linearScaler.getShiftDispatcher();

@@ -76,9 +76,7 @@ public class SweCsaDichotomyRunner {
 
         RaoRequest raoRequest = new RaoRequest(requestId, networkFileUrl, cracFileUrl, raoParametersUrl);
         SweCsaHalfRangeDivisionIndexStrategy indexStrategy = new SweCsaHalfRangeDivisionIndexStrategy(crac, network);
-        Pair<List<String>, List<String>> cnecsIds = Pair.of(indexStrategy.getFrEsCnecs().stream().map(Cnec::getId).collect(Collectors.toList()),
-            indexStrategy.getPtEsCnecs().stream().map(Cnec::getId).collect(Collectors.toList()));
-        SweCsaRaoValidator validator = new SweCsaRaoValidator(raoRunnerClient, requestId, networkFileUrl, cracFileUrl, crac, raoParametersUrl, cnecsIds);
+        SweCsaRaoValidator validator = new SweCsaRaoValidator(raoRunnerClient, requestId, networkFileUrl, cracFileUrl, crac, raoParametersUrl, this.getCnecsIdLists(indexStrategy));
         RaoResponse raoResponseAfterDichotomy = getDichotomyResponse(network, crac, validator, indexStrategy);
         LOGGER.info("dichotomy RAO computation answer received for TimeStamp: '{}'", raoRequest.getInstant());
 
@@ -134,6 +132,14 @@ public class SweCsaDichotomyRunner {
         MultipleDichotomyVariables initMaxIndex = new MultipleDichotomyVariables(Map.of(CounterTradingDirection.FR_ES.getName(), ctFrEsMax, CounterTradingDirection.PT_ES.getName(), ctPtEsMax));
 
         return Pair.of(initMinIndex, initMaxIndex);
+    }
+
+    private Pair<List<String>, List<String>> getCnecsIdLists(SweCsaHalfRangeDivisionIndexStrategy indexStrategy) {
+        List<String> frEsCnecsIds = indexStrategy.getFrEsFlowCnecs().stream().map(Cnec::getId).collect(Collectors.toList());
+        frEsCnecsIds.addAll(indexStrategy.getFrEsAngleCnecs().stream().map(Cnec::getId).collect(Collectors.toList()));
+        List<String> ptEsCnecsIds = indexStrategy.getPtEsFlowCnecs().stream().map(Cnec::getId).collect(Collectors.toList());
+        ptEsCnecsIds.addAll(indexStrategy.getPtEsAngleCnecs().stream().map(Cnec::getId).collect(Collectors.toList()));
+        return Pair.of(frEsCnecsIds, ptEsCnecsIds);
     }
 
     //TODO : coutertrade range actions should be integrated in the CSA profiles input files
