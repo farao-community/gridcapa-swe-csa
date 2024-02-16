@@ -88,36 +88,39 @@ public class SweCsaDichotomyRunner {
     }
 
     protected RaoResponse getDichotomyResponse(Network network, Crac crac, SweCsaRaoValidator validator, SweCsaHalfRangeDivisionIndexStrategy indexStrategy) {
+        DichotomyResult<RaoResponse, MultipleDichotomyVariables> result = this.getEngine(network, crac, validator, indexStrategy).run(network);
+        return result.getHighestValidStep().getValidationData();
+    }
 
+    protected SweCsaDichotomyEngine getEngine(Network network, Crac crac, SweCsaRaoValidator validator, SweCsaHalfRangeDivisionIndexStrategy indexStrategy) {
+        this.updateCracWithCounterTrageRangeActions(crac);
         Pair<MultipleDichotomyVariables, MultipleDichotomyVariables> initialDichotomyVariable = getInitialDichotomyIndex(crac);
-        this.updateCrac(crac, initialDichotomyVariable);
-        SweCsaDichotomyEngine engine = new SweCsaDichotomyEngine(
+
+        return new SweCsaDichotomyEngine(
             new Index<>(initialDichotomyVariable.getLeft(), initialDichotomyVariable.getRight(), 10),
             indexStrategy,
             new LinearScaler(SweCsaZonalData.getZonalData(network), new SweCsaShiftDispatcher(getInitialPositions(crac))),
             validator);
-        DichotomyResult<RaoResponse, MultipleDichotomyVariables> result = engine.run(network);
-        return result.getHighestValidStep().getValidationData();
     }
 
-    protected Map<String, Double>  getInitialPositions(Crac crac) {
-        CounterTradeRangeAction ctRaFrEs = crac.getCounterTradeRangeAction("CT_RA_FRES");
-        CounterTradeRangeAction ctRaPtEs = crac.getCounterTradeRangeAction("CT_RA_PTES");
+    private Map<String, Double>  getInitialPositions(Crac crac) {
+        CounterTradeRangeAction ctRaFrEs = crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.FR_ES.getName());
+        CounterTradeRangeAction ctRaPtEs = crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.PT_ES.getName());
 
         double expFrEs = ctRaFrEs.getInitialSetpoint();
         double expPtEs = ctRaPtEs.getInitialSetpoint();
 
         return Map.of(
-            new EICode(Country.ES).getAreaCode(), expFrEs + expPtEs,
-            new EICode(Country.FR).getAreaCode(), -expFrEs,
-            new EICode(Country.PT).getAreaCode(), -expPtEs);
+            Country.ES.getName(), expFrEs + expPtEs,
+            Country.FR.getName(), -expFrEs,
+            Country.PT.getName(), -expPtEs);
     }
 
     private Pair<MultipleDichotomyVariables, MultipleDichotomyVariables> getInitialDichotomyIndex(Crac crac) {
-        CounterTradeRangeAction ctRaFrEs = crac.getCounterTradeRangeAction("CT_RA_FRES");
-        CounterTradeRangeAction ctRaEsFr = crac.getCounterTradeRangeAction("CT_RA_ESFR");
-        CounterTradeRangeAction ctRaPtEs = crac.getCounterTradeRangeAction("CT_RA_PTES");
-        CounterTradeRangeAction ctRaEsPt = crac.getCounterTradeRangeAction("CT_RA_ESPT");
+        CounterTradeRangeAction ctRaFrEs = crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.FR_ES.getName());
+        CounterTradeRangeAction ctRaEsFr = crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.ES_FR.getName());
+        CounterTradeRangeAction ctRaPtEs = crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.PT_ES.getName());
+        CounterTradeRangeAction ctRaEsPt = crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.ES_PT.getName());
 
         double expFrEs = ctRaFrEs.getInitialSetpoint();
         double expPtEs = ctRaPtEs.getInitialSetpoint();
@@ -135,24 +138,41 @@ public class SweCsaDichotomyRunner {
         return Pair.of(initMinIndex, initMaxIndex);
     }
 
-    private void updateCrac(Crac crac, Pair<MultipleDichotomyVariables, MultipleDichotomyVariables> initialDichotomyVariable) {
+    //TODO : coutertrade range actions should be integrated in the CSA profiles input files
+    private void updateCracWithCounterTrageRangeActions(Crac crac) {
         crac.newCounterTradeRangeAction()
-            .withId(CounterTradingDirection.PT_ES.getName())
+            .withId(CounterTradeRangeActionDirection.PT_ES.getName())
             .withOperator("REN")
-            .newRange().withMin(initialDichotomyVariable.getLeft().values().getOrDefault(CounterTradingDirection.PT_ES.getName(), 0.0))
-                .withMax(initialDichotomyVariable.getRight().values().getOrDefault(CounterTradingDirection.PT_ES.getName(), 0.0)).add()
-            .newOnInstantUsageRule().withInstant("PREVENTIVE").withUsageMethod(UsageMethod.AVAILABLE).add()
-            .newOnInstantUsageRule().withInstant("CURATIVE").withUsageMethod(UsageMethod.AVAILABLE).add()
+            .newRange().withMin(-2000.0)
+                .withMax(3000.0).add()
+            .withInitialSetpoint(500.0)
             .withExportingCountry(Country.PT)
             .withImportingCountry(Country.ES)
             .add();
         crac.newCounterTradeRangeAction()
-            .withId(CounterTradingDirection.PT_ES.getName())
+            .withId(CounterTradeRangeActionDirection.ES_PT.getName())
+            .withOperator("REE")
+            .newRange().withMin(-2100.0)
+            .withMax(3100.0).add()
+            .withInitialSetpoint(-500.0)
+            .withExportingCountry(Country.ES)
+            .withImportingCountry(Country.PT)
+            .add();
+        crac.newCounterTradeRangeAction()
+            .withId(CounterTradeRangeActionDirection.ES_FR.getName())
+            .withOperator("REE")
+            .newRange().withMin(-2200.0)
+            .withMax(3200.0).add()
+            .withInitialSetpoint(600.0)
+            .withExportingCountry(Country.ES)
+            .withImportingCountry(Country.FR)
+            .add();
+        crac.newCounterTradeRangeAction()
+            .withId(CounterTradeRangeActionDirection.FR_ES.getName())
             .withOperator("RTE")
-            .newRange().withMin(initialDichotomyVariable.getLeft().values().getOrDefault(CounterTradingDirection.FR_ES.getName(), 0.0))
-                .withMax(initialDichotomyVariable.getRight().values().getOrDefault(CounterTradingDirection.FR_ES.getName(), 0.0)).add()
-            .newOnInstantUsageRule().withInstant("PREVENTIVE").withUsageMethod(UsageMethod.AVAILABLE).add()
-            .newOnInstantUsageRule().withInstant("CURATIVE").withUsageMethod(UsageMethod.AVAILABLE).add()
+            .newRange().withMin(-2300.0)
+            .withMax(3300.0).add()
+            .withInitialSetpoint(-600.0)
             .withExportingCountry(Country.FR)
             .withImportingCountry(Country.ES)
             .add();

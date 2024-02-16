@@ -98,4 +98,20 @@ public class SweCsaDichotomyEngine {
     private String variantName(MultipleDichotomyVariables stepValue, String initialVariant) {
         return String.format("%s-ScaledBy-%s", initialVariant, stepValue.print());
     }
+
+    public Index<RaoResponse, MultipleDichotomyVariables> getIndex() {
+        return index;
+    }
+
+    public IndexStrategy<MultipleDichotomyVariables> getIndexStrategy() {
+        return indexStrategy;
+    }
+
+    public NetworkShifter<MultipleDichotomyVariables> getNetworkShifter() {
+        return networkShifter;
+    }
+
+    public SweCsaRaoValidator getNetworkValidator() {
+        return networkValidator;
+    }
 }

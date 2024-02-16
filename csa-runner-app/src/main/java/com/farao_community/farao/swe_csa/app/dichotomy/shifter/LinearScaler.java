@@ -71,4 +71,8 @@ public final class LinearScaler implements NetworkShifter<MultipleDichotomyVaria
             throw new GlskLimitationException(sj.toString());
         }
     }
+
+    public ShiftDispatcher<MultipleDichotomyVariables> getShiftDispatcher() {
+        return shiftDispatcher;
+    }
 }

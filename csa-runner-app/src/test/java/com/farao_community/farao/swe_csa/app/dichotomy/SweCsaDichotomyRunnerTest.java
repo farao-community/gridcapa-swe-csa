@@ -5,9 +5,15 @@ import com.farao_community.farao.data.crac_api.cnec.Cnec;
 import com.farao_community.farao.rao_runner.api.resource.RaoResponse;
 import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
 import com.farao_community.farao.swe_csa.app.FileHelper;
+import com.farao_community.farao.swe_csa.app.dichotomy.dispatcher.SweCsaShiftDispatcher;
 import com.farao_community.farao.swe_csa.app.dichotomy.index.SweCsaHalfRangeDivisionIndexStrategy;
+import com.farao_community.farao.swe_csa.app.dichotomy.shifter.LinearScaler;
+import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import org.apache.commons.lang3.tuple.Pair;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -19,19 +25,18 @@ import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 @SpringBootTest
 public class SweCsaDichotomyRunnerTest {
 
     @Autowired
     FileHelper fileHelper;
-
-    @Autowired
-    RaoRunnerClient raoRunnerClient;
-
     @Autowired
     SweCsaDichotomyRunner sweCsaDichotomyRunner;
 
-    RaoResponse runWithFileAndTimestamp(String fileName, String timestamp) throws IOException {
+    /*RaoResponse runWithFileAndTimestamp(String fileName, String timestamp) throws IOException {
         Path filePath = Paths.get(new File(getClass().getResource(fileName).getFile()).toString());
         Network network = fileHelper.importNetwork(Paths.get(new File(getClass().getResource(fileName).getFile()).toString()));
         Crac crac = fileHelper.importCrac(filePath, network, Instant.parse(timestamp));
@@ -45,5 +50,44 @@ public class SweCsaDichotomyRunnerTest {
             cracFileUrl, crac, raoParametersUrl, cnecsIds);
         RaoResponse raoResponseAfterDichotomy = sweCsaDichotomyRunner.getDichotomyResponse(network, crac, validator, indexStrategy);
         return raoResponseAfterDichotomy;
+    }*/
+
+    @Test
+    void testGetEngine() {
+        Path filePath = Paths.get(new File(getClass().getResource("/TestCase_13_5_4.zip").getFile()).toString());
+        Network network = fileHelper.importNetwork(Paths.get(new File(getClass().getResource("/TestCase_13_5_4.zip").getFile()).toString()));
+        Crac crac = fileHelper.importCrac(filePath, network, Instant.parse("2023-08-08T15:30:00Z"));
+        SweCsaHalfRangeDivisionIndexStrategy indexStrategy = new SweCsaHalfRangeDivisionIndexStrategy(crac, network);
+        SweCsaRaoValidator validatorMock = Mockito.mock(SweCsaRaoValidator.class);
+        SweCsaDichotomyEngine dichotomyEngine = sweCsaDichotomyRunner.getEngine(network, crac, validatorMock, indexStrategy);
+
+        assertNotNull(dichotomyEngine);
+
+        assertEquals(Country.ES, crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.ES_PT.getName()).getExportingCountry());
+        assertEquals(Country.PT, crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.ES_PT.getName()).getImportingCountry());
+        assertEquals(-500.0, crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.ES_PT.getName()).getInitialSetpoint());
+        assertEquals(Country.PT, crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.PT_ES.getName()).getExportingCountry());
+        assertEquals(Country.ES, crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.PT_ES.getName()).getImportingCountry());
+        assertEquals(500.0, crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.PT_ES.getName()).getInitialSetpoint());
+        assertEquals(Country.ES, crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.ES_FR.getName()).getExportingCountry());
+        assertEquals(Country.FR, crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.ES_FR.getName()).getImportingCountry());
+        assertEquals(600.0, crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.ES_FR.getName()).getInitialSetpoint());
+        assertEquals(Country.FR, crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.FR_ES.getName()).getExportingCountry());
+        assertEquals(Country.ES, crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.FR_ES.getName()).getImportingCountry());
+        assertEquals(-600.0, crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.FR_ES.getName()).getInitialSetpoint());
+
+
+        assertEquals("CT_FRES : 600, CT_PTES : 500", dichotomyEngine.getIndex().maxValue().print());
+        assertEquals("CT_FRES : 0, CT_PTES : 0", dichotomyEngine.getIndex().minValue().print());
+
+        assertEquals(5, ((SweCsaHalfRangeDivisionIndexStrategy)dichotomyEngine.getIndexStrategy()).getFrEsCnecs().size());
+        assertEquals(0, ((SweCsaHalfRangeDivisionIndexStrategy)dichotomyEngine.getIndexStrategy()).getPtEsCnecs().size());
+
+        LinearScaler linearScaler = (LinearScaler) dichotomyEngine.getNetworkShifter();
+        SweCsaShiftDispatcher shiftDispatcher = (SweCsaShiftDispatcher) linearScaler.getShiftDispatcher();
+
+        assertEquals(600.0, shiftDispatcher.getInitialNetPositions().get(Country.FR.getName()));
+        assertEquals(-500.0, shiftDispatcher.getInitialNetPositions().get(Country.PT.getName()));
+        assertEquals(-100.0, shiftDispatcher.getInitialNetPositions().get(Country.ES.getName()));
     }
 }

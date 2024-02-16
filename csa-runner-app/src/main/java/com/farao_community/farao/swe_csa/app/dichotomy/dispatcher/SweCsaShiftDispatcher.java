@@ -32,4 +32,7 @@ public class SweCsaShiftDispatcher implements ShiftDispatcher<MultipleDichotomyV
             Country.PT.getName(), -variable.values().get(CounterTradingDirection.PT_ES.getName()) - initialNetPositions.get(Country.PT.getName()));
     }
 
+    public Map<String, Double> getInitialNetPositions() {
+        return initialNetPositions;
+    }
 }
