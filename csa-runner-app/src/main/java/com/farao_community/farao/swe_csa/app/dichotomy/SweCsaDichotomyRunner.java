@@ -14,6 +14,7 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
 import com.farao_community.farao.data.crac_api.cnec.Cnec;
 import com.farao_community.farao.data.crac_api.Crac;
 import com.farao_community.farao.data.crac_api.range_action.CounterTradeRangeAction;
+
 import com.farao_community.farao.rao_runner.api.resource.RaoRequest;
 import com.farao_community.farao.rao_runner.api.resource.RaoResponse;
 import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
@@ -26,7 +27,7 @@ import com.farao_community.farao.swe_csa.app.ZipHelper;
 import com.farao_community.farao.swe_csa.app.dichotomy.dispatcher.SweCsaShiftDispatcher;
 import com.farao_community.farao.swe_csa.app.dichotomy.index.Index;
 import com.farao_community.farao.swe_csa.app.dichotomy.index.SweCsaHalfRangeDivisionIndexStrategy;
-import com.farao_community.farao.swe_csa.app.dichotomy.shifter.LinearScaler;
+import com.farao_community.farao.swe_csa.app.dichotomy.shifter.SweCsaNetworkShifter;
 import com.farao_community.farao.swe_csa.app.dichotomy.variable.MultipleDichotomyVariables;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
@@ -95,7 +96,7 @@ public class SweCsaDichotomyRunner {
         return new SweCsaDichotomyEngine(
             new Index<>(initialDichotomyVariable.getLeft(), initialDichotomyVariable.getRight(), 10),
             indexStrategy,
-            new LinearScaler(SweCsaZonalData.getZonalData(network), new SweCsaShiftDispatcher(getInitialPositions(crac))),
+            new SweCsaNetworkShifter(SweCsaZonalData.getZonalData(network), new SweCsaShiftDispatcher(getInitialPositions(crac))),
             validator);
     }
 
@@ -113,10 +114,10 @@ public class SweCsaDichotomyRunner {
     }
 
     private Pair<MultipleDichotomyVariables, MultipleDichotomyVariables> getInitialDichotomyIndex(Crac crac) {
-        CounterTradeRangeAction ctRaFrEs = crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.FR_ES.getName());
-        CounterTradeRangeAction ctRaEsFr = crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.ES_FR.getName());
-        CounterTradeRangeAction ctRaPtEs = crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.PT_ES.getName());
-        CounterTradeRangeAction ctRaEsPt = crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.ES_PT.getName());
+        CounterTradeRangeAction ctRaFrEs = this.getCounterTradeRangeActionByCountries(crac, Country.FR, Country.ES);
+        CounterTradeRangeAction ctRaEsFr = this.getCounterTradeRangeActionByCountries(crac, Country.ES, Country.FR);
+        CounterTradeRangeAction ctRaPtEs = this.getCounterTradeRangeActionByCountries(crac, Country.PT, Country.ES);
+        CounterTradeRangeAction ctRaEsPt = this.getCounterTradeRangeActionByCountries(crac, Country.ES, Country.PT);
 
         double expFrEs = ctRaFrEs.getInitialSetpoint();
         double expPtEs = ctRaPtEs.getInitialSetpoint();
@@ -134,6 +135,15 @@ public class SweCsaDichotomyRunner {
         return Pair.of(initMinIndex, initMaxIndex);
     }
 
+    private CounterTradeRangeAction getCounterTradeRangeActionByCountries(Crac crac, Country exportingCountry, Country importingCountry) {
+        for (CounterTradeRangeAction counterTradeRangeAction : crac.getCounterTradeRangeActions()) {
+            if (counterTradeRangeAction.getExportingCountry() == exportingCountry && counterTradeRangeAction.getImportingCountry() == importingCountry) {
+                return counterTradeRangeAction;
+            }
+        }
+        return null;
+    }
+
     private Pair<List<String>, List<String>> getCnecsIdLists(SweCsaHalfRangeDivisionIndexStrategy indexStrategy) {
         List<String> frEsCnecsIds = indexStrategy.getFrEsFlowCnecs().stream().map(Cnec::getId).collect(Collectors.toList());
         frEsCnecsIds.addAll(indexStrategy.getFrEsAngleCnecs().stream().map(Cnec::getId).collect(Collectors.toList()));
@@ -142,14 +152,14 @@ public class SweCsaDichotomyRunner {
         return Pair.of(frEsCnecsIds, ptEsCnecsIds);
     }
 
-    //TODO : coutertrade range actions should be integrated in the CSA profiles input files
+    //TODO : countertrade range actions should be integrated in the CSA profiles input files
     private void updateCracWithCounterTrageRangeActions(Crac crac) {
         crac.newCounterTradeRangeAction()
             .withId(CounterTradeRangeActionDirection.PT_ES.getName())
             .withOperator("REN")
             .newRange().withMin(-2000.0)
                 .withMax(3000.0).add()
-            .withInitialSetpoint(500.0)
+            .withInitialSetpoint(0.0)
             .withExportingCountry(Country.PT)
             .withImportingCountry(Country.ES)
             .add();
@@ -158,7 +168,7 @@ public class SweCsaDichotomyRunner {
             .withOperator("REE")
             .newRange().withMin(-2100.0)
             .withMax(3100.0).add()
-            .withInitialSetpoint(-500.0)
+            .withInitialSetpoint(0.0)
             .withExportingCountry(Country.ES)
             .withImportingCountry(Country.PT)
             .add();
@@ -167,7 +177,7 @@ public class SweCsaDichotomyRunner {
             .withOperator("REE")
             .newRange().withMin(-2200.0)
             .withMax(3200.0).add()
-            .withInitialSetpoint(600.0)
+            .withInitialSetpoint(0.0)
             .withExportingCountry(Country.ES)
             .withImportingCountry(Country.FR)
             .add();
@@ -176,7 +186,7 @@ public class SweCsaDichotomyRunner {
             .withOperator("RTE")
             .newRange().withMin(-2300.0)
             .withMax(3300.0).add()
-            .withInitialSetpoint(-600.0)
+            .withInitialSetpoint(0.0)
             .withExportingCountry(Country.FR)
             .withImportingCountry(Country.ES)
             .add();

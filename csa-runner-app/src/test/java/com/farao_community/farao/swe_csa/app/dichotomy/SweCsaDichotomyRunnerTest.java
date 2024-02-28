@@ -4,7 +4,7 @@ import com.farao_community.farao.data.crac_api.Crac;
 import com.farao_community.farao.swe_csa.app.FileHelper;
 import com.farao_community.farao.swe_csa.app.dichotomy.dispatcher.SweCsaShiftDispatcher;
 import com.farao_community.farao.swe_csa.app.dichotomy.index.SweCsaHalfRangeDivisionIndexStrategy;
-import com.farao_community.farao.swe_csa.app.dichotomy.shifter.LinearScaler;
+import com.farao_community.farao.swe_csa.app.dichotomy.shifter.SweCsaNetworkShifter;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import org.junit.jupiter.api.Test;
@@ -76,8 +76,8 @@ public class SweCsaDichotomyRunnerTest {
         assertEquals(0, ((SweCsaHalfRangeDivisionIndexStrategy) dichotomyEngine.getIndexStrategy()).getFrEsAngleCnecs().size());
         assertEquals(0, ((SweCsaHalfRangeDivisionIndexStrategy) dichotomyEngine.getIndexStrategy()).getPtEsAngleCnecs().size());
 
-        LinearScaler linearScaler = (LinearScaler) dichotomyEngine.getNetworkShifter();
-        SweCsaShiftDispatcher shiftDispatcher = (SweCsaShiftDispatcher) linearScaler.getShiftDispatcher();
+        SweCsaNetworkShifter sweCsaNetworkShifter = (SweCsaNetworkShifter) dichotomyEngine.getNetworkShifter();
+        SweCsaShiftDispatcher shiftDispatcher = (SweCsaShiftDispatcher) sweCsaNetworkShifter.getShiftDispatcher();
 
         assertEquals(600.0, shiftDispatcher.getInitialNetPositions().get(Country.FR.getName()));
         assertEquals(-500.0, shiftDispatcher.getInitialNetPositions().get(Country.PT.getName()));

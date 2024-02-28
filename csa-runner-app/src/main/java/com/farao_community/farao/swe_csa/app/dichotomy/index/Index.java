@@ -7,10 +7,6 @@ package com.farao_community.farao.swe_csa.app.dichotomy.index;
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-/**
- * @author Jean-Pierre Arnould {@literal <jean-pierre.arnould at rte-france.com>}
- */
-
 import com.farao_community.farao.dichotomy.api.exceptions.DichotomyException;
 import com.farao_community.farao.dichotomy.api.results.DichotomyStepResult;
 import com.farao_community.farao.dichotomy.api.results.ReasonInvalid;
@@ -30,6 +26,7 @@ import java.util.List;
  * This implementation should be enough for any dichotomy usage.
  *
  * @author Sebastien Murgey {@literal <sebastien.murgey at rte-france.com>}
+ * @author Jean-Pierre Arnould {@literal <jean-pierre.arnould at rte-france.com>}
  */
 public class Index<T, U extends DichotomyVariable> {
     private final U minValue;

@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
  * is secured too.
  *
  * @author Peter Mitri {@literal <peter.mitri at rte-france.com>}
+ * @author Jean-Pierre Arnould {@literal <jean-pierre.arnould at rte-france.com>}
  */
 
 public class SweCsaHalfRangeDivisionIndexStrategy extends HalfRangeDivisionIndexStrategy<MultipleDichotomyVariables> {
