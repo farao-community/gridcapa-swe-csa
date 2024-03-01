@@ -3,3 +3,4 @@
 /target
 csa-runner-api/target
 csa-runner-app/target
+csa-runner-app/src/test/resources/coreso_test_cases/
