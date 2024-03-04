@@ -1,11 +1,11 @@
 package com.farao_community.farao.swe_csa.app.rao_result;
 
-import com.farao_community.farao.data.crac_api.RemedialAction;
-import com.farao_community.farao.data.crac_api.State;
-import com.farao_community.farao.data.crac_api.range_action.CounterTradeRangeAction;
-import com.farao_community.farao.data.crac_api.range_action.RangeAction;
-import com.farao_community.farao.data.rao_result_api.RaoResult;
-import com.farao_community.farao.data.rao_result_api.RaoResultClone;
+import com.powsybl.openrao.data.cracapi.RemedialAction;
+import com.powsybl.openrao.data.cracapi.State;
+import com.powsybl.openrao.data.cracapi.rangeaction.CounterTradeRangeAction;
+import com.powsybl.openrao.data.cracapi.rangeaction.RangeAction;
+import com.powsybl.openrao.data.raoresultapi.RaoResult;
+import com.powsybl.openrao.data.raoresultapi.RaoResultClone;
 import com.farao_community.farao.swe_csa.api.results.CounterTradingResult;
 
 import java.util.HashSet;

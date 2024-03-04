@@ -1,7 +1,7 @@
 package com.farao_community.farao.swe_csa.app;
 
-import com.farao_community.farao.data.crac_api.Crac;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.openrao.data.cracapi.Crac;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

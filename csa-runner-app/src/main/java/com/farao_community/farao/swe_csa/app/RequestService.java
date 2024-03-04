@@ -42,13 +42,15 @@ public class RequestService {
             GenericThreadLauncher<SweCsaRunner, CsaResponse> launcher = new GenericThreadLauncher<>(sweCsaRunner, csaRequest.getId(), csaRequest);
             launcher.start();
             ThreadLauncherResult<CsaResponse> csaResponse = launcher.getResult();
+
             Optional<CsaResponse> resp = csaResponse.getResult();
             if (resp.isPresent() && !csaResponse.hasError()) {
                 setResultBytes(jsonApiConverter.toJsonMessage(resp.get(), CsaResponse.class));
                 LOGGER.info("Csa response sent: {}", resp.get());
             } else {
-                LOGGER.info("Stopping RAO runners...");
+                LOGGER.info("Csa run is interrupted, stopping RAO runners...");
                 streamBridge.send(STOP_RAO_BINDING, csaRequest.getId());
+                // TODO read acknowledgment from rao runner to make sure rao is interrupted
                 setResultBytes(jsonApiConverter.toJsonMessage(new CsaResponse(csaRequest.getId(), Status.INTERRUPTED.toString()), CsaResponse.class));
             }
         } catch (Exception e) {

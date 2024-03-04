@@ -28,12 +28,23 @@ spring:
         stop-rao:
           destination: stop-rao-runner
 
-minio-adapter:
-  bucket: swe-csa-bucket
-  base-path:
-  access-key: minioadmin
-  secret-key: minioadmin
-  url: http://localhost:9000
+s3:
+  inputs:
+    bucket: swe-csa-inputs-bucket
+    user: minioadmin
+    secret: minioadmin
+    url: http://localhost:9000
+  artifacts:
+    bucket: swe-csa-artifacts-bucket
+    user: minioadmin
+    secret: minioadmin
+    url: http://localhost:9010
+  outputs:
+    bucket: swe-csa-outputs-bucket
+    user: minioadmin
+    secret: minioadmin
+    url: http://localhost:9000
+
 rao-runner-server:
   amqp:
     client-app-id: swe-csa-runner

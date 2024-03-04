@@ -1,20 +1,20 @@
 package com.farao_community.farao.swe_csa.app;
 
-import com.farao_community.farao.data.crac_api.Crac;
-import com.farao_community.farao.data.crac_creation.creator.api.parameters.CracCreationParameters;
-import com.farao_community.farao.data.crac_creation.creator.csa_profile.CsaProfileCrac;
-import com.farao_community.farao.data.crac_creation.creator.csa_profile.crac_creator.CsaProfileCracCreationContext;
-import com.farao_community.farao.data.crac_creation.creator.csa_profile.crac_creator.CsaProfileCracCreator;
-import com.farao_community.farao.data.crac_creation.creator.csa_profile.importer.CsaProfileCracImporter;
-import com.farao_community.farao.data.crac_io_api.CracExporters;
-import com.farao_community.farao.minio_adapter.starter.MinioAdapter;
-import com.farao_community.farao.rao_api.json.JsonRaoParameters;
-import com.farao_community.farao.rao_api.parameters.RaoParameters;
 import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
+import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
 import com.google.common.base.Suppliers;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.ImportConfig;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.openrao.data.cracapi.Crac;
+import com.powsybl.openrao.data.craccreation.creator.api.parameters.CracCreationParameters;
+import com.powsybl.openrao.data.craccreation.creator.csaprofile.CsaProfileCrac;
+import com.powsybl.openrao.data.craccreation.creator.csaprofile.craccreator.CsaProfileCracCreationContext;
+import com.powsybl.openrao.data.craccreation.creator.csaprofile.craccreator.CsaProfileCracCreator;
+import com.powsybl.openrao.data.craccreation.creator.csaprofile.importer.CsaProfileCracImporter;
+import com.powsybl.openrao.data.cracioapi.CracExporters;
+import com.powsybl.openrao.raoapi.json.JsonRaoParameters;
+import com.powsybl.openrao.raoapi.parameters.RaoParameters;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
@@ -27,11 +27,12 @@ import java.util.Properties;
 
 @Service
 public class FileHelper {
-    private final MinioAdapter minioAdapter;
+    private final S3ArtifactsAdapter s3ArtifactsAdapter;
+
     private static final DateTimeFormatter HOURLY_NAME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd'_'HHmm").withZone(ZoneId.of("UTC"));
 
-    public FileHelper(MinioAdapter minioAdapter) {
-        this.minioAdapter = minioAdapter;
+    public FileHelper(S3ArtifactsAdapter s3ArtifactsAdapter) {
+        this.s3ArtifactsAdapter = s3ArtifactsAdapter;
     }
 
     String uploadIidmNetworkToMinio(String taskId, Network network, Instant utcInstant) throws IOException {
@@ -39,9 +40,9 @@ public class FileHelper {
         network.write("XIIDM", null, iidmTmpPath);
         String iidmNetworkDestinationPath = String.format("%s/networks/%s", taskId, HOURLY_NAME_FORMATTER.format(utcInstant).concat(".xiidm"));
         try (FileInputStream iidmNetworkInputStream = new FileInputStream(iidmTmpPath.toString())) {
-            minioAdapter.uploadArtifact(iidmNetworkDestinationPath, iidmNetworkInputStream);
+            s3ArtifactsAdapter.uploadFile(iidmNetworkDestinationPath, iidmNetworkInputStream);
         }
-        return minioAdapter.generatePreSignedUrl(iidmNetworkDestinationPath);
+        return s3ArtifactsAdapter.generatePreSignedUrl(iidmNetworkDestinationPath);
     }
 
     String uploadJsonCrac(String taskId, Crac crac, Instant utcInstant) {
@@ -49,11 +50,11 @@ public class FileHelper {
         ByteArrayOutputStream cracByteArrayOutputStream = new ByteArrayOutputStream();
         CracExporters.exportCrac(crac, "Json", cracByteArrayOutputStream);
         try (InputStream is = new ByteArrayInputStream(cracByteArrayOutputStream.toByteArray())) {
-            minioAdapter.uploadArtifact(jsonCracFilePath, is);
+            s3ArtifactsAdapter.uploadFile(jsonCracFilePath, is);
         } catch (IOException e) {
             throw new CsaInternalException(e.getMessage());
         }
-        return minioAdapter.generatePreSignedUrl(jsonCracFilePath);
+        return s3ArtifactsAdapter.generatePreSignedUrl(jsonCracFilePath);
     }
 
     public Network importNetwork(Path archiveTempPath) {
@@ -79,8 +80,8 @@ public class FileHelper {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         JsonRaoParameters.write(raoParameters, baos);
         ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-        minioAdapter.uploadArtifact(raoParametersFilePath, bais);
-        return minioAdapter.generatePreSignedUrl(raoParametersFilePath);
+        s3ArtifactsAdapter.uploadFile(raoParametersFilePath, bais);
+        return s3ArtifactsAdapter.generatePreSignedUrl(raoParametersFilePath);
     }
 
 }
