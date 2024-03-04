@@ -46,6 +46,9 @@ public class RequestService {
             if (resp.isPresent() && !csaResponse.hasError()) {
                 setResultBytes(jsonApiConverter.toJsonMessage(resp.get(), CsaResponse.class));
                 LOGGER.info("Csa response sent: {}", resp.get());
+            } else if (csaResponse.hasError()) {
+                setResultBytes(jsonApiConverter.toJsonMessage(new CsaResponse(csaRequest.getId(), Status.ERROR.toString()), CsaResponse.class));
+                LOGGER.error("RAO finish with error: {}", csaResponse.getException().getMessage());
             } else {
                 LOGGER.info("Stopping RAO runners...");
                 streamBridge.send(STOP_RAO_BINDING, csaRequest.getId());
