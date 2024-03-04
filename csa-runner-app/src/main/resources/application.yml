@@ -30,17 +30,17 @@ spring:
 
 s3:
   inputs:
-    bucket: swe-csa-inputs-bucket
+    bucket: swe-csa-bucket
     user: minioadmin
     secret: minioadmin
     url: http://localhost:9000
   artifacts:
-    bucket: swe-csa-artifacts-bucket
+    bucket: swe-csa-bucket
     user: minioadmin
     secret: minioadmin
-    url: http://localhost:9010
+    url: http://localhost:9000
   outputs:
-    bucket: swe-csa-outputs-bucket
+    bucket: swe-csa-bucket
     user: minioadmin
     secret: minioadmin
     url: http://localhost:9000
