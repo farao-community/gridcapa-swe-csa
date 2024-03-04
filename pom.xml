@@ -25,9 +25,8 @@
     <properties>
         <!-- BUSINESS DEPENDENCIES -->
         <csa.profiles.farao.version>4.5.0</csa.profiles.farao.version>
-        <farao.dependencies.version>1.23.0</farao.dependencies.version>
+        <farao.dependencies.version>1.25.0</farao.dependencies.version>
         <gridcapa.rao.runner.version>1.16.1</gridcapa.rao.runner.version>
-        <gridcapa.starter.minio.adapter.version>0.2.0</gridcapa.starter.minio.adapter.version>
 
         <!-- TECHNICAL DEPENDENCIES -->
         <commons.lang.version>3.11</commons.lang.version>
@@ -56,13 +55,13 @@
                 <artifactId>gridcapa-rao-runner-spring-boot-starter</artifactId>
                 <version>${gridcapa.rao.runner.version}</version>
             </dependency>
-            <dependency>
-                <groupId>com.farao-community.farao</groupId>
-                <artifactId>gridcapa-starter-minio-adapter</artifactId>
-                <version>${gridcapa.starter.minio.adapter.version}</version>
-            </dependency>
 
             <!-- TECHNICAL DEPENDENCIES -->
+            <dependency>
+                <groupId>io.minio</groupId>
+                <artifactId>minio</artifactId>
+                <version>${minio.version}</version>
+            </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.datatype</groupId>
                 <artifactId>jackson-datatype-jsr310</artifactId>

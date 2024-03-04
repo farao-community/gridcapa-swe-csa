@@ -19,7 +19,7 @@ public interface IndexStrategy<U extends DichotomyVariable<U>> {
     U nextValue(Index<?, U> index);
 
     default boolean precisionReached(Index<?, U> index) {
-        if (index.lowestInvalidStep() != null && index.lowestInvalidStep().getLeft() .distanceTo(index.minValue()) < EPSILON) {
+        if (index.lowestInvalidStep() != null && index.lowestInvalidStep().getLeft().distanceTo(index.minValue()) < EPSILON) {
             return true;
         }
         if (index.highestValidStep() != null && index.highestValidStep().getLeft().distanceTo(index.maxValue()) < EPSILON) {

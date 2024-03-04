@@ -55,4 +55,29 @@ class RequestServiceTest {
         byte[] result = requestService.launchCsaRequest(req);
         assertArrayEquals(resp, result);
     }
+
+    @Test
+    void testRequestServiceOnRaoError() throws IOException {
+        String id = UUID.randomUUID().toString();
+        Exception except = new InterruptedIOException("otherError");
+        String businessTimestamp = "2023-08-08T15:30:00Z";
+        CsaRequest.CommonProfiles commonProfiles = new CsaRequest.CommonProfiles();
+        commonProfiles.setTpbdProfileUri("https://example.com/tpbd");
+        commonProfiles.setEqbdProfileUri("https://example.com/eqbd");
+        commonProfiles.setSvProfileUri("https://example.com/sv");
+        CsaRequest.Profiles frProfiles = new CsaRequest.Profiles();
+        frProfiles.setSshProfileUri("https://example.com/ssh");
+
+        String resultsUri = "https://example.com/results";
+
+        CsaRequest csaRequest = new CsaRequest(id, businessTimestamp, commonProfiles, frProfiles, null, null, resultsUri);
+        JsonApiConverter jsonApiConverter = new JsonApiConverter();
+        byte[] req = jsonApiConverter.toJsonMessage(csaRequest, CsaRequest.class);
+        CsaResponse csaResponse = new CsaResponse(csaRequest.getId(), Status.ERROR.toString());
+        byte[] resp = jsonApiConverter.toJsonMessage(csaResponse, CsaResponse.class);
+        when(sweCsaRunner.run(any())).thenThrow(except);
+        when(streamBridge.send(any(), any())).thenReturn(true);
+        byte[] result = requestService.launchCsaRequest(req);
+        assertArrayEquals(resp, result);
+    }
 }
