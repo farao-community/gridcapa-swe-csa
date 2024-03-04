@@ -31,8 +31,8 @@
         </dependency>
         <!-- business dependencies -->
         <dependency>
-            <groupId>com.farao-community.farao</groupId>
-            <artifactId>farao-crac-api</artifactId>
+            <groupId>com.powsybl</groupId>
+            <artifactId>open-rao-crac-api</artifactId>
         </dependency>
         <!-- Test dependencies -->
         <dependency>

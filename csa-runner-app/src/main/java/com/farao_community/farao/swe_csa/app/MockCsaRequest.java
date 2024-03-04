@@ -1,7 +1,7 @@
 package com.farao_community.farao.swe_csa.app;
 
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
-import com.farao_community.farao.minio_adapter.starter.MinioAdapter;
+import com.farao_community.farao.swe_csa.app.s3.S3InputsAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -22,9 +22,9 @@ import java.util.zip.ZipInputStream;
 public class MockCsaRequest {
     private static final Logger LOGGER = LoggerFactory.getLogger(MockCsaRequest.class);
 
-    private final MinioAdapter minioAdapter;
+    private final S3InputsAdapter minioAdapter;
 
-    public MockCsaRequest(MinioAdapter minioAdapter) {
+    public MockCsaRequest(S3InputsAdapter minioAdapter) {
         this.minioAdapter = minioAdapter;
     }
 
@@ -43,7 +43,7 @@ public class MockCsaRequest {
         Optional<Path> tpbdProfileOpt = findFileFromPath(targetTmpUnzippedDir, "tpbdProfile");
         if (tpbdProfileOpt.isPresent()) {
             String tpbdProfileDestinationPath = String.format("%s/%s", taskId, tpbdProfileOpt.get().getFileName());
-            minioAdapter.uploadInput(tpbdProfileDestinationPath, new FileInputStream(tpbdProfileOpt.get().toFile()));
+            minioAdapter.uploadFile(tpbdProfileDestinationPath, new FileInputStream(tpbdProfileOpt.get().toFile()));
             String tpbdProfileUrl = minioAdapter.generatePreSignedUrl(tpbdProfileDestinationPath);
             commonProfiles.setTpbdProfileUri(tpbdProfileUrl);
         }
@@ -51,7 +51,7 @@ public class MockCsaRequest {
         Optional<Path> eqbdProfileOpt = findFileFromPath(targetTmpUnzippedDir, "eqbdProfile");
         if (eqbdProfileOpt.isPresent()) {
             String eqbdProfileDestinationPath = String.format("%s/%s", taskId, eqbdProfileOpt.get().getFileName());
-            minioAdapter.uploadInput(eqbdProfileDestinationPath, new FileInputStream(eqbdProfileOpt.get().toFile()));
+            minioAdapter.uploadFile(eqbdProfileDestinationPath, new FileInputStream(eqbdProfileOpt.get().toFile()));
             String eqbdProfileUrl = minioAdapter.generatePreSignedUrl(eqbdProfileDestinationPath);
             commonProfiles.setEqbdProfileUri(eqbdProfileUrl);
         }
@@ -59,7 +59,7 @@ public class MockCsaRequest {
         Optional<Path> svProfileOpt = findFileFromPath(targetTmpUnzippedDir, "svProfile");
         if (svProfileOpt.isPresent()) {
             String svProfileDestinationPath = String.format("%s/%s", taskId, svProfileOpt.get().getFileName());
-            minioAdapter.uploadInput(svProfileDestinationPath, new FileInputStream(svProfileOpt.get().toFile()));
+            minioAdapter.uploadFile(svProfileDestinationPath, new FileInputStream(svProfileOpt.get().toFile()));
             String svbdProfileUrl = minioAdapter.generatePreSignedUrl(svProfileDestinationPath);
             commonProfiles.setSvProfileUri(svbdProfileUrl);
         }
@@ -68,7 +68,7 @@ public class MockCsaRequest {
         Optional<Path> tpProfileFrOpt = findFileFromPath(targetTmpUnzippedDir, "tpProfileFr");
         if (tpProfileFrOpt.isPresent()) {
             String tpProfileFrDestinationPath = String.format("%s/%s", taskId, tpProfileFrOpt.get().getFileName());
-            minioAdapter.uploadInput(tpProfileFrDestinationPath, new FileInputStream(tpProfileFrOpt.get().toFile()));
+            minioAdapter.uploadFile(tpProfileFrDestinationPath, new FileInputStream(tpProfileFrOpt.get().toFile()));
             String tpProfileFrUrl = minioAdapter.generatePreSignedUrl(tpProfileFrDestinationPath);
             frProfiles.setTpProfileUri(tpProfileFrUrl);
         }
@@ -76,7 +76,7 @@ public class MockCsaRequest {
         Optional<Path> sshProfileFrOpt = findFileFromPath(targetTmpUnzippedDir, "sshProfileFr");
         if (sshProfileFrOpt.isPresent()) {
             String sshProfileFrDestinationPath = String.format("%s/%s", taskId, sshProfileFrOpt.get().getFileName());
-            minioAdapter.uploadInput(sshProfileFrDestinationPath, new FileInputStream(sshProfileFrOpt.get().toFile()));
+            minioAdapter.uploadFile(sshProfileFrDestinationPath, new FileInputStream(sshProfileFrOpt.get().toFile()));
             String sshProfileFrUrl = minioAdapter.generatePreSignedUrl(sshProfileFrDestinationPath);
             frProfiles.setSshProfileUri(sshProfileFrUrl);
         }
@@ -84,7 +84,7 @@ public class MockCsaRequest {
         Optional<Path> eqProfileFrOpt = findFileFromPath(targetTmpUnzippedDir, "eqProfileFr");
         if (eqProfileFrOpt.isPresent()) {
             String eqProfileFrDestinationPath = String.format("%s/%s", taskId, eqProfileFrOpt.get().getFileName());
-            minioAdapter.uploadInput(eqProfileFrDestinationPath, new FileInputStream(eqProfileFrOpt.get().toFile()));
+            minioAdapter.uploadFile(eqProfileFrDestinationPath, new FileInputStream(eqProfileFrOpt.get().toFile()));
             String eqProfileFrUrl = minioAdapter.generatePreSignedUrl(eqProfileFrDestinationPath);
             frProfiles.setEqProfileUri(eqProfileFrUrl);
         }
@@ -92,7 +92,7 @@ public class MockCsaRequest {
         Optional<Path> aeProfileFrOpt = findFileFromPath(targetTmpUnzippedDir, "aeProfileFr");
         if (aeProfileFrOpt.isPresent()) {
             String aeProfileFrDestinationPath = String.format("%s/%s", taskId, aeProfileFrOpt.get().getFileName());
-            minioAdapter.uploadInput(aeProfileFrDestinationPath, new FileInputStream(aeProfileFrOpt.get().toFile()));
+            minioAdapter.uploadFile(aeProfileFrDestinationPath, new FileInputStream(aeProfileFrOpt.get().toFile()));
             String aeProfileFrUrl = minioAdapter.generatePreSignedUrl(aeProfileFrDestinationPath);
             frProfiles.setAeProfileUri(aeProfileFrUrl);
         }
@@ -100,7 +100,7 @@ public class MockCsaRequest {
         Optional<Path> coProfileFrOpt = findFileFromPath(targetTmpUnzippedDir, "coProfileFr");
         if (coProfileFrOpt.isPresent()) {
             String coProfileFrDestinationPath = String.format("%s/%s", taskId, coProfileFrOpt.get().getFileName());
-            minioAdapter.uploadInput(coProfileFrDestinationPath, new FileInputStream(coProfileFrOpt.get().toFile()));
+            minioAdapter.uploadFile(coProfileFrDestinationPath, new FileInputStream(coProfileFrOpt.get().toFile()));
             String coProfileFrUrl = minioAdapter.generatePreSignedUrl(coProfileFrDestinationPath);
             frProfiles.setCoProfileUri(coProfileFrUrl);
         }
@@ -108,7 +108,7 @@ public class MockCsaRequest {
         Optional<Path> raProfileFrOpt = findFileFromPath(targetTmpUnzippedDir, "raProfileFr");
         if (raProfileFrOpt.isPresent()) {
             String raProfileFrDestinationPath = String.format("%s/%s", taskId, raProfileFrOpt.get().getFileName());
-            minioAdapter.uploadInput(raProfileFrDestinationPath, new FileInputStream(raProfileFrOpt.get().toFile()));
+            minioAdapter.uploadFile(raProfileFrDestinationPath, new FileInputStream(raProfileFrOpt.get().toFile()));
             String raProfileFrUrl = minioAdapter.generatePreSignedUrl(raProfileFrDestinationPath);
             frProfiles.setRaProfileUri(raProfileFrUrl);
         }
@@ -116,7 +116,7 @@ public class MockCsaRequest {
         Optional<Path> erProfileFrOpt = findFileFromPath(targetTmpUnzippedDir, "erProfileFr");
         if (erProfileFrOpt.isPresent()) {
             String erProfileFrDestinationPath = String.format("%s/%s", taskId, erProfileFrOpt.get().getFileName());
-            minioAdapter.uploadInput(erProfileFrDestinationPath, new FileInputStream(erProfileFrOpt.get().toFile()));
+            minioAdapter.uploadFile(erProfileFrDestinationPath, new FileInputStream(erProfileFrOpt.get().toFile()));
             String erProfileFrUrl = minioAdapter.generatePreSignedUrl(erProfileFrDestinationPath);
             frProfiles.setErProfileUri(erProfileFrUrl);
         }
@@ -124,7 +124,7 @@ public class MockCsaRequest {
         Optional<Path> ssiProfileFrOpt = findFileFromPath(targetTmpUnzippedDir, "ssiProfileFr");
         if (ssiProfileFrOpt.isPresent()) {
             String ssiProfileFrDestinationPath = String.format("%s/%s", taskId, ssiProfileFrOpt.get().getFileName());
-            minioAdapter.uploadInput(ssiProfileFrDestinationPath, new FileInputStream(ssiProfileFrOpt.get().toFile()));
+            minioAdapter.uploadFile(ssiProfileFrDestinationPath, new FileInputStream(ssiProfileFrOpt.get().toFile()));
             String ssiProfileFrUrl = minioAdapter.generatePreSignedUrl(ssiProfileFrDestinationPath);
             frProfiles.setSsiProfileUri(ssiProfileFrUrl);
         }
@@ -132,7 +132,7 @@ public class MockCsaRequest {
         Optional<Path> sisProfileFrOpt = findFileFromPath(targetTmpUnzippedDir, "sisProfileFr");
         if (sisProfileFrOpt.isPresent()) {
             String sisProfileFrDestinationPath = String.format("%s/%s", taskId, sisProfileFrOpt.get().getFileName());
-            minioAdapter.uploadInput(sisProfileFrDestinationPath, new FileInputStream(sisProfileFrOpt.get().toFile()));
+            minioAdapter.uploadFile(sisProfileFrDestinationPath, new FileInputStream(sisProfileFrOpt.get().toFile()));
             String sisProfileFrUrl = minioAdapter.generatePreSignedUrl(sisProfileFrDestinationPath);
             frProfiles.setSisProfileUri(sisProfileFrUrl);
         }
@@ -140,7 +140,7 @@ public class MockCsaRequest {
         Optional<Path> maProfileFrOpt = findFileFromPath(targetTmpUnzippedDir, "maProfileFr");
         if (maProfileFrOpt.isPresent()) {
             String maProfileFrDestinationPath = String.format("%s/%s", taskId, maProfileFrOpt.get().getFileName());
-            minioAdapter.uploadInput(maProfileFrDestinationPath, new FileInputStream(maProfileFrOpt.get().toFile()));
+            minioAdapter.uploadFile(maProfileFrDestinationPath, new FileInputStream(maProfileFrOpt.get().toFile()));
             String maProfileFrFrUrl = minioAdapter.generatePreSignedUrl(maProfileFrDestinationPath);
             frProfiles.setMaProfileUri(maProfileFrFrUrl);
         }
@@ -148,7 +148,7 @@ public class MockCsaRequest {
         Optional<Path> smProfileFrOpt = findFileFromPath(targetTmpUnzippedDir, "smProfileFr");
         if (smProfileFrOpt.isPresent()) {
             String smProfileFrDestinationPath = String.format("%s/%s", taskId, smProfileFrOpt.get().getFileName());
-            minioAdapter.uploadInput(smProfileFrDestinationPath, new FileInputStream(smProfileFrOpt.get().toFile()));
+            minioAdapter.uploadFile(smProfileFrDestinationPath, new FileInputStream(smProfileFrOpt.get().toFile()));
             String smProfileFrUrl = minioAdapter.generatePreSignedUrl(smProfileFrDestinationPath);
             frProfiles.setSmProfileUri(smProfileFrUrl);
         }
@@ -156,7 +156,7 @@ public class MockCsaRequest {
         Optional<Path> asProfileFrOpt = findFileFromPath(targetTmpUnzippedDir, "asProfileFr");
         if (asProfileFrOpt.isPresent()) {
             String asProfileFrDestinationPath = String.format("%s/%s", taskId, asProfileFrOpt.get().getFileName());
-            minioAdapter.uploadInput(asProfileFrDestinationPath, new FileInputStream(asProfileFrOpt.get().toFile()));
+            minioAdapter.uploadFile(asProfileFrDestinationPath, new FileInputStream(asProfileFrOpt.get().toFile()));
             String asProfileFrUrl = minioAdapter.generatePreSignedUrl(asProfileFrDestinationPath);
             frProfiles.setAsProfileUri(asProfileFrUrl);
         }
@@ -165,7 +165,7 @@ public class MockCsaRequest {
         Optional<Path> tpProfileEsOpt = findFileFromPath(targetTmpUnzippedDir, "tpProfileEs");
         if (tpProfileEsOpt.isPresent()) {
             String tpProfileEsDestinationPath = String.format("%s/%s", taskId, tpProfileEsOpt.get().getFileName());
-            minioAdapter.uploadInput(tpProfileEsDestinationPath, new FileInputStream(tpProfileEsOpt.get().toFile()));
+            minioAdapter.uploadFile(tpProfileEsDestinationPath, new FileInputStream(tpProfileEsOpt.get().toFile()));
             String tpProfileEsUrl = minioAdapter.generatePreSignedUrl(tpProfileEsDestinationPath);
             esProfiles.setTpProfileUri(tpProfileEsUrl);
         }
@@ -173,7 +173,7 @@ public class MockCsaRequest {
         Optional<Path> sshProfileEsOpt = findFileFromPath(targetTmpUnzippedDir, "sshProfileEs");
         if (sshProfileEsOpt.isPresent()) {
             String sshProfileEsDestinationPath = String.format("%s/%s", taskId, sshProfileEsOpt.get().getFileName());
-            minioAdapter.uploadInput(sshProfileEsDestinationPath, new FileInputStream(sshProfileEsOpt.get().toFile()));
+            minioAdapter.uploadFile(sshProfileEsDestinationPath, new FileInputStream(sshProfileEsOpt.get().toFile()));
             String sshProfileEsUrl = minioAdapter.generatePreSignedUrl(sshProfileEsDestinationPath);
             esProfiles.setSshProfileUri(sshProfileEsUrl);
         }
@@ -181,7 +181,7 @@ public class MockCsaRequest {
         Optional<Path> eqProfileEsOpt = findFileFromPath(targetTmpUnzippedDir, "eqProfileEs");
         if (eqProfileEsOpt.isPresent()) {
             String eqProfileEsDestinationPath = String.format("%s/%s", taskId, eqProfileEsOpt.get().getFileName());
-            minioAdapter.uploadInput(eqProfileEsDestinationPath, new FileInputStream(eqProfileEsOpt.get().toFile()));
+            minioAdapter.uploadFile(eqProfileEsDestinationPath, new FileInputStream(eqProfileEsOpt.get().toFile()));
             String eqProfileEsUrl = minioAdapter.generatePreSignedUrl(eqProfileEsDestinationPath);
             esProfiles.setEqProfileUri(eqProfileEsUrl);
         }
@@ -189,7 +189,7 @@ public class MockCsaRequest {
         Optional<Path> aeProfileEsOpt = findFileFromPath(targetTmpUnzippedDir, "aeProfileEs");
         if (aeProfileEsOpt.isPresent()) {
             String aeProfileEsDestinationPath = String.format("%s/%s", taskId, aeProfileEsOpt.get().getFileName());
-            minioAdapter.uploadInput(aeProfileEsDestinationPath, new FileInputStream(aeProfileEsOpt.get().toFile()));
+            minioAdapter.uploadFile(aeProfileEsDestinationPath, new FileInputStream(aeProfileEsOpt.get().toFile()));
             String aeProfileEsUrl = minioAdapter.generatePreSignedUrl(aeProfileEsDestinationPath);
             esProfiles.setAeProfileUri(aeProfileEsUrl);
         }
@@ -197,7 +197,7 @@ public class MockCsaRequest {
         Optional<Path> coProfileEsOpt = findFileFromPath(targetTmpUnzippedDir, "coProfileEs");
         if (coProfileEsOpt.isPresent()) {
             String coProfileEsDestinationPath = String.format("%s/%s", taskId, coProfileEsOpt.get().getFileName());
-            minioAdapter.uploadInput(coProfileEsDestinationPath, new FileInputStream(coProfileEsOpt.get().toFile()));
+            minioAdapter.uploadFile(coProfileEsDestinationPath, new FileInputStream(coProfileEsOpt.get().toFile()));
             String coProfileEsUrl = minioAdapter.generatePreSignedUrl(coProfileEsDestinationPath);
             esProfiles.setCoProfileUri(coProfileEsUrl);
         }
@@ -205,7 +205,7 @@ public class MockCsaRequest {
         Optional<Path> raProfileEsOpt = findFileFromPath(targetTmpUnzippedDir, "raProfileEs");
         if (raProfileEsOpt.isPresent()) {
             String raProfileEsDestinationPath = String.format("%s/%s", taskId, raProfileEsOpt.get().getFileName());
-            minioAdapter.uploadInput(raProfileEsDestinationPath, new FileInputStream(raProfileEsOpt.get().toFile()));
+            minioAdapter.uploadFile(raProfileEsDestinationPath, new FileInputStream(raProfileEsOpt.get().toFile()));
             String raProfileEsUrl = minioAdapter.generatePreSignedUrl(raProfileEsDestinationPath);
             esProfiles.setRaProfileUri(raProfileEsUrl);
         }
@@ -213,7 +213,7 @@ public class MockCsaRequest {
         Optional<Path> erProfileEsOpt = findFileFromPath(targetTmpUnzippedDir, "erProfileEs");
         if (erProfileEsOpt.isPresent()) {
             String erProfileEsDestinationPath = String.format("%s/%s", taskId, erProfileEsOpt.get().getFileName());
-            minioAdapter.uploadInput(erProfileEsDestinationPath, new FileInputStream(erProfileEsOpt.get().toFile()));
+            minioAdapter.uploadFile(erProfileEsDestinationPath, new FileInputStream(erProfileEsOpt.get().toFile()));
             String erProfileEsUrl = minioAdapter.generatePreSignedUrl(erProfileEsDestinationPath);
             esProfiles.setErProfileUri(erProfileEsUrl);
         }
@@ -221,7 +221,7 @@ public class MockCsaRequest {
         Optional<Path> ssiProfileEsOpt = findFileFromPath(targetTmpUnzippedDir, "ssiProfileEs");
         if (ssiProfileEsOpt.isPresent()) {
             String ssiProfileEsDestinationPath = String.format("%s/%s", taskId, ssiProfileEsOpt.get().getFileName());
-            minioAdapter.uploadInput(ssiProfileEsDestinationPath, new FileInputStream(ssiProfileEsOpt.get().toFile()));
+            minioAdapter.uploadFile(ssiProfileEsDestinationPath, new FileInputStream(ssiProfileEsOpt.get().toFile()));
             String ssiProfileEsUrl = minioAdapter.generatePreSignedUrl(ssiProfileEsDestinationPath);
             esProfiles.setSsiProfileUri(ssiProfileEsUrl);
         }
@@ -229,7 +229,7 @@ public class MockCsaRequest {
         Optional<Path> sisProfileEsOpt = findFileFromPath(targetTmpUnzippedDir, "sisProfileEs");
         if (sisProfileEsOpt.isPresent()) {
             String sisProfileEsDestinationPath = String.format("%s/%s", taskId, sisProfileEsOpt.get().getFileName());
-            minioAdapter.uploadInput(sisProfileEsDestinationPath, new FileInputStream(sisProfileEsOpt.get().toFile()));
+            minioAdapter.uploadFile(sisProfileEsDestinationPath, new FileInputStream(sisProfileEsOpt.get().toFile()));
             String sisProfileEsUrl = minioAdapter.generatePreSignedUrl(sisProfileEsDestinationPath);
             esProfiles.setSisProfileUri(sisProfileEsUrl);
         }
@@ -237,7 +237,7 @@ public class MockCsaRequest {
         Optional<Path> maProfileEsOpt = findFileFromPath(targetTmpUnzippedDir, "maProfileEs");
         if (maProfileEsOpt.isPresent()) {
             String maProfileEsDestinationPath = String.format("%s/%s", taskId, maProfileEsOpt.get().getFileName());
-            minioAdapter.uploadInput(maProfileEsDestinationPath, new FileInputStream(maProfileEsOpt.get().toFile()));
+            minioAdapter.uploadFile(maProfileEsDestinationPath, new FileInputStream(maProfileEsOpt.get().toFile()));
             String maProfileEsUrl = minioAdapter.generatePreSignedUrl(maProfileEsDestinationPath);
             esProfiles.setMaProfileUri(maProfileEsUrl);
         }
@@ -245,7 +245,7 @@ public class MockCsaRequest {
         Optional<Path> smProfileEsOpt = findFileFromPath(targetTmpUnzippedDir, "smProfileEs");
         if (smProfileEsOpt.isPresent()) {
             String smProfileEsDestinationPath = String.format("%s/%s", taskId, smProfileEsOpt.get().getFileName());
-            minioAdapter.uploadInput(smProfileEsDestinationPath, new FileInputStream(smProfileEsOpt.get().toFile()));
+            minioAdapter.uploadFile(smProfileEsDestinationPath, new FileInputStream(smProfileEsOpt.get().toFile()));
             String smProfileEsUrl = minioAdapter.generatePreSignedUrl(smProfileEsDestinationPath);
             esProfiles.setSmProfileUri(smProfileEsUrl);
         }
@@ -253,7 +253,7 @@ public class MockCsaRequest {
         Optional<Path> asProfileEsOpt = findFileFromPath(targetTmpUnzippedDir, "asProfileEs");
         if (asProfileEsOpt.isPresent()) {
             String asProfileEsDestinationPath = String.format("%s/%s", taskId, asProfileEsOpt.get().getFileName());
-            minioAdapter.uploadInput(asProfileEsDestinationPath, new FileInputStream(asProfileEsOpt.get().toFile()));
+            minioAdapter.uploadFile(asProfileEsDestinationPath, new FileInputStream(asProfileEsOpt.get().toFile()));
             String asProfileEsUrl = minioAdapter.generatePreSignedUrl(asProfileEsDestinationPath);
             esProfiles.setAsProfileUri(asProfileEsUrl);
         }
@@ -262,7 +262,7 @@ public class MockCsaRequest {
         Optional<Path> tpProfilePtOpt = findFileFromPath(targetTmpUnzippedDir, "tpProfilePt");
         if (tpProfilePtOpt.isPresent()) {
             String tpProfilePtDestinationPath = String.format("%s/%s", taskId, tpProfilePtOpt.get().getFileName());
-            minioAdapter.uploadInput(tpProfilePtDestinationPath, new FileInputStream(tpProfilePtOpt.get().toFile()));
+            minioAdapter.uploadFile(tpProfilePtDestinationPath, new FileInputStream(tpProfilePtOpt.get().toFile()));
             String tpProfilePtUrl = minioAdapter.generatePreSignedUrl(tpProfilePtDestinationPath);
             ptProfiles.setTpProfileUri(tpProfilePtUrl);
         }
@@ -270,7 +270,7 @@ public class MockCsaRequest {
         Optional<Path> sshProfilePtOpt = findFileFromPath(targetTmpUnzippedDir, "sshProfilePt");
         if (sshProfilePtOpt.isPresent()) {
             String sshProfilePtDestinationPath = String.format("%s/%s", taskId, sshProfilePtOpt.get().getFileName());
-            minioAdapter.uploadInput(sshProfilePtDestinationPath, new FileInputStream(sshProfilePtOpt.get().toFile()));
+            minioAdapter.uploadFile(sshProfilePtDestinationPath, new FileInputStream(sshProfilePtOpt.get().toFile()));
             String sshProfilePtUrl = minioAdapter.generatePreSignedUrl(sshProfilePtDestinationPath);
             ptProfiles.setSshProfileUri(sshProfilePtUrl);
         }
@@ -278,7 +278,7 @@ public class MockCsaRequest {
         Optional<Path> eqProfilePtOpt = findFileFromPath(targetTmpUnzippedDir, "eqProfilePt");
         if (eqProfilePtOpt.isPresent()) {
             String eqProfilePtDestinationPath = String.format("%s/%s", taskId, eqProfilePtOpt.get().getFileName());
-            minioAdapter.uploadInput(eqProfilePtDestinationPath, new FileInputStream(eqProfilePtOpt.get().toFile()));
+            minioAdapter.uploadFile(eqProfilePtDestinationPath, new FileInputStream(eqProfilePtOpt.get().toFile()));
             String eqProfilePtUrl = minioAdapter.generatePreSignedUrl(eqProfilePtDestinationPath);
             ptProfiles.setEqProfileUri(eqProfilePtUrl);
         }
@@ -286,7 +286,7 @@ public class MockCsaRequest {
         Optional<Path> aeProfilePtOpt = findFileFromPath(targetTmpUnzippedDir, "aeProfilePt");
         if (aeProfilePtOpt.isPresent()) {
             String aeProfilePtDestinationPath = String.format("%s/%s", taskId, aeProfilePtOpt.get().getFileName());
-            minioAdapter.uploadInput(aeProfilePtDestinationPath, new FileInputStream(aeProfilePtOpt.get().toFile()));
+            minioAdapter.uploadFile(aeProfilePtDestinationPath, new FileInputStream(aeProfilePtOpt.get().toFile()));
             String aeProfilePtUrl = minioAdapter.generatePreSignedUrl(aeProfilePtDestinationPath);
             ptProfiles.setAeProfileUri(aeProfilePtUrl);
         }
@@ -294,7 +294,7 @@ public class MockCsaRequest {
         Optional<Path> coProfilePtOpt = findFileFromPath(targetTmpUnzippedDir, "coProfilePt");
         if (coProfilePtOpt.isPresent()) {
             String coProfilePtDestinationPath = String.format("%s/%s", taskId, coProfilePtOpt.get().getFileName());
-            minioAdapter.uploadInput(coProfilePtDestinationPath, new FileInputStream(coProfilePtOpt.get().toFile()));
+            minioAdapter.uploadFile(coProfilePtDestinationPath, new FileInputStream(coProfilePtOpt.get().toFile()));
             String coProfilePtUrl = minioAdapter.generatePreSignedUrl(coProfilePtDestinationPath);
             ptProfiles.setCoProfileUri(coProfilePtUrl);
         }
@@ -302,7 +302,7 @@ public class MockCsaRequest {
         Optional<Path> raProfilePtOpt = findFileFromPath(targetTmpUnzippedDir, "raProfilePt");
         if (raProfilePtOpt.isPresent()) {
             String raProfilePtDestinationPath = String.format("%s/%s", taskId, raProfilePtOpt.get().getFileName());
-            minioAdapter.uploadInput(raProfilePtDestinationPath, new FileInputStream(raProfilePtOpt.get().toFile()));
+            minioAdapter.uploadFile(raProfilePtDestinationPath, new FileInputStream(raProfilePtOpt.get().toFile()));
             String raProfilePtUrl = minioAdapter.generatePreSignedUrl(raProfilePtDestinationPath);
             ptProfiles.setRaProfileUri(raProfilePtUrl);
         }
@@ -310,7 +310,7 @@ public class MockCsaRequest {
         Optional<Path> erProfilePtOpt = findFileFromPath(targetTmpUnzippedDir, "erProfilePt");
         if (erProfilePtOpt.isPresent()) {
             String erProfilePtDestinationPath = String.format("%s/%s", taskId, erProfilePtOpt.get().getFileName());
-            minioAdapter.uploadInput(erProfilePtDestinationPath, new FileInputStream(erProfilePtOpt.get().toFile()));
+            minioAdapter.uploadFile(erProfilePtDestinationPath, new FileInputStream(erProfilePtOpt.get().toFile()));
             String erProfilePtUrl = minioAdapter.generatePreSignedUrl(erProfilePtDestinationPath);
             ptProfiles.setErProfileUri(erProfilePtUrl);
         }
@@ -318,7 +318,7 @@ public class MockCsaRequest {
         Optional<Path> ssiProfilePtOpt = findFileFromPath(targetTmpUnzippedDir, "ssiProfilePt");
         if (ssiProfilePtOpt.isPresent()) {
             String ssiProfilePtDestinationPath = String.format("%s/%s", taskId, ssiProfilePtOpt.get().getFileName());
-            minioAdapter.uploadInput(ssiProfilePtDestinationPath, new FileInputStream(ssiProfilePtOpt.get().toFile()));
+            minioAdapter.uploadFile(ssiProfilePtDestinationPath, new FileInputStream(ssiProfilePtOpt.get().toFile()));
             String ssiProfilePtUrl = minioAdapter.generatePreSignedUrl(ssiProfilePtDestinationPath);
             ptProfiles.setSsiProfileUri(ssiProfilePtUrl);
         }
@@ -326,7 +326,7 @@ public class MockCsaRequest {
         Optional<Path> sisProfilePtOpt = findFileFromPath(targetTmpUnzippedDir, "sisProfilePt");
         if (sisProfilePtOpt.isPresent()) {
             String sisProfilePtDestinationPath = String.format("%s/%s", taskId, sisProfilePtOpt.get().getFileName());
-            minioAdapter.uploadInput(sisProfilePtDestinationPath, new FileInputStream(sisProfilePtOpt.get().toFile()));
+            minioAdapter.uploadFile(sisProfilePtDestinationPath, new FileInputStream(sisProfilePtOpt.get().toFile()));
             String sisProfilePtUrl = minioAdapter.generatePreSignedUrl(sisProfilePtDestinationPath);
             ptProfiles.setSisProfileUri(sisProfilePtUrl);
         }
@@ -334,7 +334,7 @@ public class MockCsaRequest {
         Optional<Path> maProfilePtOpt = findFileFromPath(targetTmpUnzippedDir, "maProfilePt");
         if (maProfilePtOpt.isPresent()) {
             String maProfilePtDestinationPath = String.format("%s/%s", taskId, maProfilePtOpt.get().getFileName());
-            minioAdapter.uploadInput(maProfilePtDestinationPath, new FileInputStream(maProfilePtOpt.get().toFile()));
+            minioAdapter.uploadFile(maProfilePtDestinationPath, new FileInputStream(maProfilePtOpt.get().toFile()));
             String maProfilePtUrl = minioAdapter.generatePreSignedUrl(maProfilePtDestinationPath);
             ptProfiles.setMaProfileUri(maProfilePtUrl);
         }
@@ -342,7 +342,7 @@ public class MockCsaRequest {
         Optional<Path> smProfilePtOpt = findFileFromPath(targetTmpUnzippedDir, "smProfilePt");
         if (smProfilePtOpt.isPresent()) {
             String smProfilePtDestinationPath = String.format("%s/%s", taskId, smProfilePtOpt.get().getFileName());
-            minioAdapter.uploadInput(smProfilePtDestinationPath, new FileInputStream(smProfilePtOpt.get().toFile()));
+            minioAdapter.uploadFile(smProfilePtDestinationPath, new FileInputStream(smProfilePtOpt.get().toFile()));
             String smProfilePtUrl = minioAdapter.generatePreSignedUrl(smProfilePtDestinationPath);
             ptProfiles.setSmProfileUri(smProfilePtUrl);
         }
@@ -350,7 +350,7 @@ public class MockCsaRequest {
         Optional<Path> asProfilePtOpt = findFileFromPath(targetTmpUnzippedDir, "asProfilePt");
         if (asProfilePtOpt.isPresent()) {
             String asProfilePtDestinationPath = String.format("%s/%s", taskId, asProfilePtOpt.get().getFileName());
-            minioAdapter.uploadInput(asProfilePtDestinationPath, new FileInputStream(asProfilePtOpt.get().toFile()));
+            minioAdapter.uploadFile(asProfilePtDestinationPath, new FileInputStream(asProfilePtOpt.get().toFile()));
             String asProfilePtUrl = minioAdapter.generatePreSignedUrl(asProfilePtDestinationPath);
             ptProfiles.setAsProfileUri(asProfilePtUrl);
         }
