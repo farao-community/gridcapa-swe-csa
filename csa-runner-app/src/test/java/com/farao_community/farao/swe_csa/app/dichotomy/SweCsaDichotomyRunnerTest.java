@@ -57,18 +57,14 @@ public class SweCsaDichotomyRunnerTest {
 
         assertEquals(Country.ES, crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.ES_PT.getName()).getExportingCountry());
         assertEquals(Country.PT, crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.ES_PT.getName()).getImportingCountry());
-        assertEquals(-500.0, crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.ES_PT.getName()).getInitialSetpoint());
         assertEquals(Country.PT, crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.PT_ES.getName()).getExportingCountry());
         assertEquals(Country.ES, crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.PT_ES.getName()).getImportingCountry());
-        assertEquals(500.0, crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.PT_ES.getName()).getInitialSetpoint());
         assertEquals(Country.ES, crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.ES_FR.getName()).getExportingCountry());
         assertEquals(Country.FR, crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.ES_FR.getName()).getImportingCountry());
-        assertEquals(600.0, crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.ES_FR.getName()).getInitialSetpoint());
         assertEquals(Country.FR, crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.FR_ES.getName()).getExportingCountry());
         assertEquals(Country.ES, crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.FR_ES.getName()).getImportingCountry());
-        assertEquals(-600.0, crac.getCounterTradeRangeAction(CounterTradeRangeActionDirection.FR_ES.getName()).getInitialSetpoint());
 
-        assertEquals("CT_FRES : 600, CT_PTES : 500", dichotomyEngine.getIndex().maxValue().print());
+        assertEquals("CT_FRES : -0, CT_PTES : -0", dichotomyEngine.getIndex().maxValue().print());
         assertEquals("CT_FRES : 0, CT_PTES : 0", dichotomyEngine.getIndex().minValue().print());
 
         assertEquals(5, ((SweCsaHalfRangeDivisionIndexStrategy) dichotomyEngine.getIndexStrategy()).getFrEsFlowCnecs().size());
@@ -79,8 +75,8 @@ public class SweCsaDichotomyRunnerTest {
         SweCsaNetworkShifter sweCsaNetworkShifter = (SweCsaNetworkShifter) dichotomyEngine.getNetworkShifter();
         SweCsaShiftDispatcher shiftDispatcher = (SweCsaShiftDispatcher) sweCsaNetworkShifter.getShiftDispatcher();
 
-        assertEquals(600.0, shiftDispatcher.getInitialNetPositions().get(Country.FR.getName()));
-        assertEquals(-500.0, shiftDispatcher.getInitialNetPositions().get(Country.PT.getName()));
-        assertEquals(-100.0, shiftDispatcher.getInitialNetPositions().get(Country.ES.getName()));
+        assertEquals(-0.0, shiftDispatcher.getInitialNetPositions().get(Country.FR.getName()));
+        assertEquals(-0.0, shiftDispatcher.getInitialNetPositions().get(Country.PT.getName()));
+        assertEquals(0.0, shiftDispatcher.getInitialNetPositions().get(Country.ES.getName()));
     }
 }

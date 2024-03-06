@@ -106,9 +106,10 @@ public class SweCsaDichotomyRunner {
 
     private Map<String, Double> getInitialCountriesPositions(Map<String, Double> initialBordersPositions) {
         Map<String, Double> initialCountriesPositions = new HashMap<>();
-        initialCountriesPositions.put(Country.FR.getName(), -initialBordersPositions.get("ES-FR"));
-        initialCountriesPositions.put(Country.PT.getName(), -initialBordersPositions.get("ES-PT"));
-        initialCountriesPositions.put(Country.ES.getName(), initialBordersPositions.get("ES-FR") + initialBordersPositions.get("ES-PT"));
+        initialCountriesPositions.put(Country.FR.getName(), -initialBordersPositions.getOrDefault("ES-FR", 0.0));
+        initialCountriesPositions.put(Country.PT.getName(), -initialBordersPositions.getOrDefault("ES-PT", 0.0));
+        initialCountriesPositions.put(Country.ES.getName(), initialBordersPositions.getOrDefault("ES-FR", 0.0)
+            + initialBordersPositions.getOrDefault("ES-PT", 0.0));
         return initialCountriesPositions;
     }
 
@@ -118,8 +119,8 @@ public class SweCsaDichotomyRunner {
         CounterTradeRangeAction ctRaPtEs = this.getCounterTradeRangeActionByCountries(crac, Country.PT, Country.ES);
         CounterTradeRangeAction ctRaEsPt = this.getCounterTradeRangeActionByCountries(crac, Country.ES, Country.PT);
 
-        double expEsFr = initialBordersPositions.get("ES-FR");
-        double expEsPt = initialBordersPositions.get("ES-PT");
+        double expEsFr = initialBordersPositions.getOrDefault("ES-FR", 0.0);
+        double expEsPt = initialBordersPositions.getOrDefault("ES-PT", 0.0);
         double expFrEs = -expEsFr;
         double expPtEs = -expEsPt;
 
