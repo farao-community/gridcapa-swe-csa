@@ -90,12 +90,17 @@
         <dependency>
             <groupId>com.farao-community.farao</groupId>
             <artifactId>farao-dichotomy-api</artifactId>
-            <version>4.14.0</version>
+            <version>4.14.1</version>
         </dependency>
         <dependency>
             <groupId>com.farao-community.farao</groupId>
             <artifactId>farao-dichotomy-shift</artifactId>
-            <version>4.14.0</version>
+            <version>4.14.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.farao-community.farao</groupId>
+            <artifactId>gridcapa-swe-commons</artifactId>
+            <version>1.16.0</version>
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>

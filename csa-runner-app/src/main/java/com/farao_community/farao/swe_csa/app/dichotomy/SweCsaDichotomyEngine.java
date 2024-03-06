@@ -26,7 +26,7 @@ import com.powsybl.iidm.network.Network;
 
 import java.util.Objects;
 
-import static com.farao_community.farao.commons.logs.FaraoLoggerProvider.BUSINESS_LOGS;
+import static com.farao_community.farao.dichotomy.api.logging.DichotomyLoggerProvider.BUSINESS_LOGS;
 import static com.farao_community.farao.dichotomy.api.logging.DichotomyLoggerProvider.BUSINESS_WARNS;
 
 public class SweCsaDichotomyEngine {

@@ -75,7 +75,7 @@ class RequestServiceTest {
         byte[] req = jsonApiConverter.toJsonMessage(csaRequest, CsaRequest.class);
         CsaResponse csaResponse = new CsaResponse(csaRequest.getId(), Status.ERROR.toString());
         byte[] resp = jsonApiConverter.toJsonMessage(csaResponse, CsaResponse.class);
-        when(sweCsaRunner.run(any())).thenThrow(except);
+        when(sweCsaDichotomyRunner.runRaoDichotomy(any())).thenThrow(except);
         when(streamBridge.send(any(), any())).thenReturn(true);
         byte[] result = requestService.launchCsaRequest(req);
         assertArrayEquals(resp, result);
