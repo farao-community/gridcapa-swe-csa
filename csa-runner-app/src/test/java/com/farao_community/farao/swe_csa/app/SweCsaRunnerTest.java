@@ -63,7 +63,7 @@ class SweCsaRunnerTest {
             doReturn(new RaoResponse("raoResponseId", "2023-08-08T15:30:00Z", "networkWithPraFileUrl", "cracFileUrl", "raoResultFileUrl", Instant.parse("2023-08-08T15:30:00Z"), Instant.parse("2023-08-08T15:50:00Z"))).when(raoRunnerClient).runRao(any());
 
             CsaRequest csaRequest = jsonApiConverter.fromJsonMessage(requestBytes, CsaRequest.class);
-            CsaResponse csaResponse = sweCsaRunner.run(csaRequest);
+            CsaResponse csaResponse = sweCsaRunner.runSingleRao(csaRequest);
 
             CsaResponse expectedCsaResponse = new CsaResponse("raoResponseId", Status.FINISHED.toString());
             assertEquals(expectedCsaResponse.getId(), csaResponse.getId());

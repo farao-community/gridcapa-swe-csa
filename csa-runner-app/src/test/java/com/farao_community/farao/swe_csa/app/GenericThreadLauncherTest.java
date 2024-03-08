@@ -8,6 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
 class GenericThreadLauncherTest {
@@ -72,10 +73,10 @@ class GenericThreadLauncherTest {
             .stream()
             .filter(t -> t.getName().equals("withThreadable"))
             .findFirst();
-        assertEquals(true, th.isPresent());
+        assertTrue(th.isPresent());
         ThreadLauncherResult<Integer> result = gtl.getResult();
 
-        assertEquals(true, result.getResult().isPresent());
+        assertTrue(result.getResult().isPresent());
         assertEquals(362880, result.getResult().get());
     }
 

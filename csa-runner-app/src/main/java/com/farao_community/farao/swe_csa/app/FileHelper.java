@@ -35,7 +35,7 @@ public class FileHelper {
         this.s3ArtifactsAdapter = s3ArtifactsAdapter;
     }
 
-    String uploadIidmNetworkToMinio(String taskId, Network network, Instant utcInstant) throws IOException {
+    public String uploadIidmNetworkToMinio(String taskId, Network network, Instant utcInstant) throws IOException {
         Path iidmTmpPath = new File(System.getProperty("java.io.tmpdir"), "network.xiidm").toPath();
         network.write("XIIDM", null, iidmTmpPath);
         String iidmNetworkDestinationPath = String.format("%s/networks/%s", taskId, HOURLY_NAME_FORMATTER.format(utcInstant).concat(".xiidm"));
@@ -45,7 +45,7 @@ public class FileHelper {
         return s3ArtifactsAdapter.generatePreSignedUrl(iidmNetworkDestinationPath);
     }
 
-    String uploadJsonCrac(String taskId, Crac crac, Instant utcInstant) {
+    public String uploadJsonCrac(String taskId, Crac crac, Instant utcInstant) {
         String jsonCracFilePath = String.format("%s/cracs/%s", taskId, HOURLY_NAME_FORMATTER.format(utcInstant).concat(".json"));
         ByteArrayOutputStream cracByteArrayOutputStream = new ByteArrayOutputStream();
         CracExporters.exportCrac(crac, "Json", cracByteArrayOutputStream);
@@ -74,7 +74,7 @@ public class FileHelper {
         return cracCreationContext.getCrac();
     }
 
-    String uploadRaoParameters(String taskId, Instant utcInstant) {
+    public String uploadRaoParameters(String taskId, Instant utcInstant) {
         String raoParametersFilePath = String.format("%s/rao-parameters/%s", taskId, HOURLY_NAME_FORMATTER.format(utcInstant).concat(".json"));
         RaoParameters raoParameters = RaoParameters.load();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();

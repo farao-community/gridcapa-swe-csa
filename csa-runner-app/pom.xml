@@ -77,7 +77,6 @@
             <groupId>com.powsybl</groupId>
             <artifactId>open-rao-crac-io-json</artifactId>
         </dependency>
-
         <dependency>
             <groupId>com.powsybl</groupId>
             <artifactId>open-rao-crac-impl</artifactId>
@@ -87,6 +86,21 @@
             <artifactId>open-rao-crac-creator-csa-profiles</artifactId>
             <version>5.1.0</version>
 
+        </dependency>
+        <dependency>
+            <groupId>com.farao-community.farao</groupId>
+            <artifactId>farao-dichotomy-api</artifactId>
+            <version>4.14.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.farao-community.farao</groupId>
+            <artifactId>farao-dichotomy-shift</artifactId>
+            <version>4.14.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.farao-community.farao</groupId>
+            <artifactId>gridcapa-swe-commons</artifactId>
+            <version>1.16.0</version>
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>

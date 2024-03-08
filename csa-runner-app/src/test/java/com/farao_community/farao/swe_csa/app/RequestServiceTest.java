@@ -4,6 +4,7 @@ import com.farao_community.farao.swe_csa.api.JsonApiConverter;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.api.resource.CsaResponse;
 import com.farao_community.farao.swe_csa.api.resource.Status;
+import com.farao_community.farao.swe_csa.app.dichotomy.SweCsaDichotomyRunner;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -23,6 +24,8 @@ class RequestServiceTest {
 
     @MockBean
     SweCsaRunner sweCsaRunner;
+    @MockBean
+    SweCsaDichotomyRunner sweCsaDichotomyRunner;
     @MockBean
     StreamBridge streamBridge;
     @Autowired
@@ -47,7 +50,7 @@ class RequestServiceTest {
         CsaResponse csaResponse = new CsaResponse(csaRequest.getId(), Status.INTERRUPTED.toString());
         byte[] req = jsonApiConverter.toJsonMessage(csaRequest, CsaRequest.class);
         byte[] resp = jsonApiConverter.toJsonMessage(csaResponse, CsaResponse.class);
-        when(sweCsaRunner.run(any())).thenThrow(except);
+        when(sweCsaRunner.runSingleRao(any())).thenThrow(except);
         when(streamBridge.send(any(), any())).thenReturn(true);
         byte[] result = requestService.launchCsaRequest(req);
         assertArrayEquals(resp, result);
@@ -72,7 +75,7 @@ class RequestServiceTest {
         byte[] req = jsonApiConverter.toJsonMessage(csaRequest, CsaRequest.class);
         CsaResponse csaResponse = new CsaResponse(csaRequest.getId(), Status.ERROR.toString());
         byte[] resp = jsonApiConverter.toJsonMessage(csaResponse, CsaResponse.class);
-        when(sweCsaRunner.run(any())).thenThrow(except);
+        when(sweCsaRunner.runSingleRao(any())).thenThrow(except);
         when(streamBridge.send(any(), any())).thenReturn(true);
         byte[] result = requestService.launchCsaRequest(req);
         assertArrayEquals(resp, result);

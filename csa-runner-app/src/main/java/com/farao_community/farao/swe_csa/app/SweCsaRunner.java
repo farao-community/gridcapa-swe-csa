@@ -34,7 +34,7 @@ public class SweCsaRunner {
     }
 
     @Threadable
-    public CsaResponse run(CsaRequest csaRequest) throws IOException {
+    public CsaResponse runSingleRao(CsaRequest csaRequest) throws IOException {
         String requestId = csaRequest.getId();
         LOGGER.info("Csa request received : {}", csaRequest);
         FileAttribute<Set<PosixFilePermission>> attr = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------"));
@@ -53,5 +53,4 @@ public class SweCsaRunner {
         LOGGER.info("RAO computation answer received for TimeStamp: '{}'", raoRequest.getInstant());
         return new CsaResponse(raoResponse.getId(), Status.FINISHED.toString());
     }
-
 }
