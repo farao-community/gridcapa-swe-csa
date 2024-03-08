@@ -112,9 +112,8 @@ public final class SweCsaNetworkShifter implements NetworkShifter<MultipleDichot
                 // Step 2: Compute exchanges mismatch
                 LoadFlowResult result = LoadFlow.run(network, workingVariantCopyId, LocalComputationManager.getDefault(), LoadFlowParameters.load());
                 if (!result.isOk()) {
-                    BUSINESS_WARNS.error("Loadflow computation diverged on network '{}'", network.getId());
-                    BUSINESS_WARNS.error("Loadflow computation diverged on network during balancing adjustment");
-                    throw new ShiftingException("Loadflow computation diverged during balancing adjustment");
+                    String message = String.format("Loadflow computation diverged on network '%s' during balancing adjustment", network.getId());
+                    throw new ShiftingException(message);
                 }
                 bordersExchanges = CountryBalanceComputation.computeSweBordersExchanges(network);
                 double mismatchEsPt = targetExchanges.get(ES_PT) - bordersExchanges.get(ES_PT);

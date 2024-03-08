@@ -37,7 +37,7 @@ public final class DichotomyResult<I, U extends DichotomyVariable<U>> {
     }
 
     public static <J, V extends DichotomyVariable<V>> DichotomyResult<J, V> buildFromIndex(Index<J, V> index) {
-        // If one the steps are null it means that it stops due to index evaluation otherwise it could have continued.
+        // If one of the steps are null it means that it stops due to index evaluation otherwise it could have continued.
         // If both are present, it is the expected case we just have to differentiate if the invalid step failed or if
         // it is just unsecure.
         LimitingCause limitingCause = LimitingCause.INDEX_EVALUATION_OR_MAX_ITERATION;

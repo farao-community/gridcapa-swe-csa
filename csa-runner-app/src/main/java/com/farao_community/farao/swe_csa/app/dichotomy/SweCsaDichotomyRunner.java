@@ -11,6 +11,7 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
  * @author Jean-Pierre Arnould {@literal <jean-pierre.arnould at rte-france.com>}
  */
 
+import com.powsybl.openrao.commons.EICode;
 import com.powsybl.openrao.data.cracapi.cnec.Cnec;
 import com.powsybl.openrao.data.cracapi.Crac;
 import com.powsybl.openrao.data.cracapi.rangeaction.CounterTradeRangeAction;
@@ -36,6 +37,7 @@ import com.powsybl.iidm.network.Network;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -57,6 +59,9 @@ public class SweCsaDichotomyRunner {
     private final RaoRunnerClient raoRunnerClient;
     private final FileHelper fileHelper;
     private static final Logger LOGGER = LoggerFactory.getLogger(SweCsaDichotomyRunner.class);
+
+    @Value("${rao-parameters.index.precision}")
+    private Double indexPrecision;
 
     public SweCsaDichotomyRunner(RaoRunnerClient raoRunnerClient, FileHelper fileHelper) {
         this.raoRunnerClient = raoRunnerClient;
@@ -94,35 +99,34 @@ public class SweCsaDichotomyRunner {
 
     protected SweCsaDichotomyEngine getEngine(Network network, Crac crac, SweCsaRaoValidator validator, SweCsaHalfRangeDivisionIndexStrategy indexStrategy) {
         this.updateCracWithCounterTrageRangeActions(crac);
-        Map<String, Double> initialBordersPositions = CountryBalanceComputation.computeSweBordersExchanges(network);
-        Pair<MultipleDichotomyVariables, MultipleDichotomyVariables> initialDichotomyVariable = getInitialDichotomyIndex(crac, initialBordersPositions);
+        Map<String, Double> initialCountriesPositions = CountryBalanceComputation.computeSweCountriesBalances(network);
+        Pair<MultipleDichotomyVariables, MultipleDichotomyVariables> initialDichotomyVariable = getInitialDichotomyIndex(crac, initialCountriesPositions);
 
         return new SweCsaDichotomyEngine(
-            new Index<>(initialDichotomyVariable.getLeft(), initialDichotomyVariable.getRight(), 10),
+            new Index<>(initialDichotomyVariable.getLeft(), initialDichotomyVariable.getRight(), indexPrecision),
             indexStrategy,
-            new SweCsaNetworkShifter(SweCsaZonalData.getZonalData(network), new SweCsaShiftDispatcher(getInitialCountriesPositions(initialBordersPositions))),
+            new SweCsaNetworkShifter(SweCsaZonalData.getZonalData(network), new SweCsaShiftDispatcher(getInitialEicCodeToCountriesPositions(initialCountriesPositions))),
             validator);
     }
 
-    private Map<String, Double> getInitialCountriesPositions(Map<String, Double> initialBordersPositions) {
+    private Map<String, Double> getInitialEicCodeToCountriesPositions(Map<String, Double> initialEicCodePositions) {
         Map<String, Double> initialCountriesPositions = new HashMap<>();
-        initialCountriesPositions.put(Country.FR.getName(), -initialBordersPositions.getOrDefault("ES-FR", 0.0));
-        initialCountriesPositions.put(Country.PT.getName(), -initialBordersPositions.getOrDefault("ES-PT", 0.0));
-        initialCountriesPositions.put(Country.ES.getName(), initialBordersPositions.getOrDefault("ES-FR", 0.0)
-            + initialBordersPositions.getOrDefault("ES-PT", 0.0));
+        initialCountriesPositions.put(Country.FR.getName(), initialEicCodePositions.getOrDefault((new EICode(Country.FR)).getAreaCode(), 0.0));
+        initialCountriesPositions.put(Country.PT.getName(), initialEicCodePositions.getOrDefault((new EICode(Country.PT)).getAreaCode(), 0.0));
+        initialCountriesPositions.put(Country.ES.getName(), initialEicCodePositions.getOrDefault((new EICode(Country.ES)).getAreaCode(), 0.0));
         return initialCountriesPositions;
     }
 
-    private Pair<MultipleDichotomyVariables, MultipleDichotomyVariables> getInitialDichotomyIndex(Crac crac, Map<String, Double> initialBordersPositions) {
+    private Pair<MultipleDichotomyVariables, MultipleDichotomyVariables> getInitialDichotomyIndex(Crac crac, Map<String, Double> initialCountriesPositions) {
         CounterTradeRangeAction ctRaFrEs = this.getCounterTradeRangeActionByCountries(crac, Country.FR, Country.ES);
         CounterTradeRangeAction ctRaEsFr = this.getCounterTradeRangeActionByCountries(crac, Country.ES, Country.FR);
         CounterTradeRangeAction ctRaPtEs = this.getCounterTradeRangeActionByCountries(crac, Country.PT, Country.ES);
         CounterTradeRangeAction ctRaEsPt = this.getCounterTradeRangeActionByCountries(crac, Country.ES, Country.PT);
 
-        double expEsFr = initialBordersPositions.getOrDefault("ES-FR", 0.0);
-        double expEsPt = initialBordersPositions.getOrDefault("ES-PT", 0.0);
-        double expFrEs = -expEsFr;
-        double expPtEs = -expEsPt;
+        double expFrEs = initialCountriesPositions.getOrDefault((new EICode(Country.FR)).getAreaCode(), 0.0);
+        double expPtEs = initialCountriesPositions.getOrDefault((new EICode(Country.PT)).getAreaCode(), 0.0);
+        double expEsFr = -expFrEs;
+        double expEsPt = -expPtEs;
 
         double ctFrEsMax = expFrEs >= 0 ? Math.min(Math.min(-ctRaFrEs.getMinAdmissibleSetpoint(expFrEs), ctRaEsFr.getMaxAdmissibleSetpoint(expEsFr)), expFrEs)
             : Math.min(Math.min(ctRaFrEs.getMaxAdmissibleSetpoint(expFrEs), -ctRaEsFr.getMinAdmissibleSetpoint(expEsFr)), -expFrEs);

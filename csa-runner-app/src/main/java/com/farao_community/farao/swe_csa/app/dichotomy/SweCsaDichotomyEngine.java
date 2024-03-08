@@ -76,7 +76,7 @@ public class SweCsaDichotomyEngine {
     }
 
     private DichotomyStepResult<RaoResponse> validate(MultipleDichotomyVariables stepValue, Network network, String initialVariant, DichotomyStepResult<RaoResponse> lastDichotomyStepResult) {
-        String newVariant = variantName(stepValue, initialVariant);
+        String newVariant = getNewVariantName(stepValue, initialVariant);
         network.getVariantManager().cloneVariant(initialVariant, newVariant);
         network.getVariantManager().setWorkingVariant(newVariant);
         try {
@@ -95,7 +95,7 @@ public class SweCsaDichotomyEngine {
         }
     }
 
-    private String variantName(MultipleDichotomyVariables stepValue, String initialVariant) {
+    private String getNewVariantName(MultipleDichotomyVariables stepValue, String initialVariant) {
         return String.format("%s-ScaledBy-%s", initialVariant, stepValue.print());
     }
 
