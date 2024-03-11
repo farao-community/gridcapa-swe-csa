@@ -4,6 +4,7 @@ import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
 import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
 import com.google.common.base.Suppliers;
 import com.powsybl.computation.local.LocalComputationManager;
+import com.powsybl.iidm.network.Exporter;
 import com.powsybl.iidm.network.ImportConfig;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.data.cracapi.Crac;
@@ -35,28 +36,6 @@ public class FileHelper {
         this.s3ArtifactsAdapter = s3ArtifactsAdapter;
     }
 
-    String uploadIidmNetworkToMinio(String taskId, Network network, Instant utcInstant) throws IOException {
-        Path iidmTmpPath = new File(System.getProperty("java.io.tmpdir"), "network.xiidm").toPath();
-        network.write("XIIDM", null, iidmTmpPath);
-        String iidmNetworkDestinationPath = String.format("%s/networks/%s", taskId, HOURLY_NAME_FORMATTER.format(utcInstant).concat(".xiidm"));
-        try (FileInputStream iidmNetworkInputStream = new FileInputStream(iidmTmpPath.toString())) {
-            s3ArtifactsAdapter.uploadFile(iidmNetworkDestinationPath, iidmNetworkInputStream);
-        }
-        return s3ArtifactsAdapter.generatePreSignedUrl(iidmNetworkDestinationPath);
-    }
-
-    String uploadJsonCrac(String taskId, Crac crac, Instant utcInstant) {
-        String jsonCracFilePath = String.format("%s/cracs/%s", taskId, HOURLY_NAME_FORMATTER.format(utcInstant).concat(".json"));
-        ByteArrayOutputStream cracByteArrayOutputStream = new ByteArrayOutputStream();
-        CracExporters.exportCrac(crac, "Json", cracByteArrayOutputStream);
-        try (InputStream is = new ByteArrayInputStream(cracByteArrayOutputStream.toByteArray())) {
-            s3ArtifactsAdapter.uploadFile(jsonCracFilePath, is);
-        } catch (IOException e) {
-            throw new CsaInternalException(e.getMessage());
-        }
-        return s3ArtifactsAdapter.generatePreSignedUrl(jsonCracFilePath);
-    }
-
     public Network importNetwork(Path archiveTempPath) {
         return Network.read(archiveTempPath, LocalComputationManager.getDefault(), Suppliers.memoize(ImportConfig::load).get(), new Properties());
     }
@@ -72,6 +51,23 @@ public class FileHelper {
         CsaProfileCracCreator cracCreator = new CsaProfileCracCreator();
         CsaProfileCracCreationContext cracCreationContext = cracCreator.createCrac(nativeCrac, network, utcInstant.atOffset(ZoneOffset.UTC), new CracCreationParameters());
         return cracCreationContext.getCrac();
+    }
+
+    public String exportCracToFile(Crac crac, String pathName) throws IOException {
+        String fileName = pathName.concat("/crac.json");
+        FileOutputStream outputStream = new FileOutputStream(fileName);
+        CracExporters.exportCrac(crac, "Json", outputStream);
+        outputStream.close();
+        return fileName;
+    }
+
+    public String exportNetworkToFile(Network network, String pathName) throws IOException {
+        String fileName = pathName.concat("/network.iidm");
+        FileOutputStream outputStream = new FileOutputStream(fileName);
+        Exporter exporter = Exporter.find("iidm");
+
+        outputStream.close();
+        return fileName;
     }
 
     String uploadRaoParameters(String taskId, Instant utcInstant) {
