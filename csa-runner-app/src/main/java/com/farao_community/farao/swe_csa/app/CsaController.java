@@ -28,7 +28,7 @@ public class CsaController {
     }
 
     @PostMapping(value = "/run", consumes = JSON_API_MIME_TYPE, produces = JSON_API_MIME_TYPE)
-    public ResponseEntity runCsaByZip(@RequestPart byte[] jsonCsaRequest) throws IOException {
+    public ResponseEntity runCsaByCracAndNetwork(@RequestPart byte[] jsonCsaRequest) throws IOException {
         return ResponseEntity.ok().body(sweCsaRunner.run(jsonApiConverter.fromJsonMessage(jsonCsaRequest, CsaRequest.class)));
     }
 

@@ -45,12 +45,12 @@ public class MockCsaRequest {
         Crac crac = fileHelper.importCrac(targetTmpUnzippedDir, network, utcInstant);
 
         String cracFileName = fileHelper.exportCracToFile(crac, targetTmpUnzippedDir.toString());
-        String cracFileDestinationPath = taskId.toString().concat("/crac.json");
+        String cracFileDestinationPath = taskId.concat("/crac.json");
         minioAdapter.uploadFile(cracFileDestinationPath, new FileInputStream(cracFileName));
         String cracUrl = minioAdapter.generatePreSignedUrl(cracFileDestinationPath);
 
         String networkFileName = fileHelper.exportNetworkToFile(network, targetTmpUnzippedDir.toString());
-        String networkFileDestinationPath = taskId.toString().concat("/network.iidm");
+        String networkFileDestinationPath = taskId.concat("/network.iidm");
         minioAdapter.uploadFile(networkFileDestinationPath, new FileInputStream(networkFileName));
         String networkUrl = minioAdapter.generatePreSignedUrl(networkFileDestinationPath);
 

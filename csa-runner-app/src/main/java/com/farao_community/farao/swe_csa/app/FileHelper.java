@@ -3,10 +3,11 @@ package com.farao_community.farao.swe_csa.app;
 import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
 import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
 import com.google.common.base.Suppliers;
+import com.powsybl.commons.datasource.MemDataSource;
 import com.powsybl.computation.local.LocalComputationManager;
-import com.powsybl.iidm.network.Exporter;
 import com.powsybl.iidm.network.ImportConfig;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.serde.XMLExporter;
 import com.powsybl.openrao.data.cracapi.Crac;
 import com.powsybl.openrao.data.craccreation.creator.api.parameters.CracCreationParameters;
 import com.powsybl.openrao.data.craccreation.creator.csaprofile.CsaProfileCrac;
@@ -55,17 +56,19 @@ public class FileHelper {
 
     public String exportCracToFile(Crac crac, String pathName) throws IOException {
         String fileName = pathName.concat("/crac.json");
-        FileOutputStream outputStream = new FileOutputStream(fileName);
+        File file = new File(fileName);
+        FileOutputStream outputStream = new FileOutputStream(file);
         CracExporters.exportCrac(crac, "Json", outputStream);
         outputStream.close();
         return fileName;
     }
 
     public String exportNetworkToFile(Network network, String pathName) throws IOException {
-        String fileName = pathName.concat("/network.iidm");
-        FileOutputStream outputStream = new FileOutputStream(fileName);
-        Exporter exporter = Exporter.find("iidm");
-
+        String fileName = pathName.concat("/network.xiidm");
+        MemDataSource dataSource = new MemDataSource();
+        XMLExporter exporter = new XMLExporter();
+        exporter.export(network, new Properties(), dataSource);
+        OutputStream outputStream = dataSource.newOutputStream(fileName, true);
         outputStream.close();
         return fileName;
     }
