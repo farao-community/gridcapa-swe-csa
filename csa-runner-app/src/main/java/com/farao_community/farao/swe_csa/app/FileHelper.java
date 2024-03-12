@@ -56,20 +56,20 @@ public class FileHelper {
     public String exportCracToFile(Crac crac, String pathName) throws IOException {
         String fileName = pathName.concat("/crac.json");
         File file = new File(fileName);
-        FileOutputStream outputStream = new FileOutputStream(file);
-        CracExporters.exportCrac(crac, "Json", outputStream);
-        outputStream.close();
+        try (FileOutputStream outputStream = new FileOutputStream(file)) {
+            CracExporters.exportCrac(crac, "Json", outputStream);
+        }
         return fileName;
     }
 
     public String exportNetworkToFile(Network network, String pathName) throws IOException {
         String fileName = pathName.concat("/network.xiidm");
         File file = new File(fileName);
-        FileOutputStream outputStream = new FileOutputStream(file);
-        MemDataSource memDataSource = new MemDataSource();
-        network.write("XIIDM", new Properties(), memDataSource);
-        outputStream.write(memDataSource.getData(".xiidm"));
-        outputStream.close();
+        try (FileOutputStream outputStream = new FileOutputStream(file)) {
+            MemDataSource memDataSource = new MemDataSource();
+            network.write("XIIDM", new Properties(), memDataSource);
+            outputStream.write(memDataSource.getData(".xiidm"));
+        }
         return fileName;
     }
 
