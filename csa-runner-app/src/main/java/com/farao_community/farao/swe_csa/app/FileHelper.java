@@ -7,7 +7,6 @@ import com.powsybl.commons.datasource.MemDataSource;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.ImportConfig;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.serde.XMLExporter;
 import com.powsybl.openrao.data.cracapi.Crac;
 import com.powsybl.openrao.data.craccreation.creator.api.parameters.CracCreationParameters;
 import com.powsybl.openrao.data.craccreation.creator.csaprofile.CsaProfileCrac;
@@ -65,10 +64,11 @@ public class FileHelper {
 
     public String exportNetworkToFile(Network network, String pathName) throws IOException {
         String fileName = pathName.concat("/network.xiidm");
-        MemDataSource dataSource = new MemDataSource();
-        XMLExporter exporter = new XMLExporter();
-        exporter.export(network, new Properties(), dataSource);
-        OutputStream outputStream = dataSource.newOutputStream(fileName, true);
+        File file = new File(fileName);
+        FileOutputStream outputStream = new FileOutputStream(file);
+        MemDataSource memDataSource = new MemDataSource();
+        network.write("XIIDM", new Properties(), memDataSource);
+        outputStream.write(memDataSource.getData(".xiidm"));
         outputStream.close();
         return fileName;
     }

@@ -13,6 +13,7 @@ import java.nio.file.Paths;
 import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
 class FileHelperTest {
@@ -40,5 +41,7 @@ class FileHelperTest {
         String cracFileName = fileHelper.exportCracToFile(crac, System.getProperty("java.io.tmpdir"));
         assertEquals(System.getProperty("java.io.tmpdir") + "/network.xiidm", networkFileName);
         assertEquals(System.getProperty("java.io.tmpdir") + "/crac.json", cracFileName);
+        assertTrue(new File(System.getProperty("java.io.tmpdir") + "/network.xiidm").delete());
+        assertTrue(new File(System.getProperty("java.io.tmpdir") + "/crac.json").delete());
     }
 }
