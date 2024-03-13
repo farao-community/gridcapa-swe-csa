@@ -17,12 +17,12 @@ import java.time.Instant;
 public class SweCsaRunner {
 
     private final RaoRunnerClient raoRunnerClient;
-    private final FileHelper fileHelper;
+    private final FileImporter fileImporter;
     private static final Logger LOGGER = LoggerFactory.getLogger(SweCsaRunner.class);
 
-    public SweCsaRunner(RaoRunnerClient raoRunnerClient, FileHelper fileHelper) {
+    public SweCsaRunner(RaoRunnerClient raoRunnerClient, FileImporter fileImporter) {
         this.raoRunnerClient = raoRunnerClient;
-        this.fileHelper = fileHelper;
+        this.fileImporter = fileImporter;
     }
 
     @Threadable
@@ -32,8 +32,8 @@ public class SweCsaRunner {
             String requestId = csaRequest.getId();
             LOGGER.info("Csa request received : {}", csaRequest);
             Instant utcInstant = Instant.parse(csaRequest.getBusinessTimestamp());
-            String raoParametersUrl = fileHelper.uploadRaoParameters(requestId, utcInstant);
-            RaoRequest raoRequest = new RaoRequest(requestId, csaRequest.getGridModelUri(), csaRequest.getCracFileUri(), raoParametersUrl);
+            String raoParametersUrl = fileImporter.uploadRaoParameters(requestId, utcInstant);
+            RaoRequest raoRequest = new RaoRequest(requestId, csaRequest.getGridModelUri(), csaRequest.getCracFileUri(), raoParametersUrl, csaRequest.getResultsUri());
 
             raoResponse = raoRunnerClient.runRao(raoRequest);
             LOGGER.info("RAO computation answer received for TimeStamp: '{}'", raoRequest.getInstant());
