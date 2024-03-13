@@ -20,29 +20,10 @@ public final class ZipHelper {
     public static void zipDataCsaRequestFiles(CsaRequest csaRequest, Path archiveTempPath) throws IOException {
         FileOutputStream fos = new FileOutputStream(archiveTempPath.toFile());
         ZipOutputStream zipOut = new ZipOutputStream(fos);
-        zipDataFile(csaRequest.getCommonProfiles().getSvProfileUri(), zipOut);
-        zipDataFile(csaRequest.getCommonProfiles().getEqbdProfileUri(), zipOut);
-        zipDataFile(csaRequest.getCommonProfiles().getTpbdProfileUri(), zipOut);
-        zipDataProfilesFiles(csaRequest.getEsProfiles(), zipOut);
-        zipDataProfilesFiles(csaRequest.getFrProfiles(), zipOut);
-        zipDataProfilesFiles(csaRequest.getPtProfiles(), zipOut);
+        zipDataFile(csaRequest.getGridModelUri(), zipOut);
+        zipDataFile(csaRequest.getCracFileUri(), zipOut);
         zipOut.close();
         fos.close();
-    }
-
-    private static void zipDataProfilesFiles(CsaRequest.Profiles profiles, ZipOutputStream zipOut) throws IOException {
-        zipDataFile(profiles.getSshProfileUri(), zipOut);
-        zipDataFile(profiles.getTpProfileUri(), zipOut);
-        zipDataFile(profiles.getEqProfileUri(), zipOut);
-        zipDataFile(profiles.getAeProfileUri(), zipOut);
-        zipDataFile(profiles.getCoProfileUri(), zipOut);
-        zipDataFile(profiles.getRaProfileUri(), zipOut);
-        zipDataFile(profiles.getErProfileUri(), zipOut);
-        zipDataFile(profiles.getSsiProfileUri(), zipOut);
-        zipDataFile(profiles.getSisProfileUri(), zipOut);
-        zipDataFile(profiles.getMaProfileUri(), zipOut);
-        zipDataFile(profiles.getSmProfileUri(), zipOut);
-        zipDataFile(profiles.getAsProfileUri(), zipOut);
     }
 
     public static void zipDataFile(String uriStr, ZipOutputStream zipOut) throws IOException {
