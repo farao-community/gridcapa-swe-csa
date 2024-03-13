@@ -50,10 +50,6 @@
             <artifactId>powsybl-iidm-impl</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.powsybl</groupId>
-            <artifactId>powsybl-cgmes-conversion</artifactId>
-        </dependency>
-        <dependency>
             <groupId>com.farao-community.farao</groupId>
             <artifactId>gridcapa-rao-runner-spring-boot-starter</artifactId>
         </dependency>
@@ -77,16 +73,9 @@
             <groupId>com.powsybl</groupId>
             <artifactId>open-rao-crac-io-json</artifactId>
         </dependency>
-
         <dependency>
             <groupId>com.powsybl</groupId>
             <artifactId>open-rao-crac-impl</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.powsybl</groupId>
-            <artifactId>open-rao-crac-creator-csa-profiles</artifactId>
-            <version>5.1.0</version>
-
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
@@ -103,7 +92,6 @@
             <groupId>com.powsybl</groupId>
             <artifactId>open-rao-rao-result-api</artifactId>
         </dependency>
-
         <dependency>
             <groupId>com.powsybl</groupId>
             <artifactId>open-rao-rao-result-json</artifactId>
@@ -132,11 +120,6 @@
         <dependency>
             <groupId>io.minio</groupId>
             <artifactId>minio</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
