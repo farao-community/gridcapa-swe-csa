@@ -1,14 +1,18 @@
 package com.farao_community.farao.swe_csa.app;
 
 import com.farao_community.farao.rao_runner.api.exceptions.RaoRunnerException;
+import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.data.cracapi.Crac;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 
 import java.net.MalformedURLException;
+import java.time.OffsetDateTime;
 import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -18,6 +22,9 @@ class FileImporterTest {
 
     @Autowired
     FileImporter fileImporter;
+
+    @MockBean
+    S3ArtifactsAdapter s3ArtifactsAdapter;
 
     @Test
     void checkIidmNetworkIsImportedCorrectly() {
@@ -56,4 +63,10 @@ class FileImporterTest {
             .hasMessageContaining("no protocol: cracUrl");
     }
 
+    @Test
+    void saveRaoParametersTest() {
+        Mockito.when(s3ArtifactsAdapter.generatePreSignedUrl("id/rao-parameters/19990101_1230.json")).thenReturn("url");
+        String result = fileImporter.uploadRaoParameters("id", OffsetDateTime.parse("1999-01-01T12:30Z").toInstant());
+        assertEquals("url", result);
+    }
 }
