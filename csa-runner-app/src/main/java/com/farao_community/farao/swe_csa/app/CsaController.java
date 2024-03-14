@@ -33,8 +33,14 @@ public class CsaController {
     }
 
     @PostMapping(value = "/convert-to-request", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE}, produces = JSON_API_MIME_TYPE)
-    public ResponseEntity convertZipToCsaRequest(@RequestPart MultipartFile cracJson, @RequestPart MultipartFile networkIidm, @RequestParam String utcInstant) throws IOException {
+    public ResponseEntity convertCracJsonAndNetworkIidmToCsaRequest(@RequestPart MultipartFile cracJson, @RequestPart MultipartFile networkIidm, @RequestParam String utcInstant) throws IOException {
         Instant instant = Instant.parse(utcInstant);
         return ResponseEntity.ok().body(jsonApiConverter.toJsonMessage(mockCsaRequest.makeRequest(cracJson, networkIidm, instant), CsaRequest.class));
+    }
+
+    @PostMapping(value = "/convert-csa-profiles-to-request", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE}, produces = JSON_API_MIME_TYPE)
+    public ResponseEntity convertCsaProfilesZipToCsaRequest(@RequestPart MultipartFile csaProfilesArchive, @RequestParam String utcInstant) throws IOException {
+        Instant instant = Instant.parse(utcInstant);
+        return ResponseEntity.ok().body(jsonApiConverter.toJsonMessage(mockCsaRequest.makeRequest(csaProfilesArchive, instant), CsaRequest.class));
     }
 }
