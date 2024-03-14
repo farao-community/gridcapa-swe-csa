@@ -16,7 +16,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 
-public class S3AdapterUtilTest {
+class S3AdapterUtilTest {
     @Test
     void checkBucketCreatedCorrectly() {
         try {
