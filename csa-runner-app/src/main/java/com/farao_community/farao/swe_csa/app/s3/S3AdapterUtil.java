@@ -8,9 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -69,23 +67,6 @@ public final class S3AdapterUtil {
         } catch (Exception e) {
             String message = String.format("Cannot retrieve file '%s'", minioObjectName);
             throw new CsaInternalException(message, e);
-        }
-    }
-
-    public static InputStream getInputStreamFromUrl(String url) {
-        try {
-            return new URL(url).openStream(); //NOSONAR
-        } catch (IOException e) {
-            throw new CsaInternalException(String.format("Exception occurred while retrieving file content from : %s Cause: %s ", url, e.getMessage()));
-        }
-    }
-
-    public static String getFileNameFromUrl(String stringUrl) {
-        try {
-            URL url = new URL(stringUrl);
-            return FilenameUtils.getName(url.getPath());
-        } catch (IOException e) {
-            throw new CsaInternalException(String.format("Exception occurred while retrieving file name from : %s Cause: %s ", stringUrl, e.getMessage()));
         }
     }
 
