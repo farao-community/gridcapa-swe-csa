@@ -33,7 +33,12 @@ public class SweCsaRunner {
             LOGGER.info("Csa request received : {}", csaRequest);
             Instant utcInstant = Instant.parse(csaRequest.getBusinessTimestamp());
             String raoParametersUrl = fileImporter.uploadRaoParameters(requestId, utcInstant);
-            RaoRequest raoRequest = new RaoRequest(requestId, csaRequest.getGridModelUri(), csaRequest.getCracFileUri(), raoParametersUrl, csaRequest.getResultsUri());
+            var raoRequest = new RaoRequest.RaoRequestBuilder().withId(requestId)
+                                                               .withNetworkFileUrl(csaRequest.getGridModelUri())
+                                                               .withCracFileUrl(csaRequest.getCracFileUri())
+                                                               .withRaoParametersFileUrl(raoParametersUrl)
+                                                               .withResultsDestination(csaRequest.getResultsUri())
+                                                               .build();
 
             raoResponse = raoRunnerClient.runRao(raoRequest);
             LOGGER.info("RAO computation answer received for TimeStamp: '{}'", raoRequest.getInstant());
