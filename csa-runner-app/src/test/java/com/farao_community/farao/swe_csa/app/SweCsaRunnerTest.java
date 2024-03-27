@@ -44,7 +44,14 @@ class SweCsaRunnerTest {
         doReturn(network).when(fileImporter).importNetwork(any());
         doReturn(null).when(fileImporter).importCrac(any());
         when(streamBridge.send(any(), any())).thenReturn(true);
-        doReturn(new RaoResponse("raoResponseId", "2023-08-08T15:30:00Z", "networkWithPraFileUrl", "cracFileUrl", "raoResultFileUrl", Instant.parse("2023-08-08T15:30:00Z"), Instant.parse("2023-08-08T15:50:00Z"))).when(raoRunnerClient).runRao(any());
+        doReturn(new RaoResponse.RaoResponseBuilder().withId("raoResponseId")
+            .withInstant("2023-08-08T15:30:00Z")
+            .withNetworkWithPraFileUrl("networkWithPraFileUrl")
+            .withCracFileUrl("cracFileUrl")
+            .withRaoResultFileUrl("raoResultFileUrl")
+            .withComputationStartInstant(Instant.parse("2023-08-08T15:30:00Z"))
+            .withComputationEndInstant(Instant.parse("2023-08-08T15:50:00Z")).build())
+            .when(raoRunnerClient).runRao(any());
 
         CsaRequest csaRequest = jsonApiConverter.fromJsonMessage(requestBytes, CsaRequest.class);
         CsaResponse csaResponse = sweCsaRunner.run(csaRequest);

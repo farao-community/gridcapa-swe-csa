@@ -50,6 +50,20 @@
             <artifactId>powsybl-iidm-impl</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.powsybl</groupId>
+            <artifactId>powsybl-cgmes-conversion</artifactId>
+        </dependency>
+
+        <dependency>
+        <groupId>com.powsybl</groupId>
+        <artifactId>open-rao-crac-creator-csa-profiles</artifactId>
+        <version>5.3.0</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.farao-community.farao</groupId>
             <artifactId>gridcapa-rao-runner-spring-boot-starter</artifactId>
         </dependency>
