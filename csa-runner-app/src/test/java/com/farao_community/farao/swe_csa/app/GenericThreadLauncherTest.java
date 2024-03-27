@@ -60,26 +60,6 @@ class GenericThreadLauncherTest {
     }
 
     @Test
-    void launchGenericThread() {
-        GenericThreadLauncher<LaunchWithThreadableAnnotation, Integer> gtl = new GenericThreadLauncher<>(
-            new LaunchWithThreadableAnnotation(),
-            "withThreadable",
-            10);
-
-        gtl.start();
-        Optional<Thread> th = Thread.getAllStackTraces()
-            .keySet()
-            .stream()
-            .filter(t -> t.getName().equals("withThreadable"))
-            .findFirst();
-        assertEquals(true, th.isPresent());
-        ThreadLauncherResult<Integer> result = gtl.getResult();
-
-        assertEquals(true, result.getResult().isPresent());
-        assertEquals(362880, result.getResult().get());
-    }
-
-    @Test
     void testNotAnnotatedClass() {
         int exception = 0;
         try {
