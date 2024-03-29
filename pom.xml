@@ -50,7 +50,7 @@
         <dependencies>
             <!-- BUSINESS DEPENDENCIES -->
             <dependency>
-                <groupId>com.farao-community.farao</groupId>
+                <groupId>com.powsybl.openrao</groupId>
                 <artifactId>gridcapa-rao-runner-spring-boot-starter</artifactId>
                 <version>${gridcapa.rao.runner.version}</version>
             </dependency>
@@ -109,7 +109,7 @@
 
             <!-- IMPORTED DEPENDENCIES -->
             <dependency>
-                <groupId>com.farao-community.farao</groupId>
+                <groupId>com.powstbl.openrao</groupId>
                 <artifactId>farao-dependencies</artifactId>
                 <version>${farao.dependencies.version}</version>
                 <scope>import</scope>

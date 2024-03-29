@@ -48,7 +48,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class SweCsaDichotomyRunner {
-
     private final RaoRunnerClient raoRunnerClient;
     private final FileImporter fileImporter;
     private static final Logger LOGGER = LoggerFactory.getLogger(SweCsaDichotomyRunner.class);
@@ -157,7 +156,7 @@ public class SweCsaDichotomyRunner {
         return null;
     }
 
-    private Pair<List<String>, List<String>> getCnecsIdLists(SweCsaHalfRangeDivisionIndexStrategy indexStrategy) {
+    protected Pair<List<String>, List<String>> getCnecsIdLists(SweCsaHalfRangeDivisionIndexStrategy indexStrategy) {
         List<String> frEsCnecsIds = indexStrategy.getFrEsFlowCnecs().stream().map(Cnec::getId).collect(Collectors.toList());
         frEsCnecsIds.addAll(indexStrategy.getFrEsAngleCnecs().stream().map(Cnec::getId).collect(Collectors.toList()));
         List<String> ptEsCnecsIds = indexStrategy.getPtEsFlowCnecs().stream().map(Cnec::getId).collect(Collectors.toList());
@@ -203,6 +202,10 @@ public class SweCsaDichotomyRunner {
             .withExportingCountry(Country.FR)
             .withImportingCountry(Country.ES)
             .add();
+    }
+
+    public RaoRunnerClient getRaoRunnerClient() {
+        return raoRunnerClient;
     }
 
 }
