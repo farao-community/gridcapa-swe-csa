@@ -61,7 +61,11 @@ public class SweCsaRaoValidator implements NetworkValidator<RaoResponse> {
 
     @Override
     public DichotomyStepResult<RaoResponse> validateNetwork(Network network, DichotomyStepResult<RaoResponse> dichotomyStepResult) throws ValidationException {
-        RaoRequest raoRequest = new RaoRequest(requestId, networkFileUrl, cracFileUrl, raoParametersUrl);
+        RaoRequest raoRequest = new RaoRequest.RaoRequestBuilder()
+            .withId(requestId)
+            .withNetworkFileUrl(networkFileUrl)
+            .withCracFileUrl(cracFileUrl)
+            .withRaoParametersFileUrl(raoParametersUrl).build();
         try {
             LOGGER.info("RAO request sent: {}", raoRequest);
             RaoResponse raoResponse = raoRunnerClient.runRao(raoRequest);

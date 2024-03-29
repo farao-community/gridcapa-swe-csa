@@ -6,51 +6,47 @@ import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.api.resource.CsaResponse;
 import com.farao_community.farao.swe_csa.api.resource.Status;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.openrao.data.cracapi.Crac;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.attribute.FileAttribute;
-import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.PosixFilePermissions;
+import java.io.IOException;
 import java.time.Instant;
-import java.util.Set;
 
 @Service
 public class SweCsaRunner {
 
     private final RaoRunnerClient raoRunnerClient;
-    private final FileHelper fileHelper;
+    private final FileImporter fileImporter;
     private static final Logger LOGGER = LoggerFactory.getLogger(SweCsaRunner.class);
 
-    public SweCsaRunner(RaoRunnerClient raoRunnerClient, FileHelper fileHelper) {
+    public SweCsaRunner(RaoRunnerClient raoRunnerClient, FileImporter fileImporter) {
         this.raoRunnerClient = raoRunnerClient;
-        this.fileHelper = fileHelper;
+        this.fileImporter = fileImporter;
     }
 
     @Threadable
-    public CsaResponse runSingleRao(CsaRequest csaRequest) throws IOException {
-        String requestId = csaRequest.getId();
-        LOGGER.info("Csa request received : {}", csaRequest);
-        FileAttribute<Set<PosixFilePermission>> attr = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------"));
-        Path archiveTempPath = Files.createTempFile("csa-temp-inputs", "inputs.zip", attr);
+    public CsaResponse run(CsaRequest csaRequest) throws IOException {
+        RaoResponse raoResponse = null;
+        try {
+            String requestId = csaRequest.getId();
+            LOGGER.info("Csa request received : {}", csaRequest);
+            Instant utcInstant = Instant.parse(csaRequest.getBusinessTimestamp());
+            String raoParametersUrl = fileImporter.uploadRaoParameters(requestId, utcInstant);
+            RaoRequest raoRequest = new RaoRequest.RaoRequestBuilder()
+                .withId(requestId)
+                .withNetworkFileUrl(csaRequest.getGridModelUri())
+                .withCracFileUrl(csaRequest.getCracFileUri())
+                .withRaoParametersFileUrl(raoParametersUrl)
+                .withResultsDestination(csaRequest.getResultsUri())
+                .build();
 
-        Instant utcInstant = Instant.parse(csaRequest.getBusinessTimestamp());
-        ZipHelper.zipDataCsaRequestFiles(csaRequest, archiveTempPath);
-        Network network = fileHelper.importNetwork(archiveTempPath);
-        Crac crac = fileHelper.importCrac(archiveTempPath, network, utcInstant);
-        String networkFileUrl = fileHelper.uploadIidmNetworkToMinio(requestId, network, utcInstant);
-        String cracFileUrl = fileHelper.uploadJsonCrac(requestId, crac, utcInstant);
-        String raoParametersUrl = fileHelper.uploadRaoParameters(requestId, utcInstant);
-        RaoRequest raoRequest = new RaoRequest(requestId, networkFileUrl, cracFileUrl, raoParametersUrl);
+            raoResponse = raoRunnerClient.runRao(raoRequest);
+            LOGGER.info("RAO computation answer received for TimeStamp: '{}'", raoRequest.getInstant());
 
-        RaoResponse raoResponse = raoRunnerClient.runRao(raoRequest);
-        LOGGER.info("RAO computation answer received for TimeStamp: '{}'", raoRequest.getInstant());
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
         return new CsaResponse(raoResponse.getId(), Status.FINISHED.toString());
     }
 }

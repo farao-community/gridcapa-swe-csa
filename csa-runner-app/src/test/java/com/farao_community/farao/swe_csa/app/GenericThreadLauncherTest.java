@@ -1,14 +1,10 @@
 package com.farao_community.farao.swe_csa.app;
 
 import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
-import com.farao_community.farao.swe_csa.api.results.ThreadLauncherResult;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
 class GenericThreadLauncherTest {
@@ -58,26 +54,6 @@ class GenericThreadLauncherTest {
             return result;
         }
 
-    }
-
-    @Test
-    void launchGenericThread() {
-        GenericThreadLauncher<LaunchWithThreadableAnnotation, Integer> gtl = new GenericThreadLauncher<>(
-            new LaunchWithThreadableAnnotation(),
-            "withThreadable",
-            10);
-
-        gtl.start();
-        Optional<Thread> th = Thread.getAllStackTraces()
-            .keySet()
-            .stream()
-            .filter(t -> t.getName().equals("withThreadable"))
-            .findFirst();
-        assertTrue(th.isPresent());
-        ThreadLauncherResult<Integer> result = gtl.getResult();
-
-        assertTrue(result.getResult().isPresent());
-        assertEquals(362880, result.getResult().get());
     }
 
     @Test

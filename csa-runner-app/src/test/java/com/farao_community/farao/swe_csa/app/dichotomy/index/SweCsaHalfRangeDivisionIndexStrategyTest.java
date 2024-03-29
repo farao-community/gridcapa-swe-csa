@@ -11,10 +11,10 @@ package com.farao_community.farao.swe_csa.app.dichotomy.index;
  * @author Jean-Pierre Arnould {@literal <jean-pierre.arnould at rte-france.com>}
  */
 
+import com.farao_community.farao.swe_csa.app.FileImporter;
 import com.powsybl.openrao.data.cracapi.Crac;
 import com.powsybl.openrao.data.cracapi.cnec.FlowCnec;
 import com.farao_community.farao.dichotomy.api.results.DichotomyStepResult;
-import com.farao_community.farao.swe_csa.app.FileHelper;
 import com.farao_community.farao.swe_csa.app.dichotomy.CounterTradingDirection;
 import com.farao_community.farao.swe_csa.app.dichotomy.variable.MultipleDichotomyVariables;
 import com.farao_community.farao.swe_csa.app.rao_result.RaoResultWithCounterTradeRangeActions;
@@ -27,8 +27,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Instant;
 import java.util.Map;
+import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -39,7 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class SweCsaHalfRangeDivisionIndexStrategyTest {
 
     @Autowired
-    FileHelper fileHelper;
+    FileImporter fileImporter;
 
     @Test
     void testNextValuePrecisionReached() {
@@ -78,8 +78,8 @@ class SweCsaHalfRangeDivisionIndexStrategyTest {
         Index<Object, MultipleDichotomyVariables> index1 = new Index<>(new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 0.0, CounterTradingDirection.FR_ES.getName(), 0.0)),
             new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 1500.0, CounterTradingDirection.FR_ES.getName(), 1000.0)), 10);
         Path filePath = Paths.get(new File(getClass().getResource("/CSA_42_CustomExample.zip").getFile()).toString());
-        Network network = fileHelper.importNetwork(Paths.get(new File(getClass().getResource("/CSA_42_CustomExample.zip").getFile()).toString()));
-        Crac crac = fileHelper.importCrac(filePath, network, Instant.parse("2023-03-29T12:00:00Z"));
+        Network network = fileImporter.importNetwork(Objects.requireNonNull(getClass().getResource("/rao_inputs/network.xiidm")).toString());
+        Crac crac = fileImporter.importCrac(Objects.requireNonNull(getClass().getResource("/rao_inputs/crac.json")).toString());
         SweCsaHalfRangeDivisionIndexStrategy indexStrategy1 = new SweCsaHalfRangeDivisionIndexStrategy(crac, network);
 
         DichotomyStepResult dichotomyStepResult1 = Mockito.mock(DichotomyStepResult.class);
@@ -96,7 +96,7 @@ class SweCsaHalfRangeDivisionIndexStrategyTest {
         Mockito.when(dichotomyStepResult1.getRaoResult()).thenReturn(raoResultCTMock1);
         Mockito.when(dichotomyStepResult2.getRaoResult()).thenReturn(raoResultCTMock2);
 
-        MultipleDichotomyVariables result3 = new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 1500.0, CounterTradingDirection.FR_ES.getName(), 550.0));
+        MultipleDichotomyVariables result3 = new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 1500.0, CounterTradingDirection.FR_ES.getName(), 1000.0));
         index1.addDichotomyStepResult(new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 1000.0, CounterTradingDirection.FR_ES.getName(), 1000.0)), dichotomyStepResult1);
         index1.addDichotomyStepResult(new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 200.0, CounterTradingDirection.FR_ES.getName(), 100.0)), dichotomyStepResult2);
         //in general case

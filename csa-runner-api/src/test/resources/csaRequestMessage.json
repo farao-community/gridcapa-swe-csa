@@ -4,53 +4,8 @@
     "id": "id",
     "attributes": {
       "businessTimestamp": "2023-08-08T15:30:00Z",
-      "commonProfiles": {
-        "tpbdProfileUri": "https://cds/tpbdProfileUri.signed.url",
-        "eqbdProfileUri": "https://cds/eqbdProfileUri.signed.url",
-        "svProfileUri": "https://cds/svProfileUri.signed.url"
-      },
-      "frProfiles": {
-        "sshProfileUri": "https://cds/fr.sshProfileUri.signed.url",
-        "tpProfileUri": "https://cds/fr.tpProfileUri.signed.url",
-        "eqProfileUri": "https://cds/fr.eqProfileUri.signed.url",
-        "aeProfileUri": "https://cds/fr.aeProfileUri.signed.url",
-        "coProfileUri": "https://cds/fr.coProfileUri.signed.url",
-        "raProfileUri": "https://cds/fr.raProfileUri.signed.url",
-        "erProfileUri": "https://cds/fr.erProfileUri.signed.url",
-        "ssiProfileUri": "https://cds/fr.ssiProfileUri.signed.url",
-        "sisProfileUri": "https://cds/fr.sisProfileUri.signed.url",
-        "maProfileUri": "https://cds/fr.maProfileUri.signed.url",
-        "smProfileUri": "https://cds/fr.smProfileUri.signed.url",
-        "asProfileUri": "https://cds/fr.asProfileUri.signed.url"
-      },
-      "esProfiles": {
-        "sshProfileUri": "https://cds/es.sshProfileUri.signed.url",
-        "tpProfileUri": "https://cds/es.tpProfileUri.signed.url",
-        "eqProfileUri": "https://cds/es.eqProfileUri.signed.url",
-        "aeProfileUri": "https://cds/es.aeProfileUri.signed.url",
-        "coProfileUri": "https://cds/es.coProfileUri.signed.url",
-        "raProfileUri": "https://cds/es.raProfileUri.signed.url",
-        "erProfileUri": "https://cds/es.erProfileUri.signed.url",
-        "ssiProfileUri": "https://cds/es.ssiProfileUri.signed.url",
-        "sisProfileUri": "https://cds/es.sisProfileUri.signed.url",
-        "maProfileUri": "https://cds/es.maProfileUri.signed.url",
-        "smProfileUri": "https://cds/es.smProfileUri.signed.url",
-        "asProfileUri": "https://cds/es.asProfileUri.signed.url"
-      },
-      "ptProfiles": {
-        "sshProfileUri": "https://cds/pt.sshProfileUri.signed.url",
-        "tpProfileUri": "https://cds/pt.tpProfileUri.signed.url",
-        "eqProfileUri": "https://cds/pt.eqProfileUri.signed.url",
-        "aeProfileUri": "https://cds/pt.aeProfileUri.signed.url",
-        "coProfileUri": "https://cds/pt.coProfileUri.signed.url",
-        "raProfileUri": "https://cds/pt.raProfileUri.signed.url",
-        "erProfileUri": "https://cds/pt.erProfileUri.signed.url",
-        "ssiProfileUri": "https://cds/pt.ssiProfileUri.signed.url",
-        "sisProfileUri": "https://cds/pt.sisProfileUri.signed.url",
-        "maProfileUri": "https://cds/pt.maProfileUri.signed.url",
-        "smProfileUri": "https://cds/pt.smProfileUri.signed.url",
-        "asProfileUri": "https://cds/pt.asProfileUri.signed.url"
-      },
+      "gridModelUri": "https://cds/gridModelUri.signed.url",
+      "cracFileUri": "https://cds/cracFileUri.signed.url",
       "resultsUri": "https://cds/resultsUri.signed.url"
     }
   }

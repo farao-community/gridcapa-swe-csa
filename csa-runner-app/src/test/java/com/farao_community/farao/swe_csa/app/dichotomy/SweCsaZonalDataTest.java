@@ -1,6 +1,6 @@
 package com.farao_community.farao.swe_csa.app.dichotomy;
 
-import com.farao_community.farao.swe_csa.app.FileHelper;
+import com.farao_community.farao.swe_csa.app.FileImporter;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Injection;
@@ -9,9 +9,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import java.io.File;
-import java.nio.file.Paths;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -21,11 +20,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 class SweCsaZonalDataTest {
 
     @Autowired
-    FileHelper fileHelper;
+    FileImporter fileImporter;
 
     @Test
     void zonalDataCreationTest() {
-        Network network = fileHelper.importNetwork(Paths.get(new File(getClass().getResource("/TestCase_13_5_4.zip").getFile()).toString()));
+        Network network = fileImporter.importNetwork(Objects.requireNonNull(getClass().getResource("/rao_inputs/network.xiidm")).toString());
         ZonalData<Scalable> zonalData = SweCsaZonalData.getZonalData(network);
         assertNotNull(zonalData);
         assertEquals("[BELGIUM, FRANCE, GERMANY, NETHERLANDS]", zonalData.getDataPerZone().keySet().stream().sorted().collect(Collectors.toList()).toString());

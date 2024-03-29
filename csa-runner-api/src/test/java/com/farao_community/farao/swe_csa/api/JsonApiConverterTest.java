@@ -20,7 +20,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * @author mohamed.ben-rejeb {@literal <mohamed.ben-rejeb at rte-france.com>}
@@ -35,28 +34,8 @@ class JsonApiConverterTest {
 
         assertEquals("id", request.getId());
         assertEquals("2023-08-08T15:30:00Z", request.getBusinessTimestamp());
-
-        CsaRequest.CommonProfiles commonProfiles = request.getCommonProfiles();
-        assertNotNull(commonProfiles);
-        assertEquals("https://cds/tpbdProfileUri.signed.url", commonProfiles.getTpbdProfileUri());
-        assertEquals("https://cds/eqbdProfileUri.signed.url", commonProfiles.getEqbdProfileUri());
-        assertEquals("https://cds/svProfileUri.signed.url", commonProfiles.getSvProfileUri());
-
-        CsaRequest.Profiles frProfiles = request.getFrProfiles();
-        assertNotNull(frProfiles);
-        assertEquals("https://cds/fr.sshProfileUri.signed.url", frProfiles.getSshProfileUri());
-        assertEquals("https://cds/fr.tpProfileUri.signed.url", frProfiles.getTpProfileUri());
-
-        CsaRequest.Profiles esProfiles = request.getEsProfiles();
-        assertNotNull(esProfiles);
-        assertEquals("https://cds/es.sshProfileUri.signed.url", esProfiles.getSshProfileUri());
-        assertEquals("https://cds/es.tpProfileUri.signed.url", esProfiles.getTpProfileUri());
-
-        CsaRequest.Profiles ptProfiles = request.getPtProfiles();
-        assertNotNull(ptProfiles);
-        assertEquals("https://cds/pt.sshProfileUri.signed.url", ptProfiles.getSshProfileUri());
-        assertEquals("https://cds/pt.tpProfileUri.signed.url", ptProfiles.getTpProfileUri());
-
+        assertEquals("https://cds/gridModelUri.signed.url", request.getGridModelUri());
+        assertEquals("https://cds/cracFileUri.signed.url", request.getCracFileUri());
         assertEquals("https://cds/resultsUri.signed.url", request.getResultsUri());
     }
 

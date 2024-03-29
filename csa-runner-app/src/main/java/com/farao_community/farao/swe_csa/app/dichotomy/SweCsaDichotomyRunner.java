@@ -11,6 +11,7 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
  * @author Jean-Pierre Arnould {@literal <jean-pierre.arnould at rte-france.com>}
  */
 
+import com.farao_community.farao.swe_csa.app.FileImporter;
 import com.powsybl.openrao.commons.EICode;
 import com.powsybl.openrao.data.cracapi.cnec.Cnec;
 import com.powsybl.openrao.data.cracapi.Crac;
@@ -24,9 +25,7 @@ import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.api.resource.CsaResponse;
 import com.farao_community.farao.swe_csa.api.resource.Status;
-import com.farao_community.farao.swe_csa.app.FileHelper;
 import com.farao_community.farao.swe_csa.app.Threadable;
-import com.farao_community.farao.swe_csa.app.ZipHelper;
 import com.farao_community.farao.swe_csa.app.dichotomy.dispatcher.SweCsaShiftDispatcher;
 import com.farao_community.farao.swe_csa.app.dichotomy.index.Index;
 import com.farao_community.farao.swe_csa.app.dichotomy.index.SweCsaHalfRangeDivisionIndexStrategy;
@@ -41,55 +40,55 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.attribute.FileAttribute;
-import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
 public class SweCsaDichotomyRunner {
 
     private final RaoRunnerClient raoRunnerClient;
-    private final FileHelper fileHelper;
+    private final FileImporter fileImporter;
     private static final Logger LOGGER = LoggerFactory.getLogger(SweCsaDichotomyRunner.class);
 
     @Value("${rao-parameters.index.precision}")
     private Double indexPrecision;
 
-    public SweCsaDichotomyRunner(RaoRunnerClient raoRunnerClient, FileHelper fileHelper) {
+    public SweCsaDichotomyRunner(RaoRunnerClient raoRunnerClient, FileImporter fileImporter) {
         this.raoRunnerClient = raoRunnerClient;
-        this.fileHelper = fileHelper;
+        this.fileImporter = fileImporter;
     }
 
     @Threadable
     public CsaResponse runRaoDichotomy(CsaRequest csaRequest) throws IOException {
-        String requestId = csaRequest.getId();
-        LOGGER.info("Csa request received : {}", csaRequest);
-        FileAttribute<Set<PosixFilePermission>> attr = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------"));
-        Path archiveTempPath = Files.createTempFile("csa-temp-inputs", "inputs.zip", attr);
+        RaoResponse raoResponse = null;
+        try {
+            String requestId = csaRequest.getId();
+            LOGGER.info("Csa request received : {}", csaRequest);
+            Instant utcInstant = Instant.parse(csaRequest.getBusinessTimestamp());
+            String raoParametersUrl = fileImporter.uploadRaoParameters(requestId, utcInstant);
+            Crac crac = fileImporter.importCrac(csaRequest.getCracFileUri());
+            Network network = fileImporter.importNetwork(csaRequest.getGridModelUri());
+            RaoRequest raoRequest = new RaoRequest.RaoRequestBuilder()
+                .withId(requestId)
+                .withNetworkFileUrl(csaRequest.getGridModelUri())
+                .withCracFileUrl(csaRequest.getCracFileUri())
+                .withRaoParametersFileUrl(raoParametersUrl)
+                .withResultsDestination(csaRequest.getResultsUri())
+                .build();
 
-        Instant utcInstant = Instant.parse(csaRequest.getBusinessTimestamp());
-        ZipHelper.zipDataCsaRequestFiles(csaRequest, archiveTempPath);
-        Network network = fileHelper.importNetwork(archiveTempPath);
-        Crac crac = fileHelper.importCrac(archiveTempPath, network, utcInstant);
-        String networkFileUrl = fileHelper.uploadIidmNetworkToMinio(requestId, network, utcInstant);
-        String cracFileUrl = fileHelper.uploadJsonCrac(requestId, crac, utcInstant);
-        String raoParametersUrl = fileHelper.uploadRaoParameters(requestId, utcInstant);
+            SweCsaHalfRangeDivisionIndexStrategy indexStrategy = new SweCsaHalfRangeDivisionIndexStrategy(crac, network);
+            SweCsaRaoValidator validator = new SweCsaRaoValidator(raoRunnerClient, requestId, csaRequest.getGridModelUri(), csaRequest.getCracFileUri(), crac, raoParametersUrl, this.getCnecsIdLists(indexStrategy));
+            RaoResponse raoResponseAfterDichotomy = getDichotomyResponse(network, crac, validator, indexStrategy);
+            LOGGER.info("dichotomy RAO computation answer received for TimeStamp: '{}'", raoRequest.getInstant());
 
-        RaoRequest raoRequest = new RaoRequest(requestId, networkFileUrl, cracFileUrl, raoParametersUrl);
-        SweCsaHalfRangeDivisionIndexStrategy indexStrategy = new SweCsaHalfRangeDivisionIndexStrategy(crac, network);
-        SweCsaRaoValidator validator = new SweCsaRaoValidator(raoRunnerClient, requestId, networkFileUrl, cracFileUrl, crac, raoParametersUrl, this.getCnecsIdLists(indexStrategy));
-        RaoResponse raoResponseAfterDichotomy = getDichotomyResponse(network, crac, validator, indexStrategy);
-        LOGGER.info("dichotomy RAO computation answer received for TimeStamp: '{}'", raoRequest.getInstant());
+            return new CsaResponse(raoResponseAfterDichotomy.getId(), Status.FINISHED.toString());
 
-        return new CsaResponse(raoResponseAfterDichotomy.getId(), Status.FINISHED.toString());
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
     }
 
     protected RaoResponse getDichotomyResponse(Network network, Crac crac, SweCsaRaoValidator validator, SweCsaHalfRangeDivisionIndexStrategy indexStrategy) {

@@ -9,7 +9,6 @@ package com.farao_community.farao.swe_csa.api.resource;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * @author mohamed.ben-rejeb {@literal <mohamed.ben-rejeb at rte-france.com>}
@@ -20,25 +19,15 @@ class CsaRequestTest {
     void testCsaRequestConstruction() {
         String id = "sampleId";
         String businessTimestamp = "2023-08-08T15:30:00Z";
-        CsaRequest.CommonProfiles commonProfiles = new CsaRequest.CommonProfiles();
-        commonProfiles.setTpbdProfileUri("https://example.com/tpbd");
-        commonProfiles.setEqbdProfileUri("https://example.com/eqbd");
-        commonProfiles.setSvProfileUri("https://example.com/sv");
-        CsaRequest.Profiles frProfiles = new CsaRequest.Profiles();
-        frProfiles.setSshProfileUri("https://example.com/ssh");
-
+        String gridModelUri = "https://example.com/gridModel";
+        String cracFileUri = "https://example.com/crac";
         String resultsUri = "https://example.com/results";
 
-        CsaRequest request = new CsaRequest(id, businessTimestamp, commonProfiles, frProfiles, null, null, resultsUri);
+        CsaRequest request = new CsaRequest(id, businessTimestamp, gridModelUri, cracFileUri, resultsUri);
         assertEquals(id, request.getId());
         assertEquals(businessTimestamp, request.getBusinessTimestamp());
-        assertNotNull(request.getCommonProfiles());
-        assertEquals("https://example.com/tpbd", request.getCommonProfiles().getTpbdProfileUri());
-        assertEquals("https://example.com/eqbd", request.getCommonProfiles().getEqbdProfileUri());
-        assertEquals("https://example.com/sv", request.getCommonProfiles().getSvProfileUri());
-        assertNotNull(request.getFrProfiles());
-        assertEquals("https://example.com/ssh", request.getFrProfiles().getSshProfileUri());
-
+        assertEquals(gridModelUri, request.getGridModelUri());
+        assertEquals(cracFileUri, request.getCracFileUri());
         assertEquals(resultsUri, request.getResultsUri());
     }
 }

@@ -1,7 +1,7 @@
 package com.farao_community.farao.swe_csa.app.dichotomy;
 
+import com.farao_community.farao.swe_csa.app.FileImporter;
 import com.powsybl.openrao.data.cracapi.Crac;
-import com.farao_community.farao.swe_csa.app.FileHelper;
 import com.farao_community.farao.swe_csa.app.dichotomy.dispatcher.SweCsaShiftDispatcher;
 import com.farao_community.farao.swe_csa.app.dichotomy.index.SweCsaHalfRangeDivisionIndexStrategy;
 import com.farao_community.farao.swe_csa.app.dichotomy.shifter.SweCsaNetworkShifter;
@@ -15,7 +15,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Instant;
+import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -24,9 +24,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 public class SweCsaDichotomyRunnerTest {
 
     @Autowired
-    FileHelper fileHelper;
-    @Autowired
     SweCsaDichotomyRunner sweCsaDichotomyRunner;
+
+    @Autowired
+    FileImporter fileImporter;
 
     /*RaoResponse runWithFileAndTimestamp(String fileName, String timestamp) throws IOException {
         Path filePath = Paths.get(new File(getClass().getResource(fileName).getFile()).toString());
@@ -46,9 +47,8 @@ public class SweCsaDichotomyRunnerTest {
 
     @Test
     void testGetEngine() {
-        Path filePath = Paths.get(new File(getClass().getResource("/TestCase_13_5_4.zip").getFile()).toString());
-        Network network = fileHelper.importNetwork(Paths.get(new File(getClass().getResource("/TestCase_13_5_4.zip").getFile()).toString()));
-        Crac crac = fileHelper.importCrac(filePath, network, Instant.parse("2023-08-08T15:30:00Z"));
+        Network network = fileImporter.importNetwork(Objects.requireNonNull(getClass().getResource("/rao_inputs/network.xiidm")).toString());
+        Crac crac = fileImporter.importCrac(Objects.requireNonNull(getClass().getResource("/rao_inputs/crac.json")).toString());
         SweCsaHalfRangeDivisionIndexStrategy indexStrategy = new SweCsaHalfRangeDivisionIndexStrategy(crac, network);
         SweCsaRaoValidator validatorMock = Mockito.mock(SweCsaRaoValidator.class);
         SweCsaDichotomyEngine dichotomyEngine = sweCsaDichotomyRunner.getEngine(network, crac, validatorMock, indexStrategy);
@@ -67,7 +67,7 @@ public class SweCsaDichotomyRunnerTest {
         assertEquals("CT_FRES : -0, CT_PTES : -0", dichotomyEngine.getIndex().maxValue().print());
         assertEquals("CT_FRES : 0, CT_PTES : 0", dichotomyEngine.getIndex().minValue().print());
 
-        assertEquals(5, ((SweCsaHalfRangeDivisionIndexStrategy) dichotomyEngine.getIndexStrategy()).getFrEsFlowCnecs().size());
+        assertEquals(9, ((SweCsaHalfRangeDivisionIndexStrategy) dichotomyEngine.getIndexStrategy()).getFrEsFlowCnecs().size());
         assertEquals(0, ((SweCsaHalfRangeDivisionIndexStrategy) dichotomyEngine.getIndexStrategy()).getPtEsFlowCnecs().size());
         assertEquals(0, ((SweCsaHalfRangeDivisionIndexStrategy) dichotomyEngine.getIndexStrategy()).getFrEsAngleCnecs().size());
         assertEquals(0, ((SweCsaHalfRangeDivisionIndexStrategy) dichotomyEngine.getIndexStrategy()).getPtEsAngleCnecs().size());

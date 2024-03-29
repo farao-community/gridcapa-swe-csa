@@ -36,21 +36,16 @@ class RequestServiceTest {
         String id = UUID.randomUUID().toString();
         Exception except = new InterruptedIOException("interrupted");
         String businessTimestamp = "2023-08-08T15:30:00Z";
-        CsaRequest.CommonProfiles commonProfiles = new CsaRequest.CommonProfiles();
-        commonProfiles.setTpbdProfileUri("https://example.com/tpbd");
-        commonProfiles.setEqbdProfileUri("https://example.com/eqbd");
-        commonProfiles.setSvProfileUri("https://example.com/sv");
-        CsaRequest.Profiles frProfiles = new CsaRequest.Profiles();
-        frProfiles.setSshProfileUri("https://example.com/ssh");
-
+        String gridModelUri = "https://example.com/gridModel";
+        String cracFileUri = "https://example.com/crac";
         String resultsUri = "https://example.com/results";
 
-        CsaRequest csaRequest = new CsaRequest(id, businessTimestamp, commonProfiles, frProfiles, null, null, resultsUri);
+        CsaRequest csaRequest = new CsaRequest(id, businessTimestamp, gridModelUri, cracFileUri, resultsUri);
         JsonApiConverter jsonApiConverter = new JsonApiConverter();
         CsaResponse csaResponse = new CsaResponse(csaRequest.getId(), Status.INTERRUPTED.toString());
         byte[] req = jsonApiConverter.toJsonMessage(csaRequest, CsaRequest.class);
         byte[] resp = jsonApiConverter.toJsonMessage(csaResponse, CsaResponse.class);
-        when(sweCsaRunner.runSingleRao(any())).thenThrow(except);
+        when(sweCsaRunner.run(any())).thenThrow(except);
         when(streamBridge.send(any(), any())).thenReturn(true);
         byte[] result = requestService.launchCsaRequest(req);
         assertArrayEquals(resp, result);
@@ -61,21 +56,16 @@ class RequestServiceTest {
         String id = UUID.randomUUID().toString();
         Exception except = new InterruptedIOException("otherError");
         String businessTimestamp = "2023-08-08T15:30:00Z";
-        CsaRequest.CommonProfiles commonProfiles = new CsaRequest.CommonProfiles();
-        commonProfiles.setTpbdProfileUri("https://example.com/tpbd");
-        commonProfiles.setEqbdProfileUri("https://example.com/eqbd");
-        commonProfiles.setSvProfileUri("https://example.com/sv");
-        CsaRequest.Profiles frProfiles = new CsaRequest.Profiles();
-        frProfiles.setSshProfileUri("https://example.com/ssh");
-
+        String gridModelUri = "https://example.com/gridModel";
+        String cracFileUri = "https://example.com/crac";
         String resultsUri = "https://example.com/results";
 
-        CsaRequest csaRequest = new CsaRequest(id, businessTimestamp, commonProfiles, frProfiles, null, null, resultsUri);
+        CsaRequest csaRequest = new CsaRequest(id, businessTimestamp, gridModelUri, cracFileUri, resultsUri);
         JsonApiConverter jsonApiConverter = new JsonApiConverter();
         byte[] req = jsonApiConverter.toJsonMessage(csaRequest, CsaRequest.class);
         CsaResponse csaResponse = new CsaResponse(csaRequest.getId(), Status.ERROR.toString());
         byte[] resp = jsonApiConverter.toJsonMessage(csaResponse, CsaResponse.class);
-        when(sweCsaRunner.runSingleRao(any())).thenThrow(except);
+        when(sweCsaRunner.run(any())).thenThrow(except);
         when(streamBridge.send(any(), any())).thenReturn(true);
         byte[] result = requestService.launchCsaRequest(req);
         assertArrayEquals(resp, result);
