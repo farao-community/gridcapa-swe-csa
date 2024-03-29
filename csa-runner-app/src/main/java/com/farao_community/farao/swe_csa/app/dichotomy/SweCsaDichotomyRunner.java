@@ -127,10 +127,20 @@ public class SweCsaDichotomyRunner {
         double expEsFr = -expFrEs;
         double expEsPt = -expPtEs;
 
-        double ctFrEsMax = expFrEs >= 0 ? Math.min(Math.min(-ctRaFrEs.getMinAdmissibleSetpoint(expFrEs), ctRaEsFr.getMaxAdmissibleSetpoint(expEsFr)), expFrEs)
-            : Math.min(Math.min(ctRaFrEs.getMaxAdmissibleSetpoint(expFrEs), -ctRaEsFr.getMinAdmissibleSetpoint(expEsFr)), -expFrEs);
-        double ctPtEsMax = expPtEs >= 0 ? Math.min(Math.min(-ctRaPtEs.getMinAdmissibleSetpoint(expPtEs), ctRaEsPt.getMaxAdmissibleSetpoint(expEsPt)), expPtEs)
-            : Math.min(Math.min(ctRaPtEs.getMaxAdmissibleSetpoint(expPtEs), -ctRaEsPt.getMinAdmissibleSetpoint(expEsPt)), -expPtEs);
+        double raFrEsMinAdmFrEs = ctRaFrEs == null ? 0.0 : ctRaFrEs.getMinAdmissibleSetpoint(expFrEs);
+        double raFrEsMaxAdmFrEs = ctRaFrEs == null ? 0.0 : ctRaFrEs.getMaxAdmissibleSetpoint(expFrEs);
+        double raEsFrMaxAdmEsFr = ctRaEsFr == null ? 0.0 : ctRaEsFr.getMaxAdmissibleSetpoint(expEsFr);
+        double raEsFrMinAdmEsFr = ctRaEsFr == null ? 0.0 : ctRaEsFr.getMinAdmissibleSetpoint(expEsFr);
+
+        double raPtEsMinAdmPtEs = ctRaPtEs == null ? 0.0 : ctRaPtEs.getMinAdmissibleSetpoint(expPtEs);
+        double raPtEsMaxAdmPtEs = ctRaPtEs == null ? 0.0 : ctRaPtEs.getMaxAdmissibleSetpoint(expPtEs);
+        double raEsPtMaxAdmEsPt = ctRaEsPt == null ? 0.0 : ctRaEsPt.getMaxAdmissibleSetpoint(expEsPt);
+        double raEsPtMinAdmEsPt = ctRaEsPt == null ? 0.0 : ctRaEsPt.getMinAdmissibleSetpoint(expEsPt);
+
+        double ctFrEsMax = expFrEs >= 0 ? Math.min(Math.min(-raFrEsMinAdmFrEs, raEsFrMaxAdmEsFr), expFrEs)
+            : Math.min(Math.min(raFrEsMaxAdmFrEs, -raEsFrMinAdmEsFr), -expFrEs);
+        double ctPtEsMax = expPtEs >= 0 ? Math.min(Math.min(-raPtEsMinAdmPtEs, raEsPtMaxAdmEsPt), expPtEs)
+            : Math.min(Math.min(raPtEsMaxAdmPtEs, -raEsPtMinAdmEsPt), -expPtEs);
 
         MultipleDichotomyVariables initMinIndex = new MultipleDichotomyVariables(Map.of(CounterTradingDirection.FR_ES.getName(), 0.0, CounterTradingDirection.PT_ES.getName(), 0.0));
         MultipleDichotomyVariables initMaxIndex = new MultipleDichotomyVariables(Map.of(CounterTradingDirection.FR_ES.getName(), ctFrEsMax, CounterTradingDirection.PT_ES.getName(), ctPtEsMax));
@@ -160,8 +170,8 @@ public class SweCsaDichotomyRunner {
         crac.newCounterTradeRangeAction()
             .withId(CounterTradeRangeActionDirection.PT_ES.getName())
             .withOperator("REN")
-            .newRange().withMin(-2000.0)
-                .withMax(3000.0).add()
+            .newRange().withMin(-5000.0)
+                .withMax(5000.0).add()
             .withInitialSetpoint(0.0)
             .withExportingCountry(Country.PT)
             .withImportingCountry(Country.ES)
@@ -169,8 +179,8 @@ public class SweCsaDichotomyRunner {
         crac.newCounterTradeRangeAction()
             .withId(CounterTradeRangeActionDirection.ES_PT.getName())
             .withOperator("REE")
-            .newRange().withMin(-2100.0)
-            .withMax(3100.0).add()
+            .newRange().withMin(-5000.0)
+            .withMax(5000.0).add()
             .withInitialSetpoint(0.0)
             .withExportingCountry(Country.ES)
             .withImportingCountry(Country.PT)
@@ -178,8 +188,8 @@ public class SweCsaDichotomyRunner {
         crac.newCounterTradeRangeAction()
             .withId(CounterTradeRangeActionDirection.ES_FR.getName())
             .withOperator("REE")
-            .newRange().withMin(-2200.0)
-            .withMax(3200.0).add()
+            .newRange().withMin(-5000.0)
+            .withMax(5000.0).add()
             .withInitialSetpoint(0.0)
             .withExportingCountry(Country.ES)
             .withImportingCountry(Country.FR)
@@ -187,8 +197,8 @@ public class SweCsaDichotomyRunner {
         crac.newCounterTradeRangeAction()
             .withId(CounterTradeRangeActionDirection.FR_ES.getName())
             .withOperator("RTE")
-            .newRange().withMin(-2300.0)
-            .withMax(3300.0).add()
+            .newRange().withMin(-5000.0)
+            .withMax(5000.0).add()
             .withInitialSetpoint(0.0)
             .withExportingCountry(Country.FR)
             .withImportingCountry(Country.ES)
