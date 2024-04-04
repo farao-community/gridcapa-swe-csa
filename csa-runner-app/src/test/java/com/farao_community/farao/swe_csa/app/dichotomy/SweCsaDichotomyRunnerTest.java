@@ -3,6 +3,7 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
 
 import com.farao_community.farao.rao_runner.api.resource.RaoResponse;
 import com.farao_community.farao.swe_csa.app.FileImporter;
+import com.farao_community.farao.swe_csa.app.FileTestUtils;
 import com.powsybl.openrao.data.cracapi.Crac;
 import com.farao_community.farao.swe_csa.app.dichotomy.dispatcher.SweCsaShiftDispatcher;
 import com.farao_community.farao.swe_csa.app.dichotomy.index.SweCsaHalfRangeDivisionIndexStrategy;
@@ -14,7 +15,10 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.Objects;
 
@@ -30,15 +34,20 @@ public class SweCsaDichotomyRunnerTest {
     @Autowired
     FileImporter fileImporter;
 
+    @Autowired
+    FileTestUtils fileTestUtils;
+
     RaoResponse testGetDichotomyResponseWithCoresoTest (String zipUrl, String timeStamp) throws IOException {
-        Network network = fileImporter.importNetwork(Objects.requireNonNull(getClass().getResource("/rao_inputs/network.xiidm")).toString());
-        Crac crac = fileImporter.importCrac(Objects.requireNonNull(getClass().getResource("/rao_inputs/crac.json")).toString());
+        Path filePath = Paths.get(new File(getClass().getResource(zipUrl).getFile()).toString());
+        Instant utcInstant = Instant.parse(timeStamp);
+        Network network = fileTestUtils.getNetworkFromResource(filePath);
+        //Network network = fileImporter.importNetwork(Objects.requireNonNull(getClass().getResource("/rao_inputs/networkFRESPT.xiidm")).toString());
+        Crac crac = fileTestUtils.importCrac(filePath, network, utcInstant);
         SweCsaHalfRangeDivisionIndexStrategy indexStrategy = new SweCsaHalfRangeDivisionIndexStrategy(crac, network);
 
-        Instant utcInstant = Instant.parse(timeStamp);
-        String networkFileUrl = fileHelper.uploadIidmNetworkToMinio("requestId", network, utcInstant);
-        String cracFileUrl = fileHelper.uploadJsonCrac("requestId", crac, utcInstant);
-        String raoParametersUrl = fileHelper.uploadRaoParameters("requestId", utcInstant);
+        String networkFileUrl = fileTestUtils.uploadIidmNetworkToMinio("requestId", network, utcInstant);
+        String cracFileUrl = fileTestUtils.uploadJsonCrac("requestId", crac, utcInstant);
+        String raoParametersUrl = fileTestUtils.uploadRaoParameters("requestId", utcInstant);
 
         SweCsaRaoValidator validator = new SweCsaRaoValidator(sweCsaDichotomyRunner.getRaoRunnerClient(), "requestId", networkFileUrl, cracFileUrl, crac, raoParametersUrl, sweCsaDichotomyRunner.getCnecsIdLists(indexStrategy));
         RaoResponse raoResponseAfterDichotomy = sweCsaDichotomyRunner.getDichotomyResponse(network, crac, validator, indexStrategy);

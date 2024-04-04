@@ -73,7 +73,7 @@ public final class SweCsaNetworkShifter implements NetworkShifter<MultipleDichot
             String logTargetCountriesShift = String.format("Target countries shift [ES = %.2f, FR = %.2f, PT = %.2f]",
                 scalingValuesByCountry.get(Country.ES.getName()), scalingValuesByCountry.get(Country.FR.getName()), scalingValuesByCountry.get(Country.PT.getName()));
             BUSINESS_LOGS.info(logTargetCountriesShift);
-            Map<String, Double> targetExchanges = getTargetExchanges(stepValue);
+            Map<String, Double> targetExchanges = getTargetExchanges(scalingValuesByCountry);
             int iterationCounter = 0;
             boolean shiftSucceed = false;
 
@@ -166,10 +166,10 @@ public final class SweCsaNetworkShifter implements NetworkShifter<MultipleDichot
         network.getVariantManager().setWorkingVariant(workingVariantCopyId);
     }
 
-    private Map<String, Double> getTargetExchanges(MultipleDichotomyVariables stepValue) {
+    private Map<String, Double> getTargetExchanges(Map<String, Double> scalingValuesByCountry) {
         Map<String, Double> targetExchanges = new HashMap<>();
-        targetExchanges.put(ES_PT, -stepValue.values().get(Country.PT.getName()));
-        targetExchanges.put(ES_FR, -stepValue.values().get(Country.FR.getName()));
+        targetExchanges.put(ES_PT, -scalingValuesByCountry.get(Country.PT.getName()));
+        targetExchanges.put(ES_FR, -scalingValuesByCountry.get(Country.FR.getName()));
         return targetExchanges;
     }
 

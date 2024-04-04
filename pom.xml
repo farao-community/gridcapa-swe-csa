@@ -109,7 +109,7 @@
 
             <!-- IMPORTED DEPENDENCIES -->
             <dependency>
-                <groupId>com.powstbl.openrao</groupId>
+                <groupId>com.powsybl.openrao</groupId>
                 <artifactId>farao-dependencies</artifactId>
                 <version>${farao.dependencies.version}</version>
                 <scope>import</scope>
