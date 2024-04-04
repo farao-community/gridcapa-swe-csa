@@ -55,11 +55,6 @@
         </dependency>
 
         <dependency>
-        <groupId>com.powsybl</groupId>
-        <artifactId>open-rao-crac-creator-csa-profiles</artifactId>
-        <version>5.3.0</version>
-        </dependency>
-        <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
         </dependency>
@@ -94,8 +89,7 @@
         <dependency>
             <groupId>com.powsybl</groupId>
             <artifactId>open-rao-crac-creator-csa-profiles</artifactId>
-            <version>5.1.0</version>
-
+            <version>5.3.0</version>
         </dependency>
         <dependency>
             <groupId>com.farao-community.farao</groupId>

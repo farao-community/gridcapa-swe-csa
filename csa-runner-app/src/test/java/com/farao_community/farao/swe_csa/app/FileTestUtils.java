@@ -12,6 +12,7 @@ import com.powsybl.openrao.data.craccreation.creator.csaprofile.CsaProfileCrac;
 import com.powsybl.openrao.data.craccreation.creator.csaprofile.craccreator.CsaProfileCracCreationContext;
 import com.powsybl.openrao.data.craccreation.creator.csaprofile.craccreator.CsaProfileCracCreator;
 import com.powsybl.openrao.data.craccreation.creator.csaprofile.importer.CsaProfileCracImporter;
+import com.powsybl.openrao.data.craccreation.creator.csaprofile.parameters.CsaCracCreationParameters;
 import com.powsybl.openrao.data.cracioapi.CracExporters;
 import com.powsybl.openrao.raoapi.json.JsonRaoParameters;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
@@ -77,7 +78,9 @@ public class FileTestUtils {
             throw new CsaInternalException(e.getMessage());
         }
         CsaProfileCracCreator cracCreator = new CsaProfileCracCreator();
-        CsaProfileCracCreationContext cracCreationContext = cracCreator.createCrac(nativeCrac, network, utcInstant.atOffset(ZoneOffset.UTC), new CracCreationParameters());
+        CracCreationParameters cracCreationParameters = new CracCreationParameters();
+        cracCreationParameters.addExtension(CsaCracCreationParameters.class, new CsaCracCreationParameters());
+        CsaProfileCracCreationContext cracCreationContext = cracCreator.createCrac(nativeCrac, network, utcInstant.atOffset(ZoneOffset.UTC), cracCreationParameters);
         return cracCreationContext.getCrac();
     }
 
