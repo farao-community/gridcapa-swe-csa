@@ -29,7 +29,7 @@
 
         <!-- TECHNICAL DEPENDENCIES -->
         <commons.lang.version>3.11</commons.lang.version>
-        <commons.io.version>2.11.0</commons.io.version>
+        <commons.io.version>2.12.0</commons.io.version>
         <jackson.databind.version>2.11.0</jackson.databind.version>
         <jackson.datatype.version>2.13.0</jackson.datatype.version>
         <jsonapi.converter.version>0.10</jsonapi.converter.version>
@@ -50,7 +50,7 @@
         <dependencies>
             <!-- BUSINESS DEPENDENCIES -->
             <dependency>
-                <groupId>com.powsybl.openrao</groupId>
+                <groupId>com.farao-community.farao</groupId>
                 <artifactId>gridcapa-rao-runner-spring-boot-starter</artifactId>
                 <version>${gridcapa.rao.runner.version}</version>
             </dependency>
@@ -109,7 +109,7 @@
 
             <!-- IMPORTED DEPENDENCIES -->
             <dependency>
-                <groupId>com.powsybl.openrao</groupId>
+                <groupId>com.farao-community.farao</groupId>
                 <artifactId>farao-dependencies</artifactId>
                 <version>${farao.dependencies.version}</version>
                 <scope>import</scope>

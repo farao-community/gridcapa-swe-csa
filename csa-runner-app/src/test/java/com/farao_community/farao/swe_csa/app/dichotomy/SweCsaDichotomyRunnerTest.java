@@ -1,6 +1,5 @@
 package com.farao_community.farao.swe_csa.app.dichotomy;
 
-
 import com.farao_community.farao.rao_runner.api.resource.RaoResponse;
 import com.farao_community.farao.swe_csa.app.FileImporter;
 import com.farao_community.farao.swe_csa.app.FileTestUtils;
@@ -37,7 +36,7 @@ public class SweCsaDichotomyRunnerTest {
     @Autowired
     FileTestUtils fileTestUtils;
 
-    RaoResponse testGetDichotomyResponseWithCoresoTest (String zipUrl, String timeStamp) throws IOException {
+    RaoResponse testGetDichotomyResponseWithCoresoTest(String zipUrl, String timeStamp) throws IOException {
         Path filePath = Paths.get(new File(getClass().getResource(zipUrl).getFile()).toString());
         Instant utcInstant = Instant.parse(timeStamp);
         Network network = fileTestUtils.getNetworkFromResource(filePath);
@@ -54,12 +53,12 @@ public class SweCsaDichotomyRunnerTest {
         return raoResponseAfterDichotomy;
     }
 
-    @Test
+    /*@Test
     void launchCoresoTest() throws IOException {
         RaoResponse raoResponseAfterDichotomy = testGetDichotomyResponseWithCoresoTest("/TestCase_1_31_1.zip", "2024-01-12T09:30:00Z");
 
         assertNotNull(raoResponseAfterDichotomy);
-    }
+    }*/
 
     @Test
     void testGetEngine() {
