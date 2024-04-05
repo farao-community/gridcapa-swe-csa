@@ -52,3 +52,8 @@ rao-runner-server:
       # take it quite large, as rao-runner might not prefetch more than one rao-request. Rao-request
     # must therefore stay in queue until a rao-runner is free, or until the time-out is reached
     queue-name: swe-csa-rao-request-queue
+
+dichotomy-parameters:
+  index:
+    precision: 50
+    max-iterations-by-border: 10

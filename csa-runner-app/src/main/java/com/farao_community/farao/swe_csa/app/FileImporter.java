@@ -27,7 +27,7 @@ public class FileImporter {
         this.s3ArtifactsAdapter = s3ArtifactsAdapter;
     }
 
-    Crac importCrac(String cracFileUrl) {
+    public Crac importCrac(String cracFileUrl) {
         try {
             return CracImporters.importCrac(getFileNameFromUrl(cracFileUrl), openUrlStream(cracFileUrl));
         } catch (OpenRaoException | RaoRunnerException e) {
@@ -36,7 +36,7 @@ public class FileImporter {
         }
     }
 
-    Network importNetwork(String networkFileUrl) {
+    public Network importNetwork(String networkFileUrl) {
         try {
             return Network.read(getFileNameFromUrl(networkFileUrl), openUrlStream(networkFileUrl));
         } catch (Exception e) {
@@ -45,7 +45,7 @@ public class FileImporter {
         }
     }
 
-    String uploadRaoParameters(String taskId, Instant utcInstant) {
+    public String uploadRaoParameters(String taskId, Instant utcInstant) {
         String raoParametersFilePath = String.format("%s/rao-parameters/%s", taskId, HOURLY_NAME_FORMATTER.format(utcInstant).concat(".json"));
         RaoParameters raoParameters = RaoParameters.load();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();

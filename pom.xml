@@ -26,6 +26,8 @@
         <!-- BUSINESS DEPENDENCIES -->
         <farao.dependencies.version>1.27.0</farao.dependencies.version>
         <gridcapa.rao.runner.version>1.21.0</gridcapa.rao.runner.version>
+        <farao.dichotomy.version>4.15.0</farao.dichotomy.version>
+        <gridcapa.swe.commons.version>1.18.0-SNAPSHOT</gridcapa.swe.commons.version>
 
         <!-- TECHNICAL DEPENDENCIES -->
         <commons.lang.version>3.11</commons.lang.version>
@@ -54,7 +56,16 @@
                 <artifactId>gridcapa-rao-runner-spring-boot-starter</artifactId>
                 <version>${gridcapa.rao.runner.version}</version>
             </dependency>
-
+            <dependency>
+                <groupId>com.farao-community.farao</groupId>
+                <artifactId>farao-dichotomy-api</artifactId>
+                <version>${farao.dichotomy.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.farao-community.farao</groupId>
+                <artifactId>gridcapa-swe-commons</artifactId>
+                <version>${gridcapa.swe.commons.version}</version>
+            </dependency>
             <!-- TECHNICAL DEPENDENCIES -->
             <dependency>
                 <groupId>io.minio</groupId>
