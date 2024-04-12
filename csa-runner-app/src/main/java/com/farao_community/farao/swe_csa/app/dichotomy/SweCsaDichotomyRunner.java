@@ -204,8 +204,7 @@ public class SweCsaDichotomyRunner {
             .add();
     }
 
-    public RaoRunnerClient getRaoRunnerClient() {
-        return raoRunnerClient;
+    protected void setIndexPrecision(double indexPrecision) {
+        this.indexPrecision = indexPrecision;
     }
-
 }

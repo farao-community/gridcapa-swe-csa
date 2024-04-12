@@ -14,7 +14,9 @@ package com.farao_community.farao.swe_csa.app.dichotomy.dispatcher;
 import com.farao_community.farao.swe_csa.app.dichotomy.CounterTradingDirection;
 import com.farao_community.farao.swe_csa.app.dichotomy.variable.MultipleDichotomyVariables;
 import com.powsybl.iidm.network.Country;
+import com.powsybl.openrao.commons.EICode;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class SweCsaShiftDispatcher implements ShiftDispatcher<MultipleDichotomyVariables> {
@@ -26,10 +28,13 @@ public class SweCsaShiftDispatcher implements ShiftDispatcher<MultipleDichotomyV
 
     @Override
     public Map<String, Double> dispatch(MultipleDichotomyVariables variable) {
-        return Map.of(Country.ES.getName(), variable.values().get(CounterTradingDirection.FR_ES.getName())
-                + variable.values().get(CounterTradingDirection.PT_ES.getName()) - initialNetPositions.get(Country.ES.getName()),
-            Country.FR.getName(), -variable.values().get(CounterTradingDirection.FR_ES.getName()) - initialNetPositions.get(Country.FR.getName()),
-            Country.PT.getName(), -variable.values().get(CounterTradingDirection.PT_ES.getName()) - initialNetPositions.get(Country.PT.getName()));
+        Map<String, Double> dispatching = new HashMap<>();
+        dispatching.put(new EICode(Country.ES).getAreaCode(), variable.values().get(CounterTradingDirection.FR_ES.getName())
+            + variable.values().get(CounterTradingDirection.PT_ES.getName()) - initialNetPositions.get(Country.ES.getName()));
+        dispatching.put(new EICode(Country.FR).getAreaCode(), -variable.values().get(CounterTradingDirection.FR_ES.getName()) - initialNetPositions.get(Country.FR.getName()));
+        dispatching.put(new EICode(Country.PT).getAreaCode(), -variable.values().get(CounterTradingDirection.PT_ES.getName()) - initialNetPositions.get(Country.PT.getName()));
+
+        return dispatching;
     }
 
     public Map<String, Double> getInitialNetPositions() {

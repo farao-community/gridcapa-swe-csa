@@ -22,6 +22,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.openrao.commons.EICode;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -44,6 +45,9 @@ public final class SweCsaNetworkShifter implements NetworkShifter<MultipleDichot
     private static final double DEFAULT_MAX_SHIFT_ITERATION = 10;
     public static final String ES_PT = "ES_PT";
     public static final String ES_FR = "ES_FR";
+    public static final String EI_CODE_FR = new EICode(Country.FR).getAreaCode();
+    public static final String EI_CODE_PT = new EICode(Country.PT).getAreaCode();
+    public static final String EI_CODE_ES = new EICode(Country.ES).getAreaCode();
 
     private final ZonalData<Scalable> zonalScalable;
     private final ShiftDispatcher<MultipleDichotomyVariables>  shiftDispatcher;
@@ -71,7 +75,7 @@ public final class SweCsaNetworkShifter implements NetworkShifter<MultipleDichot
 
         try {
             String logTargetCountriesShift = String.format("Target countries shift [ES = %.2f, FR = %.2f, PT = %.2f]",
-                scalingValuesByCountry.get(Country.ES.getName()), scalingValuesByCountry.get(Country.FR.getName()), scalingValuesByCountry.get(Country.PT.getName()));
+                scalingValuesByCountry.get(EI_CODE_ES), scalingValuesByCountry.get(EI_CODE_FR), scalingValuesByCountry.get(EI_CODE_PT));
             BUSINESS_LOGS.info(logTargetCountriesShift);
             Map<String, Double> targetExchanges = getTargetExchanges(scalingValuesByCountry);
             int iterationCounter = 0;
@@ -168,14 +172,14 @@ public final class SweCsaNetworkShifter implements NetworkShifter<MultipleDichot
 
     private Map<String, Double> getTargetExchanges(Map<String, Double> scalingValuesByCountry) {
         Map<String, Double> targetExchanges = new HashMap<>();
-        targetExchanges.put(ES_PT, -scalingValuesByCountry.get(Country.PT.getName()));
-        targetExchanges.put(ES_FR, -scalingValuesByCountry.get(Country.FR.getName()));
+        targetExchanges.put(ES_PT, -scalingValuesByCountry.get(EI_CODE_PT));
+        targetExchanges.put(ES_FR, -scalingValuesByCountry.get(EI_CODE_FR));
         return targetExchanges;
     }
 
     public void updateScalingValuesWithMismatch(Map<String, Double> scalingValuesByCountry, double mismatchEsPt, double mismatchEsFr) {
-        scalingValuesByCountry.put(Country.FR.getName(), scalingValuesByCountry.get(Country.FR.getName()) - mismatchEsFr);
-        scalingValuesByCountry.put(Country.PT.getName(), scalingValuesByCountry.get(Country.PT.getName()) - mismatchEsPt);
-        scalingValuesByCountry.put(Country.ES.getName(), scalingValuesByCountry.get(Country.ES.getName()) + mismatchEsPt + mismatchEsFr);
+        scalingValuesByCountry.put(EI_CODE_FR, scalingValuesByCountry.get(EI_CODE_FR) - mismatchEsFr);
+        scalingValuesByCountry.put(EI_CODE_PT, scalingValuesByCountry.get(EI_CODE_PT) - mismatchEsPt);
+        scalingValuesByCountry.put(EI_CODE_ES, scalingValuesByCountry.get(EI_CODE_ES) + mismatchEsPt + mismatchEsFr);
     }
 }

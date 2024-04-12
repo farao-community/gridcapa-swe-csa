@@ -65,7 +65,7 @@ public class FileTestUtils {
 
     public Network getNetworkFromResource(Path filePath) {
         Properties importParams = new Properties();
-        importParams.put("iidm.import.cgmes.cgm-with-subnetworks", false);
+        //importParams.put("iidm.import.cgmes.cgm-with-subnetworks", false);
         return Network.read(filePath, LocalComputationManager.getDefault(), Suppliers.memoize(ImportConfig::load).get(), importParams);
     }
 
