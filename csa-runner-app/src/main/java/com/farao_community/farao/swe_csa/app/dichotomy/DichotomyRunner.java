@@ -26,9 +26,9 @@ import java.util.stream.Collectors;
 @Service
 public class DichotomyRunner {
 
-    @Value("${rao-parameters.index.precision}")
+    @Value("${dichotomy-parameters.index.precision}")
     private Double indexPrecision;
-    @Value("${rao-parameters.index.max-iterations-by-border}")
+    @Value("${dichotomy-parameters.index.max-iterations-by-border}")
     private Double maxDichotomiesByBorder;
     private final SweCsaRaoValidator sweCsaRaoValidator;
     private final FileImporter fileImporter;
