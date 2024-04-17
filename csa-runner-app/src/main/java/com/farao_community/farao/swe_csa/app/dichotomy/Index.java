@@ -1,8 +1,6 @@
 package com.farao_community.farao.swe_csa.app.dichotomy;
 
-import com.farao_community.farao.dichotomy.api.results.DichotomyStepResult;
 import com.farao_community.farao.dichotomy.api.results.ReasonInvalid;
-import com.farao_community.farao.rao_runner.api.resource.RaoResponse;
 import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -17,12 +15,12 @@ public class Index {
     private final double precision;
 
     private final double maxDichotomiesByBorder;
-    private final List<Pair<Double, DichotomyStepResult<RaoResponse>>> ptEsStepResults = new ArrayList<>();
-    private Pair<Double, DichotomyStepResult<RaoResponse>> ptEsHighestUnsecureStep;
-    private Pair<Double, DichotomyStepResult<RaoResponse>> ptEsLowestSecureStep;
-    private final List<Pair<Double, DichotomyStepResult<RaoResponse>>> frEsStepResults = new ArrayList<>();
-    private Pair<Double, DichotomyStepResult<RaoResponse>> frEsHighestUnsecureStep;
-    private Pair<Double, DichotomyStepResult<RaoResponse>> frEsLowestSecureStep;
+    private final List<Pair<Double, DichotomyStepResult>> ptEsStepResults = new ArrayList<>();
+    private Pair<Double, DichotomyStepResult> ptEsHighestUnsecureStep;
+    private Pair<Double, DichotomyStepResult> ptEsLowestSecureStep;
+    private final List<Pair<Double, DichotomyStepResult>> frEsStepResults = new ArrayList<>();
+    private Pair<Double, DichotomyStepResult> frEsHighestUnsecureStep;
+    private Pair<Double, DichotomyStepResult> frEsLowestSecureStep;
     private int frEsDichotomyCount = 0;
     private int ptEsDichotomyCount = 0;
 
@@ -38,11 +36,11 @@ public class Index {
         this.maxDichotomiesByBorder = maxDichotomiesByBorder;
     }
 
-    public Pair<Double, DichotomyStepResult<RaoResponse>> getFrEsLowestSecureStep() {
+    public Pair<Double, DichotomyStepResult> getFrEsLowestSecureStep() {
         return frEsLowestSecureStep;
     }
 
-    public void addPtEsDichotomyStepResult(double ptEsCtStepValue, DichotomyStepResult<RaoResponse> ptEsStepResult) {
+    public void addPtEsDichotomyStepResult(double ptEsCtStepValue, DichotomyStepResult ptEsStepResult) {
         ptEsDichotomyCount++;
         if (ptEsStepResult.isValid()) {
             if (ptEsLowestSecureStep != null && ptEsLowestSecureStep.getLeft() < ptEsCtStepValue) {
@@ -60,7 +58,7 @@ public class Index {
         }
     }
 
-    public void addFrEsDichotomyStepResult(double frEsCtStepValue, DichotomyStepResult<RaoResponse> frEsStepResult) {
+    public void addFrEsDichotomyStepResult(double frEsCtStepValue, DichotomyStepResult frEsStepResult) {
         frEsDichotomyCount++;
         if (frEsStepResult.isValid()) {
             if (frEsLowestSecureStep != null && frEsLowestSecureStep.getLeft() < frEsCtStepValue) {

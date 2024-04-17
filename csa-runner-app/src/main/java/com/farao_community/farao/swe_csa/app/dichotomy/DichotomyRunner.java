@@ -2,15 +2,16 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
 
 import com.farao_community.farao.dichotomy.api.exceptions.GlskLimitationException;
 import com.farao_community.farao.dichotomy.api.exceptions.ShiftingException;
-import com.farao_community.farao.dichotomy.api.results.DichotomyStepResult;
 import com.farao_community.farao.gridcapa_swe_commons.shift.CountryBalanceComputation;
-import com.farao_community.farao.rao_runner.api.resource.RaoResponse;
 import com.farao_community.farao.swe_csa.api.exception.CsaInvalidDataException;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.app.FileImporter;
+import com.powsybl.glsk.commons.CountryEICode;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openrao.commons.EICode;
+import com.powsybl.openrao.commons.TsoEICode;
 import com.powsybl.openrao.data.cracapi.Crac;
 import com.powsybl.openrao.data.cracapi.rangeaction.CounterTradeRangeAction;
 import com.powsybl.openrao.data.raoresultapi.RaoResult;
@@ -47,7 +48,7 @@ public class DichotomyRunner {
 
         Map<Country, Double> initialNetPositions = CountryBalanceComputation.computeSweCountriesBalances(network, LoadFlowParameters.load())
             .entrySet().stream()
-            .collect(Collectors.toMap(entry -> Country.valueOf(entry.getKey()), Map.Entry::getValue));
+            .collect(Collectors.toMap(entry -> new CountryEICode(entry.getKey()).getCountry(), Map.Entry::getValue));
 
         Map<String, Double> initialExchanges = CountryBalanceComputation.computeSweBordersExchanges(network);
 
@@ -71,7 +72,7 @@ public class DichotomyRunner {
             return sweCsaRaoValidator.validateNetwork(network, csaRequest, raoParametersUrl, true, true).getRaoResult();
         }
         // best case no counter trading , no scaling
-        DichotomyStepResult<RaoResponse> noCtStepResult = sweCsaRaoValidator.validateNetwork(network, csaRequest, raoParametersUrl, true, true);
+        DichotomyStepResult noCtStepResult = sweCsaRaoValidator.validateNetwork(network, csaRequest, raoParametersUrl, true, true);
 
         if (noCtStepResult.isValid()) {
             return noCtStepResult.getRaoResult();
@@ -83,26 +84,32 @@ public class DichotomyRunner {
             double ctPtEsMax = expPtEs0 >= 0 ? Math.min(Math.min(-ctRaPtEs.getMinAdmissibleSetpoint(expPtEs0), ctRaEsPt.getMaxAdmissibleSetpoint(expEsPt0)), expPtEs0)
                 : Math.min(Math.min(ctRaPtEs.getMaxAdmissibleSetpoint(expPtEs0), -ctRaEsPt.getMinAdmissibleSetpoint(expEsPt0)), -expPtEs0);
 
+            // todo meme à cette étape verifier dans l'etat initial si l'un des deux est secure, on le bouge pas, on bouge uniquement l'autre unsecure.
             SweCsaNetworkShifter networkShifter = new SweCsaNetworkShifter(SweCsaZonalData.getZonalData(network), new ShiftDispatcher(initialNetPositions));
-            CounterTradingValues maxCounterTradingValues = new CounterTradingValues(ctPtEsMax, ctFrEsMax);
+
+            double ctPtEsUpperBound = noCtStepResult.isPtEsCnecsSecure() ? 0 : ctPtEsMax;
+            double ctFrEsUpperBound = noCtStepResult.isFrEsCnecsSecure() ? 0 : ctFrEsMax;
+            CounterTradingValues maxCounterTradingValues = new CounterTradingValues(ctPtEsUpperBound, ctFrEsUpperBound);
+
             networkShifter.shiftNetwork(maxCounterTradingValues, network);
-            DichotomyStepResult<RaoResponse> maxCtStepResult = sweCsaRaoValidator.validateNetwork(network, csaRequest, raoParametersUrl, true, true);
+            DichotomyStepResult maxCtStepResult = sweCsaRaoValidator.validateNetwork(network, csaRequest, raoParametersUrl, true, true);
             if (!maxCtStepResult.isValid()) {
                 // TODO [US] [CSA-68] Handle cases that CT cannot secure
                 throw new CsaInvalidDataException("Maximum CT value cannot secure this case");
             } else {
                 // initial network not secure, and worst case with max CT is secure --> try to find optimum in between
-                Index index = new Index(0, ctPtEsMax, 0, ctFrEsMax, indexPrecision, maxDichotomiesByBorder);
-                index.addFrEsDichotomyStepResult(0, noCtStepResult);
+                Index index = new Index(0, ctPtEsUpperBound, 0, ctFrEsUpperBound, indexPrecision, maxDichotomiesByBorder);
                 index.addPtEsDichotomyStepResult(0, noCtStepResult);
-                index.addFrEsDichotomyStepResult(ctFrEsMax, maxCtStepResult);
-                index.addPtEsDichotomyStepResult(ctPtEsMax, maxCtStepResult);
+                index.addFrEsDichotomyStepResult(0, noCtStepResult);
+                index.addPtEsDichotomyStepResult(ctPtEsUpperBound, maxCtStepResult);
+                index.addFrEsDichotomyStepResult(ctFrEsUpperBound, maxCtStepResult);
+
                 while (index.exitConditionIsNotMetForPtEs() || index.exitConditionIsNotMetForFrEs()) {
                     CounterTradingValues counterTradingValues = index.nextValues();
                     networkShifter.shiftNetwork(counterTradingValues, network);
-                    DichotomyStepResult<RaoResponse> ctStepResult = sweCsaRaoValidator.validateNetwork(network, csaRequest, raoParametersUrl, true, true);
-                    index.addFrEsDichotomyStepResult(counterTradingValues.getFrEsCt(), ctStepResult);
+                    DichotomyStepResult ctStepResult = sweCsaRaoValidator.validateNetwork(network, csaRequest, raoParametersUrl, true, true);
                     index.addPtEsDichotomyStepResult(counterTradingValues.getPtEsCt(), ctStepResult);
+                    index.addFrEsDichotomyStepResult(counterTradingValues.getFrEsCt(), ctStepResult);
                 }
                 return index.getFrEsLowestSecureStep().getRight().getRaoResult();
             }

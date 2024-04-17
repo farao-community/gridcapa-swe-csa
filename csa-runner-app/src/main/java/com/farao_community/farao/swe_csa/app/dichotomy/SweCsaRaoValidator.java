@@ -11,7 +11,6 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
  * @author Jean-Pierre Arnould {@literal <jean-pierre.arnould at rte-france.com>}
  */
 
-import com.farao_community.farao.dichotomy.api.results.DichotomyStepResult;
 import com.farao_community.farao.rao_runner.api.resource.RaoRequest;
 import com.farao_community.farao.rao_runner.api.resource.RaoResponse;
 import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
@@ -56,7 +55,7 @@ public class SweCsaRaoValidator {
         this.raoRunnerClient = raoRunnerClient;
     }
 
-    public DichotomyStepResult<RaoResponse> validateNetwork(Network network, CsaRequest csaRequest, String raoParametersUrl, boolean withVoltageMonitoring, boolean withAngleMonitoring) {
+    public DichotomyStepResult validateNetwork(Network network, CsaRequest csaRequest, String raoParametersUrl, boolean withVoltageMonitoring, boolean withAngleMonitoring) {
         RaoRequest raoRequest = buildRaoRequest(csaRequest.getBusinessTimestamp(), csaRequest.getId(), network, csaRequest.getCracFileUri(), raoParametersUrl);
         try {
             LOGGER.info("RAO request sent: {}", raoRequest);
@@ -72,25 +71,21 @@ public class SweCsaRaoValidator {
 
             // TODO when csa glsk is ready add withAngleMonitoring check to raoResult
 
-            boolean allCnecsOnBothDichotomyBordersAreSecured = isSafeForBothBorders(network, crac, raoResult);
-            boolean secure = raoResult.isSecure() && allCnecsOnBothDichotomyBordersAreSecured;
+            //TODO : implement association between cnecs and borders (CSA-67)
+            Set<FlowCnec> frEsFlowCnecs = crac.getFlowCnecs().stream()
+                .filter(flowCnec -> flowCnec.getLocation(network).contains(Optional.of(Country.FR)))
+                .collect(Collectors.toSet());
+            Set<FlowCnec> ptEsFlowCnecs = crac.getFlowCnecs().stream()
+                .filter(flowCnec -> flowCnec.getLocation(network).contains(Optional.of(Country.PT)))
+                .collect(Collectors.toSet());
 
-            return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, secure);
+            boolean cnecsOnPtEsBorderAreSecure = hasNoFlowCnecNegativeMargin(raoResult, ptEsFlowCnecs);
+            boolean cnecsOnFrEsBorderAreSecure = hasNoFlowCnecNegativeMargin(raoResult, frEsFlowCnecs);
+
+            return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, raoResult.isSecure(), cnecsOnPtEsBorderAreSecure, cnecsOnFrEsBorderAreSecure);
         } catch (RuntimeException | IOException e) {
             throw new CsaInternalException("RAO run failed. Nested exception: " + e.getMessage());
         }
-    }
-
-    boolean isSafeForBothBorders(Network network, Crac crac, RaoResult raoResult) {
-        //TODO : implement association between cnecs and borders (CSA-67)
-        Set<FlowCnec> frEsFlowCnecs = crac.getFlowCnecs().stream()
-            .filter(flowCnec -> flowCnec.getLocation(network).contains(Optional.of(Country.FR)))
-            .collect(Collectors.toSet());
-        Set<FlowCnec> ptEsFlowCnecs = crac.getFlowCnecs().stream()
-            .filter(flowCnec -> flowCnec.getLocation(network).contains(Optional.of(Country.PT)))
-            .collect(Collectors.toSet());
-
-           return hasNoFlowCnecNegativeMargin(raoResult, frEsFlowCnecs) && hasNoFlowCnecNegativeMargin(raoResult, ptEsFlowCnecs);
     }
 
     boolean hasNoFlowCnecNegativeMargin(RaoResult raoResult, Set<FlowCnec> flowCnecs) {
