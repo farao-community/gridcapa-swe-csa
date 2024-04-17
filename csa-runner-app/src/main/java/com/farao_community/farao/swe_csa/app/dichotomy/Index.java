@@ -87,6 +87,12 @@ public class Index {
     }
 
     public CounterTradingValues nextValues() {
-        return new CounterTradingValues((ptEsLowestSecureStep.getLeft() + ptEsHighestUnsecureStep.getLeft()) / 2, (frEsLowestSecureStep.getLeft() + frEsHighestUnsecureStep.getLeft()) / 2);
+        if (!exitConditionIsNotMetForFrEs() && exitConditionIsNotMetForPtEs()) {
+            return new CounterTradingValues((ptEsLowestSecureStep.getLeft() + ptEsHighestUnsecureStep.getLeft()) / 2, frEsLowestSecureStep.getLeft());
+        } else if (exitConditionIsNotMetForFrEs() && !exitConditionIsNotMetForPtEs()) {
+            return new CounterTradingValues(ptEsLowestSecureStep.getLeft(), (frEsLowestSecureStep.getLeft() + frEsHighestUnsecureStep.getLeft()) / 2);
+        } else {
+            return new CounterTradingValues((ptEsLowestSecureStep.getLeft() + ptEsHighestUnsecureStep.getLeft()) / 2, (frEsLowestSecureStep.getLeft() + frEsHighestUnsecureStep.getLeft()) / 2);
+        }
     }
 }

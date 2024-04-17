@@ -73,17 +73,17 @@ public class DichotomyRunner {
         // best case no counter trading , no scaling
         DichotomyStepResult<RaoResponse> noCtStepResult = sweCsaRaoValidator.validateNetwork(network, csaRequest, raoParametersUrl, true, true);
 
-        double ctFrEsMax = expFrEs0 >= 0 ? Math.min(Math.min(-ctRaFrEs.getMinAdmissibleSetpoint(expFrEs0), ctRaEsFr.getMaxAdmissibleSetpoint(expEsFr0)), expFrEs0)
-            : Math.min(Math.min(ctRaFrEs.getMaxAdmissibleSetpoint(expFrEs0), -ctRaEsFr.getMinAdmissibleSetpoint(expEsFr0)), -expFrEs0);
-
-        double ctPtEsMax = expPtEs0 >= 0 ? Math.min(Math.min(-ctRaPtEs.getMinAdmissibleSetpoint(expPtEs0), ctRaEsPt.getMaxAdmissibleSetpoint(expEsPt0)), expPtEs0)
-            : Math.min(Math.min(ctRaPtEs.getMaxAdmissibleSetpoint(expPtEs0), -ctRaEsPt.getMinAdmissibleSetpoint(expEsPt0)), -expPtEs0);
-
         if (noCtStepResult.isValid()) {
             return noCtStepResult.getRaoResult();
         } else {
+            // initial network not secure, try worst case maximum counter trading
+            double ctFrEsMax = expFrEs0 >= 0 ? Math.min(Math.min(-ctRaFrEs.getMinAdmissibleSetpoint(expFrEs0), ctRaEsFr.getMaxAdmissibleSetpoint(expEsFr0)), expFrEs0)
+                : Math.min(Math.min(ctRaFrEs.getMaxAdmissibleSetpoint(expFrEs0), -ctRaEsFr.getMinAdmissibleSetpoint(expEsFr0)), -expFrEs0);
+
+            double ctPtEsMax = expPtEs0 >= 0 ? Math.min(Math.min(-ctRaPtEs.getMinAdmissibleSetpoint(expPtEs0), ctRaEsPt.getMaxAdmissibleSetpoint(expEsPt0)), expPtEs0)
+                : Math.min(Math.min(ctRaPtEs.getMaxAdmissibleSetpoint(expPtEs0), -ctRaEsPt.getMinAdmissibleSetpoint(expEsPt0)), -expPtEs0);
+
             SweCsaNetworkShifter networkShifter = new SweCsaNetworkShifter(SweCsaZonalData.getZonalData(network), new ShiftDispatcher(initialNetPositions));
-            // worst case maximum counter trading
             CounterTradingValues maxCounterTradingValues = new CounterTradingValues(ctPtEsMax, ctFrEsMax);
             networkShifter.shiftNetwork(maxCounterTradingValues, network);
             DichotomyStepResult<RaoResponse> maxCtStepResult = sweCsaRaoValidator.validateNetwork(network, csaRequest, raoParametersUrl, true, true);
@@ -91,6 +91,7 @@ public class DichotomyRunner {
                 // TODO [US] [CSA-68] Handle cases that CT cannot secure
                 throw new CsaInvalidDataException("Maximum CT value cannot secure this case");
             } else {
+                // initial network not secure, and worst case with max CT is secure --> try to find optimum in between
                 Index index = new Index(0, ctPtEsMax, 0, ctFrEsMax, indexPrecision, maxDichotomiesByBorder);
                 index.addFrEsDichotomyStepResult(0, noCtStepResult);
                 index.addPtEsDichotomyStepResult(0, noCtStepResult);
