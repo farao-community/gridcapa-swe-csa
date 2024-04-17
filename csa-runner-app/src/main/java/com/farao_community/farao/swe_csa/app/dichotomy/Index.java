@@ -38,46 +38,6 @@ public class Index {
         this.maxDichotomiesByBorder = maxDichotomiesByBorder;
     }
 
-    public double getPtEsMaxValue() {
-        return ptEsMaxValue;
-    }
-
-    public double getPtEsMinValue() {
-        return ptEsMinValue;
-    }
-
-    public double getFrEsMinValue() {
-        return frEsMinValue;
-    }
-
-    public double getFrEsMaxValue() {
-        return frEsMaxValue;
-    }
-
-    public double getPrecision() {
-        return precision;
-    }
-
-    public List<Pair<Double, DichotomyStepResult<RaoResponse>>> getPtEsStepResults() {
-        return ptEsStepResults;
-    }
-
-    public Pair<Double, DichotomyStepResult<RaoResponse>> getPtEsHighestUnsecureStep() {
-        return ptEsHighestUnsecureStep;
-    }
-
-    public Pair<Double, DichotomyStepResult<RaoResponse>> getPtEsLowestSecureStep() {
-        return ptEsLowestSecureStep;
-    }
-
-    public List<Pair<Double, DichotomyStepResult<RaoResponse>>> getFrEsStepResults() {
-        return frEsStepResults;
-    }
-
-    public Pair<Double, DichotomyStepResult<RaoResponse>> getFrEsHighestUnsecureStep() {
-        return frEsHighestUnsecureStep;
-    }
-
     public Pair<Double, DichotomyStepResult<RaoResponse>> getFrEsLowestSecureStep() {
         return frEsLowestSecureStep;
     }
