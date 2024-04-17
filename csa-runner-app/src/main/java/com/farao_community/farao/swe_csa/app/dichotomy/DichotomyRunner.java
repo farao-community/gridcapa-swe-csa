@@ -73,7 +73,6 @@ public class DichotomyRunner {
         // best case no counter trading , no scaling
         DichotomyStepResult<RaoResponse> noCtStepResult = sweCsaRaoValidator.validateNetwork(network, csaRequest, raoParametersUrl, true, true);
 
-
         double ctFrEsMax = expFrEs0 >= 0 ? Math.min(Math.min(-ctRaFrEs.getMinAdmissibleSetpoint(expFrEs0), ctRaEsFr.getMaxAdmissibleSetpoint(expEsFr0)), expFrEs0)
             : Math.min(Math.min(ctRaFrEs.getMaxAdmissibleSetpoint(expFrEs0), -ctRaEsFr.getMinAdmissibleSetpoint(expEsFr0)), -expFrEs0);
 
