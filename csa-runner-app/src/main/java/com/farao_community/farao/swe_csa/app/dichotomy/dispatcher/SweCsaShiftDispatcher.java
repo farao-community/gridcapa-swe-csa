@@ -19,6 +19,8 @@ import com.powsybl.openrao.commons.EICode;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.lang.Math.signum;
+
 public class SweCsaShiftDispatcher implements ShiftDispatcher<MultipleDichotomyVariables> {
     private final Map<String, Double> initialNetPositions;
 
@@ -29,10 +31,14 @@ public class SweCsaShiftDispatcher implements ShiftDispatcher<MultipleDichotomyV
     @Override
     public Map<String, Double> dispatch(MultipleDichotomyVariables variable) {
         Map<String, Double> dispatching = new HashMap<>();
-        dispatching.put(new EICode(Country.ES).getAreaCode(), variable.values().get(CounterTradingDirection.FR_ES.getName())
-            + variable.values().get(CounterTradingDirection.PT_ES.getName()) - initialNetPositions.get(Country.ES.getName()));
-        dispatching.put(new EICode(Country.FR).getAreaCode(), -variable.values().get(CounterTradingDirection.FR_ES.getName()) - initialNetPositions.get(Country.FR.getName()));
-        dispatching.put(new EICode(Country.PT).getAreaCode(), -variable.values().get(CounterTradingDirection.PT_ES.getName()) - initialNetPositions.get(Country.PT.getName()));
+        dispatching.put(new EICode(Country.FR).getAreaCode(),
+            -variable.values().get(CounterTradingDirection.FR_ES.getName())
+                * signum(initialNetPositions.get(Country.FR.getName())));
+        dispatching.put(new EICode(Country.PT).getAreaCode(),
+            -variable.values().get(CounterTradingDirection.PT_ES.getName())
+                * signum(initialNetPositions.get(Country.PT.getName())));
+        dispatching.put(new EICode(Country.ES).getAreaCode(),
+            -(dispatching.get(new EICode(Country.FR).getAreaCode()) + dispatching.get(new EICode(Country.PT).getAreaCode())));
 
         return dispatching;
     }

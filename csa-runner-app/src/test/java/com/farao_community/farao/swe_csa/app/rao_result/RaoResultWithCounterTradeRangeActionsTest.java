@@ -1,5 +1,6 @@
 package com.farao_community.farao.swe_csa.app.rao_result;
 
+import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.data.cracapi.Crac;
 import com.powsybl.openrao.data.cracapi.RemedialAction;
 import com.powsybl.openrao.data.cracapi.State;
@@ -76,7 +77,7 @@ class RaoResultWithCounterTradeRangeActionsTest {
     void testRaoResultWithCounterTrading() {
         InputStream raoResultFile = getClass().getResourceAsStream("/rao_result/rao-result-v1.4.json");
         InputStream cracFile = getClass().getResourceAsStream("/rao_result/crac-for-rao-result-v1.4.json");
-        Crac crac = new JsonImport().importCrac(cracFile);
+        Crac crac = new JsonImport().importCrac(cracFile, Mockito.mock(Network.class));
         RaoResult raoResult = new RaoResultImporter().importRaoResult(raoResultFile, crac);
 
         RaoResult raoResultWithCounterTrading = new RaoResultWithCounterTradeRangeActions(raoResult, counterTradingResult);

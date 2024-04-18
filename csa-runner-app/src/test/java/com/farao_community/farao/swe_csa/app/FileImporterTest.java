@@ -46,7 +46,8 @@ class FileImporterTest {
 
     @Test
     void checkJsonCracIsImportedCorrectly() {
-        Crac crac = fileImporter.importCrac(Objects.requireNonNull(getClass().getResource("/rao_inputs/crac.json")).toString());
+        Network network = fileImporter.importNetwork(Objects.requireNonNull(getClass().getResource("/rao_inputs/network.xiidm")).toString());
+        Crac crac = fileImporter.importCrac(Objects.requireNonNull(getClass().getResource("/rao_inputs/crac.json")).toString(), network);
         assertEquals("rao test crac", crac.getId());
         assertEquals(1, crac.getContingencies().size());
         assertEquals(11, crac.getFlowCnecs().size());
@@ -55,7 +56,8 @@ class FileImporterTest {
     @Test
     void importCracThrowsException() {
 
-        Assertions.assertThatThrownBy(() -> fileImporter.importCrac("cracUrl"))
+        Network network = fileImporter.importNetwork(Objects.requireNonNull(getClass().getResource("/rao_inputs/network.xiidm")).toString());
+        Assertions.assertThatThrownBy(() -> fileImporter.importCrac("cracUrl", network))
             .isInstanceOf(RaoRunnerException.class)
             .hasCauseInstanceOf(MalformedURLException.class)
             .hasMessageContaining("Exception occurred while retrieving file name from : cracUrl")

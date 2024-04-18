@@ -21,17 +21,17 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.tuple.Pair;
 
 public final class DichotomyResult<I, U extends DichotomyVariable<U>> {
-    private final Pair<U, DichotomyStepResult<I>> highestValidStep;
-    private final Pair<U, DichotomyStepResult<I>> lowestInvalidStep;
+    private final Pair<U, DichotomyStepResult<I>> lowestValidStep;
+    private final Pair<U, DichotomyStepResult<I>> highestInvalidStep;
     private final LimitingCause limitingCause;
     private final String limitingFailureMessage;
 
-    private DichotomyResult(Pair<U, DichotomyStepResult<I>> highestValidStep,
-                            Pair<U, DichotomyStepResult<I>> lowestInvalidStep,
+    private DichotomyResult(Pair<U, DichotomyStepResult<I>> lowestValidStep,
+                            Pair<U, DichotomyStepResult<I>> highestInvalidStep,
                             LimitingCause limitingCause,
                             String limitingFailureMessage) {
-        this.highestValidStep = highestValidStep;
-        this.lowestInvalidStep = lowestInvalidStep;
+        this.lowestValidStep = lowestValidStep;
+        this.highestInvalidStep = highestInvalidStep;
         this.limitingCause = limitingCause;
         this.limitingFailureMessage = limitingFailureMessage;
     }
@@ -42,27 +42,27 @@ public final class DichotomyResult<I, U extends DichotomyVariable<U>> {
         // it is just unsecure.
         LimitingCause limitingCause = LimitingCause.INDEX_EVALUATION_OR_MAX_ITERATION;
         String failureMessage = "None";
-        if (index.lowestInvalidStep() != null && index.highestValidStep() != null) {
-            if (index.lowestInvalidStep().getRight().isFailed()) {
-                limitingCause = index.lowestInvalidStep().getRight().getReasonInvalid() == ReasonInvalid.GLSK_LIMITATION ?
+        if (index.lowestValidStep() != null && index.highestInvalidStep() != null) {
+            if (index.highestInvalidStep().getRight().isFailed()) {
+                limitingCause = index.highestInvalidStep().getRight().getReasonInvalid() == ReasonInvalid.GLSK_LIMITATION ?
                     LimitingCause.GLSK_LIMITATION : LimitingCause.COMPUTATION_FAILURE;
-                failureMessage = index.lowestInvalidStep().getRight().getFailureMessage();
+                failureMessage = index.highestInvalidStep().getRight().getFailureMessage();
             } else {
                 limitingCause = LimitingCause.CRITICAL_BRANCH;
             }
         }
 
-        Pair<V, DichotomyStepResult<J>> highestValidStepResponse = index.highestValidStep();
-        Pair<V, DichotomyStepResult<J>> lowestInvalidStepResponse = index.lowestInvalidStep();
-        return new DichotomyResult<>(highestValidStepResponse, lowestInvalidStepResponse, limitingCause, failureMessage);
+        Pair<V, DichotomyStepResult<J>> highestInvalidStepResponse = index.highestInvalidStep();
+        Pair<V, DichotomyStepResult<J>> lowestValidStepResponse = index.lowestValidStep();
+        return new DichotomyResult<>(lowestValidStepResponse, highestInvalidStepResponse, limitingCause, failureMessage);
     }
 
-    public DichotomyStepResult<I> getHighestValidStep() {
-        return highestValidStep.getRight();
+    public DichotomyStepResult<I> getHighestInvalidStep() {
+        return highestInvalidStep.getRight();
     }
 
-    public DichotomyStepResult<I> getLowestInvalidStep() {
-        return lowestInvalidStep.getRight();
+    public DichotomyStepResult<I> getLowestValidStep() {
+        return lowestValidStep.getRight();
     }
 
     public LimitingCause getLimitingCause() {
@@ -75,17 +75,17 @@ public final class DichotomyResult<I, U extends DichotomyVariable<U>> {
 
     @JsonIgnore
     public boolean hasValidStep() {
-        return highestValidStep != null;
+        return lowestValidStep != null;
     }
 
     @JsonIgnore
-    public U getHighestValidStepValue() {
-        return highestValidStep != null ? highestValidStep.getLeft() : null;
+    public U getHighestInvalidStepValue() {
+        return highestInvalidStep != null ? highestInvalidStep.getLeft() : null;
     }
 
     @JsonIgnore
-    public U getLowestInvalidStepValue() {
-        return lowestInvalidStep != null ? lowestInvalidStep.getLeft() : null;
+    public U getLowestValidStepValue() {
+        return lowestValidStep != null ? lowestValidStep.getLeft() : null;
     }
 
     @Override

@@ -41,7 +41,7 @@ class SweCsaRunnerTest {
 
         Network network = Network.read(getClass().getResource("/rao_inputs/network.xiidm").getPath());
         doReturn(network).when(fileImporter).importNetwork(any());
-        doReturn(null).when(fileImporter).importCrac(any());
+        doReturn(null).when(fileImporter).importCrac(any(), any());
         when(streamBridge.send(any(), any())).thenReturn(true);
         doReturn(new RaoResponse.RaoResponseBuilder().withId("raoResponseId")
             .withInstant("2023-08-08T15:30:00Z")

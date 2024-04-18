@@ -79,7 +79,7 @@ class SweCsaHalfRangeDivisionIndexStrategyTest {
             new MultipleDichotomyVariables(Map.of(CounterTradingDirection.PT_ES.getName(), 1500.0, CounterTradingDirection.FR_ES.getName(), 1000.0)), 10);
         Path filePath = Paths.get(new File(getClass().getResource("/CSA_42_CustomExample.zip").getFile()).toString());
         Network network = fileImporter.importNetwork(Objects.requireNonNull(getClass().getResource("/rao_inputs/network.xiidm")).toString());
-        Crac crac = fileImporter.importCrac(Objects.requireNonNull(getClass().getResource("/rao_inputs/crac.json")).toString());
+        Crac crac = fileImporter.importCrac(Objects.requireNonNull(getClass().getResource("/rao_inputs/crac.json")).toString(), network);
         SweCsaHalfRangeDivisionIndexStrategy indexStrategy1 = new SweCsaHalfRangeDivisionIndexStrategy(crac, network);
 
         DichotomyStepResult dichotomyStepResult1 = Mockito.mock(DichotomyStepResult.class);

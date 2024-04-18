@@ -49,16 +49,16 @@ public class SweCsaHalfRangeDivisionIndexStrategy extends HalfRangeDivisionIndex
     private void getCnecsBorder(Crac crac, Network network, Country country) {
         //TODO : implement association between cnecs and borders (CSA-67)
         this.frEsFlowCnecs = crac.getFlowCnecs().stream()
-            .filter(flowCnec -> flowCnec.getLocation(network).contains(Optional.of(Country.FR)))
+            .filter(flowCnec -> flowCnec.isOptimized() && flowCnec.getLocation(network).contains(Optional.of(Country.FR)))
             .collect(Collectors.toSet());
         this.ptEsFlowCnecs = crac.getFlowCnecs().stream()
-            .filter(flowCnec -> flowCnec.getLocation(network).contains(Optional.of(Country.PT)))
+            .filter(flowCnec -> flowCnec.isOptimized() && flowCnec.getLocation(network).contains(Optional.of(Country.PT)))
             .collect(Collectors.toSet());
         this.frEsAngleCnecs = crac.getAngleCnecs().stream()
-            .filter(angleCnec -> angleCnec.getLocation(network).contains(Optional.of(Country.FR)))
+            .filter(angleCnec -> angleCnec.isOptimized() && angleCnec.getLocation(network).contains(Optional.of(Country.FR)))
             .collect(Collectors.toSet());
         this.ptEsAngleCnecs = crac.getAngleCnecs().stream()
-            .filter(angleCnec -> angleCnec.getLocation(network).contains(Optional.of(Country.PT)))
+            .filter(angleCnec -> angleCnec.isOptimized() && angleCnec.getLocation(network).contains(Optional.of(Country.PT)))
             .collect(Collectors.toSet());
     }
 
@@ -92,34 +92,34 @@ public class SweCsaHalfRangeDivisionIndexStrategy extends HalfRangeDivisionIndex
         return this.ptEsAngleCnecs;
     }
 
-    double computeNextValue(Index<RaoResponse, MultipleDichotomyVariables> index, String key) {
-        double maxSafeValue = Double.MIN_VALUE;
-        double minUnsafeValue = Double.MAX_VALUE;
+    double computeNextValue(Index<RaoResponse, MultipleDichotomyVariables> index, String border) {
+        double maxUnsafeValue = -Double.MAX_VALUE;
+        double minSafeValue = Double.MAX_VALUE;
 
         for (Pair<MultipleDichotomyVariables, DichotomyStepResult<RaoResponse>> step : index.testedSteps()) {
-            boolean isSafe = isSafeForBorder((RaoResultWithCounterTradeRangeActions) step.getRight().getRaoResult(), key);
-            Double value = step.getLeft().values().get(key);
-            if (isSafe && value > maxSafeValue) {
-                maxSafeValue = value;
-            } else if (!isSafe && value < minUnsafeValue) {
-                minUnsafeValue = value;
+            boolean isSafe = isSafeForBorder((RaoResultWithCounterTradeRangeActions) step.getRight().getRaoResult(), border);
+            Double value = step.getLeft().values().get(border);
+            if (isSafe && value < minSafeValue) {
+                minSafeValue = value;
+            } else if (!isSafe && value > maxUnsafeValue) {
+                maxUnsafeValue = value;
             }
         }
 
-        if (minUnsafeValue == Double.MAX_VALUE) { // if there's no unsafe value
-            return index.maxValue().values().get(key);
+        if (maxUnsafeValue == -Double.MAX_VALUE) { // if there's no unsafe value
+            return index.minValue().values().get(border);
         }
 
-        if (maxSafeValue == Double.MIN_VALUE) { // if there's no safe value
-            return index.minValue().values().get(key);
+        if (minSafeValue == Double.MAX_VALUE) { // if there's no safe value
+            return index.maxValue().values().get(border);
         }
 
         // If precision is reached, keep max value
-        if (Math.abs(maxSafeValue - minUnsafeValue) < index.precision()) {
-            return maxSafeValue;
+        if (Math.abs(minSafeValue - maxUnsafeValue) < index.precision()) {
+            return minSafeValue;
         }
         // Else, return average
-        return (maxSafeValue + minUnsafeValue) / 2;
+        return (minSafeValue + maxUnsafeValue) / 2;
     }
 
     boolean isSafeForBorder(RaoResultWithCounterTradeRangeActions raoResult, String key) {
@@ -134,7 +134,7 @@ public class SweCsaHalfRangeDivisionIndexStrategy extends HalfRangeDivisionIndex
 
     boolean hasFlowCnecNegativeMargin(RaoResultWithCounterTradeRangeActions raoResult, Set<FlowCnec> flowCnecs) {
         for (FlowCnec flowCnec : flowCnecs) {
-            if (raoResult.getMargin(flowCnec.getState().getInstant(), flowCnec, Unit.MEGAWATT) < 0) {
+            if (raoResult.getMargin(flowCnec.getState().getInstant(), flowCnec, Unit.AMPERE) < 0) {
                 return true;
             }
         }

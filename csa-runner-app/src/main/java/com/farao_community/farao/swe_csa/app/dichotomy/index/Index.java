@@ -33,8 +33,8 @@ public class Index<T, U extends DichotomyVariable> {
     private final U maxValue;
     private final double precision;
     private final List<Pair<U, DichotomyStepResult<T>>> stepResults = new ArrayList<>();
-    private Pair<U, DichotomyStepResult<T>> highestValidStep;
-    private Pair<U, DichotomyStepResult<T>> lowestInvalidStep;
+    private Pair<U, DichotomyStepResult<T>> highestInvalidStep;
+    private Pair<U, DichotomyStepResult<T>> lowestValidStep;
 
     public Index(U minValue, U maxValue, double precision) {
         if (minValue.isGreaterThan(maxValue)) {
@@ -57,12 +57,12 @@ public class Index<T, U extends DichotomyVariable> {
         return precision;
     }
 
-    public Pair<U, DichotomyStepResult<T>> highestValidStep() {
-        return highestValidStep;
+    public Pair<U, DichotomyStepResult<T>> highestInvalidStep() {
+        return highestInvalidStep;
     }
 
-    public Pair<U, DichotomyStepResult<T>> lowestInvalidStep() {
-        return lowestInvalidStep;
+    public Pair<U, DichotomyStepResult<T>> lowestValidStep() {
+        return lowestValidStep;
     }
 
     public List<Pair<U, DichotomyStepResult<T>>> testedSteps() {
@@ -71,16 +71,16 @@ public class Index<T, U extends DichotomyVariable> {
 
     public void addDichotomyStepResult(U stepValue, DichotomyStepResult<T> stepResult) {
         if (stepResult.isValid()) {
-            if (highestValidStep != null && highestValidStep.getLeft().isGreaterThan(stepValue)) {
-                throw new AssertionError("Step result tested is secure but its value is lower than highest secure step one. Should not happen");
+            if (lowestValidStep != null && stepValue.isGreaterThan(lowestValidStep.getLeft())) {
+                throw new AssertionError("Step result tested is secure but its value is greater than lowest secure step one. Should not happen");
             }
-            highestValidStep = Pair.of(stepValue, stepResult);
+            lowestValidStep = Pair.of(stepValue, stepResult);
         } else {
-            if (lowestInvalidStep != null && lowestInvalidStep.getRight().getReasonInvalid().equals(ReasonInvalid.UNSECURE_AFTER_VALIDATION)
-                && stepValue.isGreaterThan(lowestInvalidStep.getLeft())) {
-                throw new AssertionError("Step result tested is unsecure but its value is higher than lowest unsecure step one. Should not happen");
+            if (highestInvalidStep != null && highestInvalidStep.getRight().getReasonInvalid().equals(ReasonInvalid.UNSECURE_AFTER_VALIDATION)
+                && highestInvalidStep.getLeft().isGreaterThan(stepValue)) {
+                throw new AssertionError("Step result tested is unsecure but its value is lower than highest unsecure step one. Should not happen");
             }
-            lowestInvalidStep = Pair.of(stepValue, stepResult);
+            highestInvalidStep = Pair.of(stepValue, stepResult);
         }
         stepResults.add(Pair.of(stepValue, stepResult));
     }

@@ -33,37 +33,20 @@ public class HalfRangeDivisionIndexStrategy<U extends DichotomyVariable<U>> impl
             throw new AssertionError("Dichotomy engine should not ask for next value if precision is reached");
         }
         if (startWithMin) {
-            if (index.highestValidStep() == null) {
+            if (index.lowestValidStep() == null) {
                 return index.minValue();
             }
-            if (index.lowestInvalidStep() == null) {
-                return index.maxValue().halfRangeWith(index.highestValidStep().getLeft());
+            if (index.highestInvalidStep() == null) {
+                return index.maxValue().halfRangeWith(index.lowestValidStep().getLeft());
             }
         } else {
-            if (index.lowestInvalidStep() == null) {
+            if (index.highestInvalidStep() == null) {
                 return index.maxValue();
             }
-            if (index.highestValidStep() == null) {
-                return index.lowestInvalidStep().getLeft().halfRangeWith(index.minValue());
+            if (index.lowestValidStep() == null) {
+                return index.highestInvalidStep().getLeft().halfRangeWith(index.minValue());
             }
         }
-        return index.lowestInvalidStep().getLeft().halfRangeWith(index.highestValidStep().getLeft());
-    }
-
-    @Override
-    public boolean precisionReached(Index<?, U> index) {
-        if (index.lowestInvalidStep() != null && index.lowestInvalidStep().getLeft().distanceTo(index.minValue()) < EPSILON) {
-            return true;
-        }
-        if (index.highestValidStep() != null && index.highestValidStep().getLeft().distanceTo(index.maxValue()) < EPSILON) {
-            return true;
-        }
-        if (index.lowestInvalidStep() != null && index.highestValidStep() == null) {
-            return index.lowestInvalidStep().getLeft().distanceTo(index.minValue()) <= index.precision();
-        }
-        if (index.lowestInvalidStep() == null) {
-            return false;
-        }
-        return index.highestValidStep().getLeft().distanceTo(index.lowestInvalidStep().getLeft()) <= index.precision();
+        return index.highestInvalidStep().getLeft().halfRangeWith(index.lowestValidStep().getLeft());
     }
 }

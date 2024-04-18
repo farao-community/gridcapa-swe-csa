@@ -68,8 +68,8 @@ public class SweCsaDichotomyRunner {
             LOGGER.info("Csa request received : {}", csaRequest);
             Instant utcInstant = Instant.parse(csaRequest.getBusinessTimestamp());
             String raoParametersUrl = fileImporter.uploadRaoParameters(requestId, utcInstant);
-            Crac crac = fileImporter.importCrac(csaRequest.getCracFileUri());
             Network network = fileImporter.importNetwork(csaRequest.getGridModelUri());
+            Crac crac = fileImporter.importCrac(csaRequest.getCracFileUri(), network);
             RaoRequest raoRequest = new RaoRequest.RaoRequestBuilder()
                 .withId(requestId)
                 .withNetworkFileUrl(csaRequest.getGridModelUri())
@@ -92,7 +92,7 @@ public class SweCsaDichotomyRunner {
 
     protected RaoResponse getDichotomyResponse(Network network, Crac crac, SweCsaRaoValidator validator, SweCsaHalfRangeDivisionIndexStrategy indexStrategy) {
         DichotomyResult<RaoResponse, MultipleDichotomyVariables> result = this.getEngine(network, crac, validator, indexStrategy).run(network);
-        return result.getHighestValidStep().getValidationData();
+        return result.getLowestValidStep().getValidationData();
     }
 
     protected SweCsaDichotomyEngine getEngine(Network network, Crac crac, SweCsaRaoValidator validator, SweCsaHalfRangeDivisionIndexStrategy indexStrategy) {

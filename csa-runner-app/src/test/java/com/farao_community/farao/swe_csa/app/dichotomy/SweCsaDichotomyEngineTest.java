@@ -37,7 +37,7 @@ public class SweCsaDichotomyEngineTest {
     @Test
     void newSweCsaDichotomyEngineTestWithoutEnoughIterations() {
         Network network = fileImporter.importNetwork(Objects.requireNonNull(getClass().getResource("/rao_inputs/network.xiidm")).toString());
-        Crac crac = fileImporter.importCrac(Objects.requireNonNull(getClass().getResource("/rao_inputs/crac.json")).toString());
+        Crac crac = fileImporter.importCrac(Objects.requireNonNull(getClass().getResource("/rao_inputs/crac.json")).toString(), network);
         assertThrows(DichotomyException.class, () -> new SweCsaDichotomyEngine(
             new Index<>(new MultipleDichotomyVariables(new HashMap<>()), new MultipleDichotomyVariables(new HashMap<>()), 10),
             new SweCsaHalfRangeDivisionIndexStrategy(crac, network),
@@ -61,7 +61,7 @@ public class SweCsaDichotomyEngineTest {
         DichotomyResult<RaoResponse, MultipleDichotomyVariables> dichotomyResult = dichotomyEngine.run(network);
 
         assertNotNull(dichotomyResult);
-        assertNotNull(dichotomyResult.getLowestInvalidStep());
+        assertNotNull(dichotomyResult.getHighestInvalidStep());
         assertEquals(LimitingCause.INDEX_EVALUATION_OR_MAX_ITERATION.name(), dichotomyResult.getLimitingCause().name());
     }
 }
