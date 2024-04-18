@@ -39,7 +39,7 @@ import static com.powsybl.openrao.commons.logs.OpenRaoLoggerProvider.BUSINESS_WA
  */
 
 public final class SweCsaNetworkShifter implements NetworkShifter<MultipleDichotomyVariables> {
-    private static final double DEFAULT_EPSILON = 1e-3;
+    private static final double DEFAULT_EPSILON = 1e-2;
     private static final double DEFAULT_TOLERANCE_ES_PT = 1;
     private static final double DEFAULT_TOLERANCE_ES_FR = 1;
     private static final double DEFAULT_MAX_SHIFT_ITERATION = 10;
@@ -78,13 +78,19 @@ public final class SweCsaNetworkShifter implements NetworkShifter<MultipleDichot
                 scalingValuesByCountry.get(EI_CODE_ES), scalingValuesByCountry.get(EI_CODE_FR), scalingValuesByCountry.get(EI_CODE_PT));
             BUSINESS_LOGS.info(logTargetCountriesShift);
 
+            Map<String, Double> targetExchanges = getTargetExchanges(scalingValuesByCountry, network);
+            int iterationCounter = 0;
+            boolean shiftSucceed = false;
+
             String initialVariantId = network.getVariantManager().getWorkingVariantId();
             String processedVariantId = initialVariantId + " PROCESSED COPY";
             String workingVariantCopyId = initialVariantId + " WORKING COPY";
             preProcessNetwork(network, scalableGeneratorConnector, initialVariantId, processedVariantId, workingVariantCopyId);
             List<String> limitingCountries = new ArrayList<>();
 
-            for (Map.Entry<String, Double> entry : scalingValuesByCountry.entrySet()) {
+            Map<String, Double> bordersExchanges;
+
+            /*for (Map.Entry<String, Double> entry : scalingValuesByCountry.entrySet()) {
                 String zoneId = entry.getKey();
                 double asked = entry.getValue();
                 String logApplyingVariationOnZone = String.format("Applying variation on zone %s (target: %.2f)", zoneId, asked);
@@ -105,9 +111,9 @@ public final class SweCsaNetworkShifter implements NetworkShifter<MultipleDichot
                 BUSINESS_WARNS.error("{}", sj);
                 throw new GlskLimitationException(sj.toString());
             }
-            network.getVariantManager().cloneVariant(workingVariantCopyId, initialVariantId, true);
+            network.getVariantManager().cloneVariant(workingVariantCopyId, initialVariantId, true);/**/
 
-            /*do {
+            do {
                 // Step 1: Perform the scaling
                 BUSINESS_LOGS.info("Applying shift iteration {} ", iterationCounter);
                 for (Map.Entry<String, Double> entry : scalingValuesByCountry.entrySet()) {
@@ -118,6 +124,7 @@ public final class SweCsaNetworkShifter implements NetworkShifter<MultipleDichot
                     ScalingParameters scalingParameters = new ScalingParameters();
                     scalingParameters.setPriority(ScalingParameters.Priority.RESPECT_OF_VOLUME_ASKED);
                     scalingParameters.setReconnect(true);
+                    scalingParameters.setScalingType(ScalingParameters.ScalingType.DELTA_P);
                     double done = zonalScalable.getData(zoneId).scale(network, asked, scalingParameters);
                     if (Math.abs(done - asked) > shiftEpsilon) {
                         String logWarnIncompleteVariation = String.format("Incomplete variation on zone %s (target: %.2f, done: %.2f)", zoneId, asked, done);
@@ -128,7 +135,7 @@ public final class SweCsaNetworkShifter implements NetworkShifter<MultipleDichot
                 if (!limitingCountries.isEmpty()) {
                     StringJoiner sj = new StringJoiner(", ", "There are Glsk limitation(s) in ", ".");
                     limitingCountries.forEach(sj::add);
-                    BUSINESS_WARNS.error("{}", sj);
+                    BUSINESS_WARNS.warn("{}", sj);
                     throw new GlskLimitationException(sj.toString());
                 }
 
@@ -165,7 +172,7 @@ public final class SweCsaNetworkShifter implements NetworkShifter<MultipleDichot
                 String message = String.format("Balancing adjustment out of tolerances : Exchange ES-PT = %.2f , Exchange ES-FR =  %.2f", bordersExchanges.get(ES_PT), bordersExchanges.get(ES_FR));
                 BUSINESS_LOGS.error(message);
                 throw new ShiftingException(message);
-            }*/
+            }
 
             // Step 5: Reset current variant with initial state
             network.getVariantManager().setWorkingVariant(initialVariantId);
@@ -189,10 +196,11 @@ public final class SweCsaNetworkShifter implements NetworkShifter<MultipleDichot
         network.getVariantManager().setWorkingVariant(workingVariantCopyId);
     }
 
-    private Map<String, Double> getTargetExchanges(Map<String, Double> scalingValuesByCountry) {
+    private Map<String, Double> getTargetExchanges(Map<String, Double> scalingValuesByCountry, Network network) {
+        Map<String, Double> initialExchanges = CountryBalanceComputation.computeSweBordersExchanges(network);
         Map<String, Double> targetExchanges = new HashMap<>();
-        targetExchanges.put(ES_PT, -scalingValuesByCountry.get(EI_CODE_PT));
-        targetExchanges.put(ES_FR, -scalingValuesByCountry.get(EI_CODE_FR));
+        targetExchanges.put(ES_PT, initialExchanges.get(ES_PT) - scalingValuesByCountry.get(EI_CODE_PT));
+        targetExchanges.put(ES_FR, initialExchanges.get(ES_FR) - scalingValuesByCountry.get(EI_CODE_FR));
         return targetExchanges;
     }
 
