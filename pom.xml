@@ -24,13 +24,13 @@
 
     <properties>
         <!-- BUSINESS DEPENDENCIES -->
-        <farao.dependencies.version>1.27.0</farao.dependencies.version>
+        <farao.dependencies.version>1.30.0-SNAPSHOT</farao.dependencies.version>
         <gridcapa.rao.runner.version>1.21.0</gridcapa.rao.runner.version>
-        <gridcapa.swe.commons.version>1.18.0-SNAPSHOT</gridcapa.swe.commons.version>
+        <gridcapa.swe.commons.version>1.16.0</gridcapa.swe.commons.version>
 
         <!-- TECHNICAL DEPENDENCIES -->
         <commons.lang.version>3.11</commons.lang.version>
-        <commons.io.version>2.11.0</commons.io.version>
+        <commons.io.version>2.12.0</commons.io.version>
         <jackson.databind.version>2.11.0</jackson.databind.version>
         <jackson.datatype.version>2.13.0</jackson.datatype.version>
         <jsonapi.converter.version>0.10</jsonapi.converter.version>

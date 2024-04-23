@@ -9,17 +9,13 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
 
 import com.farao_community.farao.dichotomy.api.exceptions.GlskLimitationException;
 import com.farao_community.farao.dichotomy.api.exceptions.ShiftingException;
-import com.farao_community.farao.gridcapa_swe_commons.shift.CountryBalanceComputation;
-import com.farao_community.farao.gridcapa_swe_commons.shift.SweGeneratorsShiftHelper;
-import com.powsybl.computation.local.LocalComputationManager;
+import com.farao_community.farao.gridcapa_swe_commons.shift.ScalableGeneratorConnector;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.modification.scalable.ScalingParameters;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.loadflow.LoadFlow;
-import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.openrao.commons.EICode;
 
 import java.util.*;
 
@@ -32,11 +28,9 @@ import static com.powsybl.openrao.commons.logs.OpenRaoLoggerProvider.BUSINESS_WA
 
 public final class SweCsaNetworkShifter {
     private static final double DEFAULT_EPSILON = 1e-3;
-    private static final double DEFAULT_TOLERANCE_ES_PT = 1;
-    private static final double DEFAULT_TOLERANCE_ES_FR = 1;
-    private static final double MAX_ITERATIONS_BY_SHIFT = 10;
-    public static final String ES_PT = "ES_PT";
-    public static final String ES_FR = "ES_FR";
+    public static final String EI_CODE_FR = new EICode(Country.FR).getAreaCode();
+    public static final String EI_CODE_PT = new EICode(Country.PT).getAreaCode();
+    public static final String EI_CODE_ES = new EICode(Country.ES).getAreaCode();
     private final ZonalData<Scalable> zonalScalable;
     private final double shiftEpsilon;
 
@@ -53,71 +47,54 @@ public final class SweCsaNetworkShifter {
     }
 
     public void shiftNetwork(CounterTradingValues counterTradingValues, Network network) throws GlskLimitationException, ShiftingException {
-        SweGeneratorsShiftHelper sweGeneratorsShiftHelper = new SweGeneratorsShiftHelper(zonalScalable);
-
         BUSINESS_LOGS.info("Starting shift on network {}", network.getVariantManager().getWorkingVariantId());
-        Map<Country, Double> scalingValuesByCountry = shiftDispatcher.dispatch(counterTradingValues);
+        Map<String, Double> scalingValuesByCountry = shiftDispatcher.dispatch(counterTradingValues);
+        ScalableGeneratorConnector scalableGeneratorConnector = new ScalableGeneratorConnector(zonalScalable);
 
         try {
             String logTargetCountriesShift = String.format("Target shifts by country: [ES = %.2f, FR = %.2f, PT = %.2f]",
-                scalingValuesByCountry.get(Country.ES), scalingValuesByCountry.get(Country.FR), scalingValuesByCountry.get(Country.PT));
+                scalingValuesByCountry.get(EI_CODE_ES), scalingValuesByCountry.get(EI_CODE_FR), scalingValuesByCountry.get(EI_CODE_PT));
+
             BUSINESS_LOGS.info(logTargetCountriesShift);
-            int iterationCounter = 1;
-            boolean shiftSucceed = false;
 
             String initialVariantId = network.getVariantManager().getWorkingVariantId();
             String processedVariantId = initialVariantId + " PROCESSED COPY";
             String workingVariantCopyId = initialVariantId + " WORKING COPY";
-            sweGeneratorsShiftHelper.preProcessNetwork(network, initialVariantId, processedVariantId, workingVariantCopyId);
+            preProcessNetwork(network, scalableGeneratorConnector, initialVariantId, processedVariantId, workingVariantCopyId);
             List<String> limitingCountries = new ArrayList<>();
-            Map<String, Double> bordersExchanges;
 
-            do {
-                // Step 1: Perform the scaling
-                BUSINESS_LOGS.info("Applying shift iteration {} ", iterationCounter);
-                shiftIterations(network, scalingValuesByCountry, limitingCountries, SweGeneratorsShiftHelper.getScalingParameters());
-                sweGeneratorsShiftHelper.connectGeneratorsTransformers(network);
-
-                // Step 2: Compute exchanges mismatch
-                LoadFlowResult result = LoadFlow.run(network, workingVariantCopyId, LocalComputationManager.getDefault(), LoadFlowParameters.load());
-                if (result.isFailed()) {
-                    String message = String.format("Loadflow computation diverged on network '%s' during balancing adjustment", network.getId());
-                    throw new ShiftingException(message);
+            for (Map.Entry<String, Double> entry : scalingValuesByCountry.entrySet()) {
+                String zoneId = entry.getKey();
+                double asked = entry.getValue();
+                String logApplyingVariationOnZone = String.format("Applying variation on zone %s (target: %.2f)", zoneId, asked);
+                BUSINESS_LOGS.info(logApplyingVariationOnZone);
+                ScalingParameters scalingParameters = new ScalingParameters();
+                scalingParameters.setPriority(ScalingParameters.Priority.RESPECT_OF_VOLUME_ASKED);
+                scalingParameters.setReconnect(true);
+                double done = zonalScalable.getData(zoneId).scale(network, asked, scalingParameters);
+                if (Math.abs(done - asked) > shiftEpsilon) {
+                    String logWarnIncompleteVariation = String.format("Incomplete variation on zone %s (target: %.2f, done: %.2f)", zoneId, asked, done);
+                    BUSINESS_WARNS.warn(logWarnIncompleteVariation);
+                    limitingCountries.add(zoneId);
                 }
-                bordersExchanges = CountryBalanceComputation.computeSweBordersExchanges(network);
-                double mismatchEsPt = -counterTradingValues.getPtEsCt() - bordersExchanges.get(ES_PT);
-                double mismatchEsFr = -counterTradingValues.getFrEsCt() - bordersExchanges.get(ES_FR);
-
-                // Step 3: Checks balance adjustment results
-                if (Math.abs(mismatchEsPt) < DEFAULT_TOLERANCE_ES_PT && Math.abs(mismatchEsFr) < DEFAULT_TOLERANCE_ES_FR) {
-                    String logShiftSucceded = String.format("Shift succeed after %s iteration ", ++iterationCounter);
-                    BUSINESS_LOGS.info(logShiftSucceded);
-                    String logBordersExchange = String.format("Exchange ES-PT = %.2f , Exchange ES-FR =  %.2f", bordersExchanges.get(ES_PT), bordersExchanges.get(ES_FR));
-                    BUSINESS_LOGS.info(logBordersExchange);
-                    network.getVariantManager().cloneVariant(workingVariantCopyId, initialVariantId, true);
-                    shiftSucceed = true;
-                } else {
-                    // Reset current variant with initial state for each iteration (keeping pre-processing)
-                    network.getVariantManager().cloneVariant(processedVariantId, workingVariantCopyId, true);
-                    ++iterationCounter;
-                }
-
-            } while (iterationCounter < MAX_ITERATIONS_BY_SHIFT && !shiftSucceed);
-
-            // Step 4 : check after iteration max and out of tolerance
-            if (!shiftSucceed) {
-                String message = String.format("Balancing adjustment out of tolerances : Exchange ES-PT = %.2f , Exchange ES-FR =  %.2f", bordersExchanges.get(ES_PT), bordersExchanges.get(ES_FR));
-                BUSINESS_LOGS.error(message);
-                throw new ShiftingException(message);
             }
+            if (!limitingCountries.isEmpty()) {
+                StringJoiner sj = new StringJoiner(", ", "There are Glsk limitation(s) in ", ".");
+                limitingCountries.forEach(sj::add);
+                BUSINESS_WARNS.warn("{}", sj.toString());
+                throw new GlskLimitationException(sj.toString());
+            }
+            network.getVariantManager().cloneVariant(workingVariantCopyId, initialVariantId, true);
 
             // Step 5: Reset current variant with initial state
             network.getVariantManager().setWorkingVariant(initialVariantId);
             network.getVariantManager().removeVariant(processedVariantId);
             network.getVariantManager().removeVariant(workingVariantCopyId);
         } finally {
-            sweGeneratorsShiftHelper.resetInitialPminPmax(network);
+            // revert connections of TWT on generators that were not used by the scaling
+            scalableGeneratorConnector.revertUnnecessaryChanges(network);
         }
+
     }
 
     private void shiftIterations(Network network, Map<Country, Double> scalingValuesByCountry, List<String> limitingCountries, ScalingParameters scalingParameters) throws GlskLimitationException {
@@ -141,4 +118,11 @@ public final class SweCsaNetworkShifter {
         }
     }
 
+    private void preProcessNetwork(Network network, ScalableGeneratorConnector scalableGeneratorConnector, String initialVariantId, String processedVariantId, String workingVariantCopyId) throws ShiftingException {
+        network.getVariantManager().cloneVariant(initialVariantId, processedVariantId, true);
+        network.getVariantManager().setWorkingVariant(processedVariantId);
+        scalableGeneratorConnector.prepareForScaling(network, Set.of(Country.ES, Country.FR, Country.PT));
+        network.getVariantManager().cloneVariant(processedVariantId, workingVariantCopyId, true);
+        network.getVariantManager().setWorkingVariant(workingVariantCopyId);
+    }
 }

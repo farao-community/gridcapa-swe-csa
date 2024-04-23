@@ -17,17 +17,19 @@ import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
 import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.app.FileExporter;
-import com.farao_community.farao.swe_csa.app.FileImporter;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openrao.commons.Unit;
 import com.powsybl.openrao.data.cracapi.Crac;
+import com.powsybl.openrao.data.cracapi.cnec.AngleCnec;
+import com.powsybl.openrao.data.cracapi.cnec.Cnec;
 import com.powsybl.openrao.data.cracapi.cnec.FlowCnec;
 import com.powsybl.openrao.data.raoresultapi.RaoResult;
 import com.powsybl.openrao.data.raoresultjson.RaoResultImporter;
 import com.powsybl.openrao.monitoring.voltagemonitoring.VoltageMonitoring;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -35,6 +37,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.net.URL;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -43,46 +46,41 @@ import java.util.stream.Collectors;
 public class SweCsaRaoValidator {
 
     private final FileExporter fileExporter;
-    private final FileImporter fileImporter;
-
     private final RaoRunnerClient raoRunnerClient;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SweCsaRaoValidator.class);
 
-    public SweCsaRaoValidator(FileExporter fileExporter, FileImporter fileImporter, RaoRunnerClient raoRunnerClient) {
+    public SweCsaRaoValidator(FileExporter fileExporter, RaoRunnerClient raoRunnerClient) {
         this.fileExporter = fileExporter;
-        this.fileImporter = fileImporter;
         this.raoRunnerClient = raoRunnerClient;
     }
 
-    public DichotomyStepResult validateNetwork(Network network, CsaRequest csaRequest, String raoParametersUrl, boolean withVoltageMonitoring, boolean withAngleMonitoring) {
+    public DichotomyStepResult validateNetwork(Network network, Crac crac, CsaRequest csaRequest, String raoParametersUrl, boolean withVoltageMonitoring, boolean withAngleMonitoring) {
         RaoRequest raoRequest = buildRaoRequest(csaRequest.getBusinessTimestamp(), csaRequest.getId(), network, csaRequest.getCracFileUri(), raoParametersUrl);
         try {
             LOGGER.info("RAO request sent: {}", raoRequest);
             RaoResponse raoResponse = raoRunnerClient.runRao(raoRequest);
             LOGGER.info("RAO response received: {}", raoResponse);
-            Crac crac = fileImporter.importCrac(csaRequest.getCracFileUri());
-            RaoResult raoResult = new RaoResultImporter().importRaoResult(new URL(raoResponse.getRaoResultFileUrl()).openStream(), fileImporter.importCrac(csaRequest.getCracFileUri()));
+            RaoResult raoResult = new RaoResultImporter().importRaoResult(new URL(raoResponse.getRaoResultFileUrl()).openStream(), crac);
 
             if (withVoltageMonitoring) {
                 VoltageMonitoring voltageMonitoring = new VoltageMonitoring(crac, network, raoResult);
-                raoResult = voltageMonitoring.runAndUpdateRaoResult(LoadFlow.find().getName(), LoadFlowParameters.load(), 1); // TODO number of LF in parallel
+                raoResult = voltageMonitoring.runAndUpdateRaoResult(LoadFlow.find().getName(), LoadFlowParameters.load(), 1); // TODO number of LF in parallel?
             }
 
             // TODO when csa glsk is ready add withAngleMonitoring check to raoResult
 
             //TODO : implement association between cnecs and borders (CSA-67)
             Set<FlowCnec> frEsFlowCnecs = crac.getFlowCnecs().stream()
-                .filter(flowCnec -> flowCnec.getLocation(network).contains(Optional.of(Country.FR)))
+                .filter(flowCnec -> flowCnec.isOptimized() && flowCnec.getLocation(network).contains(Optional.of(Country.FR)))
                 .collect(Collectors.toSet());
             Set<FlowCnec> ptEsFlowCnecs = crac.getFlowCnecs().stream()
-                .filter(flowCnec -> flowCnec.getLocation(network).contains(Optional.of(Country.PT)))
+                .filter(flowCnec -> flowCnec.isOptimized() && flowCnec.getLocation(network).contains(Optional.of(Country.PT)))
                 .collect(Collectors.toSet());
-
             boolean cnecsOnPtEsBorderAreSecure = hasNoFlowCnecNegativeMargin(raoResult, ptEsFlowCnecs);
             boolean cnecsOnFrEsBorderAreSecure = hasNoFlowCnecNegativeMargin(raoResult, frEsFlowCnecs);
 
-            return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, raoResult.isSecure(), cnecsOnPtEsBorderAreSecure, cnecsOnFrEsBorderAreSecure);
+            return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, cnecsOnPtEsBorderAreSecure, cnecsOnFrEsBorderAreSecure);
         } catch (RuntimeException | IOException e) {
             throw new CsaInternalException("RAO run failed. Nested exception: " + e.getMessage());
         }
@@ -90,7 +88,7 @@ public class SweCsaRaoValidator {
 
     boolean hasNoFlowCnecNegativeMargin(RaoResult raoResult, Set<FlowCnec> flowCnecs) {
         for (FlowCnec flowCnec : flowCnecs) {
-            if (raoResult.getMargin(flowCnec.getState().getInstant(), flowCnec, Unit.MEGAWATT) < 0) {
+            if (raoResult.getMargin(flowCnec.getState().getInstant(), flowCnec, Unit.AMPERE) < 0) {
                 return false;
             }
         }
@@ -118,4 +116,5 @@ public class SweCsaRaoValidator {
     private String generateScaledNetworkPath(Network network, String timestamp) {
         return generateArtifactsFolder(timestamp) + network.getNameOrId() + network.getVariantManager().getWorkingVariantId() + ".xiidm";
     }
+
 }

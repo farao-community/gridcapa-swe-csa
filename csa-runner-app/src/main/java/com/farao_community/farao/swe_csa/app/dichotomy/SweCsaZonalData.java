@@ -15,6 +15,7 @@ import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.glsk.commons.ZonalDataImpl;
 import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.*;
+import com.powsybl.openrao.commons.EICode;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -55,7 +56,7 @@ public final class SweCsaZonalData {
                 scalables.add(Scalable.onGenerator(generator.getId()));
             });
             Scalable scalable = Scalable.proportional(percentages, scalables);
-            zonalData.addAll(new ZonalDataImpl<>(Collections.singletonMap(c.getName(), scalable)));
+            zonalData.addAll(new ZonalDataImpl<>(Collections.singletonMap(new EICode(Country.valueOf(c.toString())).getAreaCode(), scalable)));
         }
 
         return zonalData;

@@ -6,8 +6,6 @@ import com.powsybl.openrao.data.raoresultapi.RaoResult;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 public final class DichotomyStepResult {
-    private final boolean raoSecure;
-
     private final boolean ptEsCnecsSecure;
     private final boolean frEsCnecsSecure;
     private final RaoResult raoResult;
@@ -15,32 +13,31 @@ public final class DichotomyStepResult {
     private final ReasonInvalid reasonInvalid;
     private final String failureMessage;
 
-    private DichotomyStepResult(ReasonInvalid reasonInvalid, String failureMessage) {
-        this.raoSecure = false;
-        this.ptEsCnecsSecure = false;
-        this.frEsCnecsSecure = false;
+    private DichotomyStepResult(ReasonInvalid reasonInvalid, String failureMessage, boolean fromPtEsFailure, boolean fromFrEsFailure) {
+        this.ptEsCnecsSecure = !fromPtEsFailure;
+        this.frEsCnecsSecure = !fromFrEsFailure;
         this.raoResult = null;
         this.raoResponse = null;
         this.reasonInvalid = reasonInvalid;
         this.failureMessage = failureMessage;
     }
 
-    private DichotomyStepResult(RaoResult raoResult, RaoResponse raoResponse, boolean raoSecure, boolean ptEsCnecsSecure, boolean frEsCnecsSecure) {
+    private DichotomyStepResult(RaoResult raoResult, RaoResponse raoResponse, boolean ptEsCnecsSecure, boolean frEsCnecsSecure) {
         this.raoResult = raoResult;
         this.raoResponse = raoResponse;
-        this.raoSecure = raoSecure;
         this.ptEsCnecsSecure = ptEsCnecsSecure;
         this.frEsCnecsSecure = frEsCnecsSecure;
-        this.reasonInvalid = this.raoSecure ? ReasonInvalid.NONE : ReasonInvalid.UNSECURE_AFTER_VALIDATION;
+        this.reasonInvalid = ptEsCnecsSecure && frEsCnecsSecure ? ReasonInvalid.NONE : ReasonInvalid.UNSECURE_AFTER_VALIDATION;
         this.failureMessage = "None";
     }
 
-    public static DichotomyStepResult fromFailure(ReasonInvalid reasonInvalid, String failureMessage) {
-        return new DichotomyStepResult(reasonInvalid, failureMessage);
+    public static DichotomyStepResult fromFailure(ReasonInvalid reasonInvalid, String failureMessage, boolean ptEsFailure, boolean frEsFailure) {
+        return new DichotomyStepResult(reasonInvalid, failureMessage, ptEsFailure, frEsFailure);
     }
 
-    public static DichotomyStepResult fromNetworkValidationResult(RaoResult raoResult, RaoResponse raoResponse, boolean raoSecure, boolean ptEsCnecsSecure, boolean frEsCnecsSecure) {
-        return new DichotomyStepResult(raoResult, raoResponse, raoSecure, ptEsCnecsSecure, frEsCnecsSecure);
+
+    public static DichotomyStepResult fromNetworkValidationResult(RaoResult raoResult, RaoResponse raoResponse, boolean ptEsCnecsSecure, boolean frEsCnecsSecure) {
+        return new DichotomyStepResult(raoResult, raoResponse, ptEsCnecsSecure, frEsCnecsSecure);
     }
 
     public RaoResult getRaoResult() {
@@ -60,7 +57,7 @@ public final class DichotomyStepResult {
     }
 
     public boolean isValid() {
-        return this.raoSecure && this.frEsCnecsSecure && this.ptEsCnecsSecure;
+        return this.frEsCnecsSecure && this.ptEsCnecsSecure;
     }
 
     public ReasonInvalid getReasonInvalid() {
@@ -69,10 +66,6 @@ public final class DichotomyStepResult {
 
     public String toString() {
         return ToStringBuilder.reflectionToString(this);
-    }
-
-    public boolean isRaoSecure() {
-        return raoSecure;
     }
 
     public boolean isPtEsCnecsSecure() {

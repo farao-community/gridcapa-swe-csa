@@ -1,21 +1,33 @@
 package com.farao_community.farao.swe_csa.app.dichotomy;
 
 import com.powsybl.iidm.network.Country;
+import com.powsybl.openrao.commons.EICode;
 
+import java.util.HashMap;
 import java.util.Map;
+
+import static java.lang.Math.signum;
 
 public class ShiftDispatcher {
 
-    private final Map<Country, Double> initialNetPositions;
+    private final Map<String, Double> initialNetPositions;
 
-    public ShiftDispatcher(Map<Country, Double> initialNetPositions) {
+    public ShiftDispatcher(Map<String, Double> initialNetPositions) {
         this.initialNetPositions = initialNetPositions;
     }
 
-    public Map<Country, Double> dispatch(CounterTradingValues counterTradingValues) {
-        return Map.of(Country.ES, counterTradingValues.getFrEsCt() + counterTradingValues.getPtEsCt() - initialNetPositions.get(Country.ES),
-            Country.FR, -counterTradingValues.getFrEsCt() - initialNetPositions.get(Country.FR),
-            Country.PT, -counterTradingValues.getPtEsCt() - initialNetPositions.get(Country.PT));
+    public Map<String, Double> dispatch(CounterTradingValues counterTradingValues) {
+        Map<String, Double> dispatching = new HashMap<>();
+        dispatching.put(new EICode(Country.FR).getAreaCode(),
+            -counterTradingValues.getFrEsCt()
+                * signum(initialNetPositions.get(Country.FR.getName())));
+        dispatching.put(new EICode(Country.PT).getAreaCode(),
+            -counterTradingValues.getPtEsCt()
+                * signum(initialNetPositions.get(Country.PT.getName())));
+        dispatching.put(new EICode(Country.ES).getAreaCode(),
+            -(dispatching.get(new EICode(Country.FR).getAreaCode()) + dispatching.get(new EICode(Country.PT).getAreaCode())));
+
+        return dispatching;
     }
 
 }
