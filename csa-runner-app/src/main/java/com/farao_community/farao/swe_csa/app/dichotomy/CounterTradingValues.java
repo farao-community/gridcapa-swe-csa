@@ -17,4 +17,8 @@ public class CounterTradingValues {
     public double getFrEsCt() {
         return frEsCt;
     }
+
+    public Object print() {
+        return String.format("PT-ES: %s, FR-ES: %s", ptEsCt, frEsCt);
+    }
 }

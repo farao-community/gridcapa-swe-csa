@@ -13,7 +13,6 @@ import com.powsybl.iidm.serde.NetworkSerDe;
 import com.powsybl.openrao.data.cracapi.Crac;
 import com.powsybl.openrao.data.cracapi.cnec.FlowCnec;
 import com.powsybl.openrao.data.raoresultapi.RaoResult;
-import com.powsybl.openrao.raoapi.Rao;
 import com.powsybl.openrao.raoapi.RaoInput;
 import com.powsybl.openrao.raoapi.json.JsonRaoParameters;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
@@ -127,8 +126,8 @@ public class SweCsaDichotomyRunnerTest {
             JsonRaoParameters.update(raoParameters, getClass().getResourceAsStream("/RaoParameters.json"));
             Network networkCopy = NetworkSerDe.copy(network);
             RaoInput raoInput = RaoInput.build(networkCopy, crac).build();
-            RaoResult raoResult = Rao.find("SearchTreeRao").run(raoInput, raoParameters, null);
-           // RaoResult raoResult = FastRao.launchFilteredRao(raoInput, raoParameters, null, criticalCnecs);
+            //RaoResult raoResult = Rao.find("SearchTreeRao").run(raoInput, raoParameters, null);
+            RaoResult raoResult = FastRao.launchFilteredRao(raoInput, raoParameters, null, criticalCnecs);
 
             RaoResponse raoResponse = Mockito.mock(RaoResponse.class);
             Set<FlowCnec> frEsFlowCnecs = crac.getFlowCnecs().stream()

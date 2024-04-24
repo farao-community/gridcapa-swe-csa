@@ -116,5 +116,4 @@ public class SweCsaRaoValidator {
     private String generateScaledNetworkPath(Network network, String timestamp) {
         return generateArtifactsFolder(timestamp) + network.getNameOrId() + network.getVariantManager().getWorkingVariantId() + ".xiidm";
     }
-
 }

@@ -40,38 +40,38 @@ public class Index {
         return frEsLowestSecureStep;
     }
 
-    public void addPtEsDichotomyStepResult(double ptEsCtStepValue, DichotomyStepResult ptEsStepResult) {
+    public void addPtEsDichotomyStepResult(double ptEsCtStepValue, DichotomyStepResult stepResult) {
         ptEsDichotomyCount++;
-        if (ptEsStepResult.isValid()) {
+        if (stepResult.isValid()) {
             if (ptEsLowestSecureStep != null && ptEsLowestSecureStep.getLeft() < ptEsCtStepValue) {
                 throw new AssertionError("Step result tested is secure but its value is higher than lowest secure step one. Should not happen");
             }
-            ptEsLowestSecureStep = Pair.of(ptEsCtStepValue, ptEsStepResult);
+            ptEsLowestSecureStep = Pair.of(ptEsCtStepValue, stepResult);
             ptEsStepResults.add(ptEsLowestSecureStep);
         } else {
             if (ptEsHighestUnsecureStep != null && ptEsHighestUnsecureStep.getRight().getReasonInvalid().equals(ReasonInvalid.UNSECURE_AFTER_VALIDATION)
                 && ptEsHighestUnsecureStep.getLeft() > ptEsCtStepValue) {
                 throw new AssertionError("Step result tested is unsecure but its value is lower than highest unsecure step one. Should not happen");
             }
-            ptEsHighestUnsecureStep = Pair.of(ptEsCtStepValue, ptEsStepResult);
+            ptEsHighestUnsecureStep = Pair.of(ptEsCtStepValue, stepResult);
             ptEsStepResults.add(ptEsHighestUnsecureStep);
         }
     }
 
-    public void addFrEsDichotomyStepResult(double frEsCtStepValue, DichotomyStepResult frEsStepResult) {
+    public void addFrEsDichotomyStepResult(double frEsCtStepValue, DichotomyStepResult stepResult) {
         frEsDichotomyCount++;
-        if (frEsStepResult.isValid()) {
+        if (stepResult.isValid()) {
             if (frEsLowestSecureStep != null && frEsLowestSecureStep.getLeft() < frEsCtStepValue) {
                 throw new AssertionError("Step result tested is secure but its value is higher than lowest secure step one. Should not happen");
             }
-            frEsLowestSecureStep = Pair.of(frEsCtStepValue, frEsStepResult);
+            frEsLowestSecureStep = Pair.of(frEsCtStepValue, stepResult);
             frEsStepResults.add(frEsLowestSecureStep);
         } else {
             if (frEsHighestUnsecureStep != null && frEsHighestUnsecureStep.getRight().getReasonInvalid().equals(ReasonInvalid.UNSECURE_AFTER_VALIDATION)
                 && frEsHighestUnsecureStep.getLeft() > frEsCtStepValue) {
                 throw new AssertionError("Step result tested is unsecure but its value is lower than highest unsecure step one. Should not happen");
             }
-            frEsHighestUnsecureStep = Pair.of(frEsCtStepValue, frEsStepResult);
+            frEsHighestUnsecureStep = Pair.of(frEsCtStepValue, stepResult);
             frEsStepResults.add(frEsHighestUnsecureStep);
         }
     }

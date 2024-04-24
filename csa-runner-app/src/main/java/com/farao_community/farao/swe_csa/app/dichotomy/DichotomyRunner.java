@@ -47,6 +47,8 @@ public class DichotomyRunner {
         Network network = fileImporter.importNetwork(csaRequest.getGridModelUri());
         Crac crac = fileImporter.importCrac(csaRequest.getCracFileUri(), network);
 
+        String initialVariant = network.getVariantManager().getWorkingVariantId();
+
         Map<String, Double> initialNetPositions = CountryBalanceComputation.computeSweCountriesBalances(network)
             .entrySet().stream()
             .collect(Collectors.toMap(entry -> new CountryEICode(entry.getKey()).getCountry().getName(), Map.Entry::getValue));
@@ -74,7 +76,11 @@ public class DichotomyRunner {
         }
         // best case no counter trading , no scaling
         LOGGER.info("Starting Counter trading algorithm by validating input network without scaling");
+        String noCtVariantName = "no ct PT-ES: 0, FR-ES: 0";
+        setWorkingVariant(network, initialVariant, noCtVariantName);
         DichotomyStepResult noCtStepResult = sweCsaRaoValidator.validateNetwork(network, crac, csaRequest, raoParametersUrl, true, true);
+        resetToInitialVariant(network, initialVariant, noCtVariantName);
+
         logBorderOverload(noCtStepResult);
 
         if (noCtStepResult.isValid()) {
@@ -92,16 +98,21 @@ public class DichotomyRunner {
             CounterTradingValues maxCounterTradingValues = new CounterTradingValues(ctPtEsUpperBound, ctFrEsUpperBound);
             LOGGER.info("Testing Counter trading worst case by scaling to maximum: CT PT-ES: '{}', and CT FR-ES: '{}'", ctPtEsUpperBound, ctFrEsUpperBound);
 
+            String maxCtVariantName = getNewVariantName(maxCounterTradingValues, initialVariant);
+            setWorkingVariant(network, initialVariant, maxCtVariantName);
+
             SweCsaNetworkShifter networkShifter = new SweCsaNetworkShifter(SweCsaZonalData.getZonalData(network), new ShiftDispatcher(initialNetPositions));
             networkShifter.shiftNetwork(maxCounterTradingValues, network);
             DichotomyStepResult maxCtStepResult = sweCsaRaoValidator.validateNetwork(network, crac, csaRequest, raoParametersUrl, true, true);
+            resetToInitialVariant(network, initialVariant, maxCtVariantName);
+
             logBorderOverload(maxCtStepResult);
             if (!maxCtStepResult.isValid()) {
                 // TODO [US] [CSA-68] Handle cases that CT cannot secure
                 throw new CsaInvalidDataException("Maximum CT value cannot secure this case");
             } else {
                 LOGGER.info("Best case in unsecure, worst case is secure, trying to find optimum in between using dichotomy");
-                Index index = new Index(0, ctPtEsUpperBound, 0, ctFrEsUpperBound, 50, 10);
+                Index index = new Index(0, ctPtEsUpperBound, 0, ctFrEsUpperBound, 10, 15);
                 index.addPtEsDichotomyStepResult(0, noCtStepResult);
                 index.addFrEsDichotomyStepResult(0, noCtStepResult);
                 index.addPtEsDichotomyStepResult(ctPtEsUpperBound, maxCtStepResult);
@@ -110,10 +121,16 @@ public class DichotomyRunner {
                 while (index.exitConditionIsNotMetForPtEs() || index.exitConditionIsNotMetForFrEs()) {
                     CounterTradingValues counterTradingValues = index.nextValues();
                     DichotomyStepResult ctStepResult;
+                    String newVariantName = getNewVariantName(counterTradingValues, initialVariant);
+
                     try {
                         LOGGER.info("Next CT values are '{}' for PT-ES and '{}' for FR-ES", counterTradingValues.getPtEsCt(), counterTradingValues.getFrEsCt());
+
+                        setWorkingVariant(network, initialVariant, newVariantName);
                         networkShifter.shiftNetwork(counterTradingValues, network);
                         ctStepResult = sweCsaRaoValidator.validateNetwork(network, crac, csaRequest, raoParametersUrl, true, true);
+                        resetToInitialVariant(network, initialVariant, newVariantName);
+
                     } catch (GlskLimitationException e) {
                         LOGGER.warn("GLSK limits have been reached with CT of '{}' for PT-ES and '{}' for FR-ES", counterTradingValues.getPtEsCt(), counterTradingValues.getFrEsCt());
                         ctStepResult = DichotomyStepResult.fromFailure(ReasonInvalid.GLSK_LIMITATION, e.getMessage(), true, true);
@@ -125,11 +142,22 @@ public class DichotomyRunner {
                     index.addPtEsDichotomyStepResult(counterTradingValues.getPtEsCt(), ctStepResult);
                     index.addFrEsDichotomyStepResult(counterTradingValues.getFrEsCt(), ctStepResult);
                 }
+                LOGGER.info("Dichotomy stop criterion reached", index.getFrEsLowestSecureStep().getLeft());
                 return index.getFrEsLowestSecureStep().getRight().getRaoResult();
             }
         }
     }
 
+
+    private void setWorkingVariant(Network network, String initialVariant, String newVariantName) {
+        network.getVariantManager().cloneVariant(initialVariant, newVariantName);
+        network.getVariantManager().setWorkingVariant(newVariantName);
+    }
+
+    private void resetToInitialVariant(Network network, String initialVariant, String newVariantName) {
+        network.getVariantManager().setWorkingVariant(initialVariant);
+        network.getVariantManager().removeVariant(newVariantName);
+    }
     private CounterTradeRangeAction getCounterTradeRangeActionByCountries(Crac crac, Country exportingCountry, Country importingCountry) {
         for (CounterTradeRangeAction counterTradeRangeAction : crac.getCounterTradeRangeActions()) {
             if (counterTradeRangeAction.getExportingCountry() == exportingCountry && counterTradeRangeAction.getImportingCountry() == importingCountry) {
@@ -143,13 +171,17 @@ public class DichotomyRunner {
         if (ctStepResult.isFrEsCnecsSecure()) {
             LOGGER.info("There is no overload on FR-ES border");
         } else {
-            LOGGER.info("There is an overload on FR-ES border");
+            LOGGER.info("There is overloads on FR-ES border, netowrk is not secure");
         }
 
         if (ctStepResult.isPtEsCnecsSecure()) {
             LOGGER.info("There is no overload on PT-ES border");
         } else {
-            LOGGER.info("There is an overload on PT-ES border");
+            LOGGER.info("There is overloads on PT-ES border, netowrk is not secure");
         }
+    }
+
+    private String getNewVariantName(CounterTradingValues counterTradingValues, String initialVariant) {
+        return String.format("%s-ScaledBy-%s", initialVariant, counterTradingValues.print());
     }
 }
