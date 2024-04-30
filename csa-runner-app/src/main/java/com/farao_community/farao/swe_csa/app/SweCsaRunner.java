@@ -3,7 +3,6 @@ package com.farao_community.farao.swe_csa.app;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.api.resource.CsaResponse;
 import com.farao_community.farao.swe_csa.api.resource.Status;
-import com.farao_community.farao.swe_csa.app.dichotomy.DichotomyRunner;
 import com.powsybl.openrao.data.raoresultapi.RaoResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,12 +15,10 @@ import java.time.Instant;
 public class SweCsaRunner {
 
     private final DichotomyRunner dichotomyRunner;
-    private final FileImporter fileImporter;
     private static final Logger LOGGER = LoggerFactory.getLogger(SweCsaRunner.class);
 
-    public SweCsaRunner(DichotomyRunner dichotomyRunner, FileImporter fileImporter) {
+    public SweCsaRunner(DichotomyRunner dichotomyRunner) {
         this.dichotomyRunner = dichotomyRunner;
-        this.fileImporter = fileImporter;
     }
 
     @Threadable
@@ -32,11 +29,10 @@ public class SweCsaRunner {
             RaoResult raoResult = dichotomyRunner.runDichotomy(csaRequest);
             // TODO add counter trading range action and push file to results destination
             LOGGER.info("CSA computation finished for TimeStamp: '{}'", utcInstant.toString());
-
+            return new CsaResponse(csaRequest.getId(), Status.FINISHED.toString());
         } catch (Exception e) {
             throw new IOException(e);
         }
-        return new CsaResponse(csaRequest.getId(), Status.FINISHED.toString());
     }
 
 }

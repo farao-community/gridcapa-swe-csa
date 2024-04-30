@@ -66,7 +66,7 @@ class FileImporterTest {
     @Test
     void saveRaoParametersTest() {
         Mockito.when(s3ArtifactsAdapter.generatePreSignedUrl("id/rao-parameters/19990101_1230.json")).thenReturn("url");
-        String result = fileImporter.uploadRaoParameters("id", OffsetDateTime.parse("1999-01-01T12:30Z").toInstant());
+        String result = fileImporter.uploadRaoParameters(OffsetDateTime.parse("1999-01-01T12:30Z").toInstant());
         assertEquals("url", result);
     }
 }

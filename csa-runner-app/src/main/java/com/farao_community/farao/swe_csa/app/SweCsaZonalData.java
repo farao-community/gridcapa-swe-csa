@@ -1,4 +1,4 @@
-package com.farao_community.farao.swe_csa.app.dichotomy;
+package com.farao_community.farao.swe_csa.app;
 
 /*
  * Copyright (c) 2024, RTE (http://www.rte-france.com)

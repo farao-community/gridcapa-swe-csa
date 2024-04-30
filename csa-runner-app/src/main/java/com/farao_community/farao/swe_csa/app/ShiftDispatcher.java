@@ -1,4 +1,4 @@
-package com.farao_community.farao.swe_csa.app.dichotomy;
+package com.farao_community.farao.swe_csa.app;
 
 import com.powsybl.iidm.network.Country;
 import com.powsybl.openrao.commons.EICode;

@@ -3,10 +3,9 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
 import com.farao_community.farao.dichotomy.api.exceptions.GlskLimitationException;
 import com.farao_community.farao.dichotomy.api.exceptions.ShiftingException;
 import com.farao_community.farao.rao_runner.api.resource.RaoResponse;
-import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
+import com.farao_community.farao.rao_runner.starter.AsynchronousRaoRunnerClient;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
-import com.farao_community.farao.swe_csa.app.FileExporter;
-import com.farao_community.farao.swe_csa.app.FileImporter;
+import com.farao_community.farao.swe_csa.app.*;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.serde.NetworkSerDe;
@@ -44,7 +43,7 @@ public class SweCsaDichotomyRunnerTest {
     @Mock
     FileExporter fileExporter;
     @Mock
-    RaoRunnerClient raoRunnerClient;
+    AsynchronousRaoRunnerClient raoRunnerClient;
 
     @Test
     void launchCoresoTest() throws GlskLimitationException, ShiftingException {
@@ -56,7 +55,7 @@ public class SweCsaDichotomyRunnerTest {
         RaoParameters raoParameters = new RaoParameters();
         JsonRaoParameters.update(raoParameters, getClass().getResourceAsStream("/RaoParameters.json"));
 
-        Mockito.when(fileImporter.uploadRaoParameters("id", utcInstant)).thenReturn("rao-parameters-url");
+        Mockito.when(fileImporter.uploadRaoParameters(utcInstant)).thenReturn("rao-parameters-url");
         Mockito.when(fileImporter.importNetwork("cgm-url")).thenReturn(network);
         Mockito.when(fileImporter.importCrac("crac-url", network)).thenReturn(crac);
 
@@ -112,8 +111,8 @@ public class SweCsaDichotomyRunnerTest {
     public class SweCsaRaoValidatorMock extends SweCsaRaoValidator {
         Set<FlowCnec> criticalCnecs = new HashSet<>();
         FileExporter fileExporter;
-        RaoRunnerClient raoRunnerClient;
-        public SweCsaRaoValidatorMock(FileExporter fileExporter, RaoRunnerClient raoRunnerClient) {
+        AsynchronousRaoRunnerClient raoRunnerClient;
+        public SweCsaRaoValidatorMock(FileExporter fileExporter, AsynchronousRaoRunnerClient raoRunnerClient) {
             super(fileExporter,
                 raoRunnerClient);
             this.fileExporter = fileExporter;
@@ -121,7 +120,7 @@ public class SweCsaDichotomyRunnerTest {
         }
 
         @Override
-        public DichotomyStepResult validateNetwork(Network network, Crac crac, CsaRequest csaRequest, String raoParametersUrl, boolean withVoltageMonitoring, boolean withAngleMonitoring) {
+        public DichotomyStepResult validateNetwork(String stepFolder, Network network, Crac crac, CsaRequest csaRequest, String raoParametersUrl, boolean withVoltageMonitoring, boolean withAngleMonitoring) {
             RaoParameters raoParameters = new RaoParameters();
             JsonRaoParameters.update(raoParameters, getClass().getResourceAsStream("/RaoParameters.json"));
             Network networkCopy = NetworkSerDe.copy(network);

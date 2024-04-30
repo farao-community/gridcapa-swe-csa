@@ -6,7 +6,7 @@
     <parent>
         <artifactId>farao-parent-ws</artifactId>
         <groupId>com.farao-community.farao</groupId>
-        <version>1.4.0</version>
+        <version>1.8.0</version>
     </parent>
 
     <artifactId>gridcapa-swe-csa</artifactId>
@@ -25,18 +25,17 @@
     <properties>
         <!-- BUSINESS DEPENDENCIES -->
         <farao.dependencies.version>1.30.0-SNAPSHOT</farao.dependencies.version>
-        <gridcapa.rao.runner.version>1.21.0</gridcapa.rao.runner.version>
+        <gridcapa.rao.runner.version>1.23.1-SNAPSHOT</gridcapa.rao.runner.version>
         <gridcapa.swe.commons.version>1.16.0</gridcapa.swe.commons.version>
 
         <!-- TECHNICAL DEPENDENCIES -->
         <commons.lang.version>3.11</commons.lang.version>
         <commons.io.version>2.12.0</commons.io.version>
-        <jackson.databind.version>2.11.0</jackson.databind.version>
-        <jackson.datatype.version>2.13.0</jackson.datatype.version>
         <jsonapi.converter.version>0.10</jsonapi.converter.version>
         <mockito.core.version>5.2.0</mockito.core.version>
         <logstash.version>7.0.1</logstash.version>
         <awaitility.version>3.0.0</awaitility.version>
+        <jackson.datatype.version>2.12.2</jackson.datatype.version>
 
     </properties>
 
@@ -68,7 +67,7 @@
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.datatype</groupId>
-                <artifactId>jackson-datatype-jsr310</artifactId>
+                <artifactId>jackson-datatype-jdk8</artifactId>
                 <version>${jackson.datatype.version}</version>
             </dependency>
             <dependency>
@@ -80,11 +79,6 @@
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
                 <version>${commons.io.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>${jackson.databind.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>

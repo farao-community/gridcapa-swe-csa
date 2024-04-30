@@ -1,4 +1,4 @@
-package com.farao_community.farao.swe_csa.app.dichotomy;
+package com.farao_community.farao.swe_csa.app;
 
 import com.farao_community.farao.dichotomy.api.results.ReasonInvalid;
 import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
@@ -38,6 +38,9 @@ public class Index {
 
     public Pair<Double, DichotomyStepResult> getFrEsLowestSecureStep() {
         return frEsLowestSecureStep;
+    }
+    public Pair<Double, DichotomyStepResult> getPtEsLowestSecureStep() {
+        return ptEsLowestSecureStep;
     }
 
     public void addPtEsDichotomyStepResult(double ptEsCtStepValue, DichotomyStepResult stepResult) {
