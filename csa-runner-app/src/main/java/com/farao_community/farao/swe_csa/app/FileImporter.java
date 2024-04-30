@@ -45,8 +45,8 @@ public class FileImporter {
         }
     }
 
-    public String uploadRaoParameters(String taskId, Instant utcInstant) {
-        String raoParametersFilePath = String.format("%s/rao-parameters/%s", taskId, HOURLY_NAME_FORMATTER.format(utcInstant).concat(".json"));
+    public String uploadRaoParameters(Instant utcInstant) {
+        String raoParametersFilePath = String.format("configurations/rao-parameters-%s", HOURLY_NAME_FORMATTER.format(utcInstant).concat(".json"));
         RaoParameters raoParameters = RaoParameters.load();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         JsonRaoParameters.write(raoParameters, baos);

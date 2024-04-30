@@ -1,4 +1,4 @@
-package com.farao_community.farao.swe_csa.app.dichotomy;
+package com.farao_community.farao.swe_csa.app;
 
 import com.farao_community.farao.dichotomy.api.results.ReasonInvalid;
 import com.farao_community.farao.rao_runner.api.resource.RaoResponse;

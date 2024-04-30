@@ -11,9 +11,9 @@ spring:
     username: guest
     password: guest
   cloud:
+    function:
+      definition: interrupt;request
     stream:
-      function:
-        definition: interrupt;request
       default:
         binder: rabbit
       bindings:
@@ -52,6 +52,9 @@ rao-runner-server:
       # take it quite large, as rao-runner might not prefetch more than one rao-request. Rao-request
     # must therefore stay in queue until a rao-runner is free, or until the time-out is reached
     queue-name: swe-csa-rao-request-queue
+
+csa-runner:
+  async-time-out: 4500000 # 1h15min (75*60*1000)
 
 dichotomy-parameters:
   index:

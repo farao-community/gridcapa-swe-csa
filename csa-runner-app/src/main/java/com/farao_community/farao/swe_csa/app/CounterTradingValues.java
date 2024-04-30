@@ -1,4 +1,4 @@
-package com.farao_community.farao.swe_csa.app.dichotomy;
+package com.farao_community.farao.swe_csa.app;
 
 public class CounterTradingValues {
 
@@ -18,7 +18,7 @@ public class CounterTradingValues {
         return frEsCt;
     }
 
-    public Object print() {
-        return String.format("PT-ES: %s, FR-ES: %s", ptEsCt, frEsCt);
+    public String print() {
+        return String.format("PT-ES-scaled-by-%s_and_FR-ES-scaled-by-%s", Math.round(ptEsCt), Math.round(frEsCt));
     }
 }

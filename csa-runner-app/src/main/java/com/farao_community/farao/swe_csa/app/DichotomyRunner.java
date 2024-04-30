@@ -1,14 +1,12 @@
-package com.farao_community.farao.swe_csa.app.dichotomy;
+package com.farao_community.farao.swe_csa.app;
 
 import com.farao_community.farao.dichotomy.api.exceptions.GlskLimitationException;
 import com.farao_community.farao.dichotomy.api.exceptions.ShiftingException;
-import com.farao_community.farao.dichotomy.api.exceptions.ValidationException;
 import com.farao_community.farao.dichotomy.api.results.ReasonInvalid;
 import com.farao_community.farao.gridcapa_swe_commons.shift.CountryBalanceComputation;
 import com.farao_community.farao.rao_runner.api.exceptions.RaoRunnerException;
 import com.farao_community.farao.swe_csa.api.exception.CsaInvalidDataException;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
-import com.farao_community.farao.swe_csa.app.FileImporter;
 import com.powsybl.glsk.commons.CountryEICode;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
@@ -23,8 +21,6 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import static com.farao_community.farao.dichotomy.api.logging.DichotomyLoggerProvider.BUSINESS_WARNS;
 
 @Service
 public class DichotomyRunner {
@@ -43,9 +39,10 @@ public class DichotomyRunner {
     }
 
     public RaoResult runDichotomy(CsaRequest csaRequest) throws GlskLimitationException, ShiftingException {
-        String raoParametersUrl = fileImporter.uploadRaoParameters(csaRequest.getId(), Instant.parse(csaRequest.getBusinessTimestamp()));
+        String raoParametersUrl = fileImporter.uploadRaoParameters(Instant.parse(csaRequest.getBusinessTimestamp()));
         Network network = fileImporter.importNetwork(csaRequest.getGridModelUri());
         Crac crac = fileImporter.importCrac(csaRequest.getCracFileUri(), network);
+        updateCracWithCounterTrageRangeActions(crac);
 
         String initialVariant = network.getVariantManager().getWorkingVariantId();
 
@@ -53,12 +50,14 @@ public class DichotomyRunner {
             .entrySet().stream()
             .collect(Collectors.toMap(entry -> new CountryEICode(entry.getKey()).getCountry().getName(), Map.Entry::getValue));
 
+        LOGGER.info("Initial net positions: PT: {}, ES: {}, FR: {}", initialNetPositions.get("PORTUGAL"), initialNetPositions.get("SPAIN"), initialNetPositions.get("FRANCE"));
         Map<String, Double> initialExchanges = CountryBalanceComputation.computeSweBordersExchanges(network);
 
         double expEsFr0 = initialExchanges.get("ES_FR");
         double expEsPt0 = initialExchanges.get("ES_PT");
         double expFrEs0 = -expEsFr0;
         double expPtEs0 = -expEsPt0;
+        LOGGER.info("Initial exchanges: PT->ES: {}, FR->ES: {}", expPtEs0, expFrEs0);
 
         CounterTradeRangeAction ctRaFrEs;
         CounterTradeRangeAction ctRaEsFr;
@@ -72,13 +71,13 @@ public class DichotomyRunner {
         } catch (CsaInvalidDataException e) {
             LOGGER.warn(e.getMessage());
             LOGGER.warn("No counter trading will be done, only input network will be checked by rao");
-            return sweCsaRaoValidator.validateNetwork(network, crac, csaRequest, raoParametersUrl, true, true).getRaoResult();
+            return sweCsaRaoValidator.validateNetwork("input-network", network, crac, csaRequest, raoParametersUrl, true, true).getRaoResult();
         }
         // best case no counter trading , no scaling
         LOGGER.info("Starting Counter trading algorithm by validating input network without scaling");
-        String noCtVariantName = "no ct PT-ES: 0, FR-ES: 0";
+        String noCtVariantName = "no-ct-PT-ES-0_FR-ES-0";
         setWorkingVariant(network, initialVariant, noCtVariantName);
-        DichotomyStepResult noCtStepResult = sweCsaRaoValidator.validateNetwork(network, crac, csaRequest, raoParametersUrl, true, true);
+        DichotomyStepResult noCtStepResult = sweCsaRaoValidator.validateNetwork("input-network", network, crac, csaRequest, raoParametersUrl, true, true);
         resetToInitialVariant(network, initialVariant, noCtVariantName);
 
         logBorderOverload(noCtStepResult);
@@ -98,12 +97,12 @@ public class DichotomyRunner {
             CounterTradingValues maxCounterTradingValues = new CounterTradingValues(ctPtEsUpperBound, ctFrEsUpperBound);
             LOGGER.info("Testing Counter trading worst case by scaling to maximum: CT PT-ES: '{}', and CT FR-ES: '{}'", ctPtEsUpperBound, ctFrEsUpperBound);
 
-            String maxCtVariantName = getNewVariantName(maxCounterTradingValues, initialVariant);
+            String maxCtVariantName = getNewVariantName(maxCounterTradingValues);
             setWorkingVariant(network, initialVariant, maxCtVariantName);
 
             SweCsaNetworkShifter networkShifter = new SweCsaNetworkShifter(SweCsaZonalData.getZonalData(network), new ShiftDispatcher(initialNetPositions));
             networkShifter.shiftNetwork(maxCounterTradingValues, network);
-            DichotomyStepResult maxCtStepResult = sweCsaRaoValidator.validateNetwork(network, crac, csaRequest, raoParametersUrl, true, true);
+            DichotomyStepResult maxCtStepResult = sweCsaRaoValidator.validateNetwork(maxCounterTradingValues.print(), network, crac, csaRequest, raoParametersUrl, true, true);
             resetToInitialVariant(network, initialVariant, maxCtVariantName);
 
             logBorderOverload(maxCtStepResult);
@@ -121,14 +120,14 @@ public class DichotomyRunner {
                 while (index.exitConditionIsNotMetForPtEs() || index.exitConditionIsNotMetForFrEs()) {
                     CounterTradingValues counterTradingValues = index.nextValues();
                     DichotomyStepResult ctStepResult;
-                    String newVariantName = getNewVariantName(counterTradingValues, initialVariant);
+                    String newVariantName = getNewVariantName(counterTradingValues);
 
                     try {
                         LOGGER.info("Next CT values are '{}' for PT-ES and '{}' for FR-ES", counterTradingValues.getPtEsCt(), counterTradingValues.getFrEsCt());
 
                         setWorkingVariant(network, initialVariant, newVariantName);
                         networkShifter.shiftNetwork(counterTradingValues, network);
-                        ctStepResult = sweCsaRaoValidator.validateNetwork(network, crac, csaRequest, raoParametersUrl, true, true);
+                        ctStepResult = sweCsaRaoValidator.validateNetwork(counterTradingValues.print(), network, crac, csaRequest, raoParametersUrl, true, true);
                         resetToInitialVariant(network, initialVariant, newVariantName);
 
                     } catch (GlskLimitationException e) {
@@ -142,8 +141,10 @@ public class DichotomyRunner {
                     index.addPtEsDichotomyStepResult(counterTradingValues.getPtEsCt(), ctStepResult);
                     index.addFrEsDichotomyStepResult(counterTradingValues.getFrEsCt(), ctStepResult);
                 }
-                LOGGER.info("Dichotomy stop criterion reached", index.getFrEsLowestSecureStep().getLeft());
-                return index.getFrEsLowestSecureStep().getRight().getRaoResult();
+                LOGGER.info("Dichotomy stop criterion reached, CT PT-ES: {}, CT FR-ES: {}", index.getPtEsLowestSecureStep().getLeft(), index.getFrEsLowestSecureStep().getLeft());
+                RaoResult raoResult =  index.getFrEsLowestSecureStep().getRight().getRaoResult(); // arbitrary choice rao result is the same for pt-es and fr-es
+          // TODO enhance with raoresultwithct
+                return raoResult;
             }
         }
     }
@@ -181,7 +182,46 @@ public class DichotomyRunner {
         }
     }
 
-    private String getNewVariantName(CounterTradingValues counterTradingValues, String initialVariant) {
-        return String.format("%s-ScaledBy-%s", initialVariant, counterTradingValues.print());
+    private String getNewVariantName(CounterTradingValues counterTradingValues) {
+        return String.format("network-ScaledBy-%s", counterTradingValues.print());
+    }
+
+    private void updateCracWithCounterTrageRangeActions(Crac crac) {
+        crac.newCounterTradeRangeAction()
+            .withId("CT_RA_PTES")
+            .withOperator("REN")
+            .newRange().withMin(-5000.0)
+            .withMax(5000.0).add()
+            .withInitialSetpoint(0.0)
+            .withExportingCountry(Country.PT)
+            .withImportingCountry(Country.ES)
+            .add();
+        crac.newCounterTradeRangeAction()
+            .withId("CT_RA_ESPT")
+            .withOperator("REE")
+            .newRange().withMin(-5000.0)
+            .withMax(5000.0).add()
+            .withInitialSetpoint(0.0)
+            .withExportingCountry(Country.ES)
+            .withImportingCountry(Country.PT)
+            .add();
+        crac.newCounterTradeRangeAction()
+            .withId("CT_RA_ESFR")
+            .withOperator("REE")
+            .newRange().withMin(-5000.0)
+            .withMax(5000.0).add()
+            .withInitialSetpoint(0.0)
+            .withExportingCountry(Country.ES)
+            .withImportingCountry(Country.FR)
+            .add();
+        crac.newCounterTradeRangeAction()
+            .withId("CT_RA_FRES")
+            .withOperator("RTE")
+            .newRange().withMin(-5000.0)
+            .withMax(5000.0).add()
+            .withInitialSetpoint(0.0)
+            .withExportingCountry(Country.FR)
+            .withImportingCountry(Country.ES)
+            .add();
     }
 }
