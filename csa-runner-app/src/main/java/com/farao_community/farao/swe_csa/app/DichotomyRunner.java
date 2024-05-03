@@ -140,14 +140,14 @@ public class DichotomyRunner {
                         setWorkingVariant(network, initialVariant, newVariantName);
                         networkShifter.shiftNetwork(counterTradingValues, network);
                         ctStepResult = sweCsaRaoValidator.validateNetwork(counterTradingValues.print(), network, crac, csaRequest, raoParametersUrl, true, true);
-                        resetToInitialVariant(network, initialVariant, newVariantName);
-
                     } catch (GlskLimitationException e) {
                         LOGGER.warn("GLSK limits have been reached with CT of '{}' for PT-ES and '{}' for FR-ES", counterTradingValues.getPtEsCt(), counterTradingValues.getFrEsCt());
                         ctStepResult = DichotomyStepResult.fromFailure(ReasonInvalid.GLSK_LIMITATION, e.getMessage(), true, true);
                     } catch (ShiftingException | RaoRunnerException e) {
                         LOGGER.warn("Validation failed with CT of '{}' for PT-ES and '{}' for FR-ES", counterTradingValues.getPtEsCt(), counterTradingValues.getFrEsCt());
                         ctStepResult = DichotomyStepResult.fromFailure(ReasonInvalid.GLSK_LIMITATION, e.getMessage(), true, true);
+                    } finally {
+                        resetToInitialVariant(network, initialVariant, newVariantName);
                     }
                     logBorderOverload(ctStepResult);
                     index.addPtEsDichotomyStepResult(counterTradingValues.getPtEsCt(), ctStepResult);
