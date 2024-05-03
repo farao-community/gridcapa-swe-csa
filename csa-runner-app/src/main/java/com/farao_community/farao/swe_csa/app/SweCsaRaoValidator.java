@@ -26,6 +26,7 @@ import com.powsybl.openrao.data.cracapi.cnec.FlowCnec;
 import com.powsybl.openrao.data.raoresultapi.RaoResult;
 import com.powsybl.openrao.data.raoresultjson.RaoResultImporter;
 import com.powsybl.openrao.monitoring.voltagemonitoring.VoltageMonitoring;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -81,16 +82,18 @@ public class SweCsaRaoValidator {
         // TODO when csa glsk is ready add withAngleMonitoring check to raoResult
 
         //TODO : implement association between cnecs and borders (CSA-67)
-        Set<FlowCnec> frEsFlowCnecs = crac.getFlowCnecs().stream()
-            .filter(flowCnec -> flowCnec.isOptimized() && flowCnec.getLocation(network).contains(Optional.of(Country.FR)))
-            .collect(Collectors.toSet());
-        Set<FlowCnec> ptEsFlowCnecs = crac.getFlowCnecs().stream()
-            .filter(flowCnec -> flowCnec.isOptimized() && flowCnec.getLocation(network).contains(Optional.of(Country.PT)))
-            .collect(Collectors.toSet());
+        Set<FlowCnec> frEsFlowCnecs = getBorderFlowCnecs(crac, network, Country.FR);
+        Set<FlowCnec> ptEsFlowCnecs = getBorderFlowCnecs(crac, network, Country.PT);
         boolean cnecsOnPtEsBorderAreSecure = hasNoFlowCnecNegativeMargin(raoResult, ptEsFlowCnecs);
         boolean cnecsOnFrEsBorderAreSecure = hasNoFlowCnecNegativeMargin(raoResult, frEsFlowCnecs);
 
         return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, cnecsOnPtEsBorderAreSecure, cnecsOnFrEsBorderAreSecure);
+    }
+
+    static Set<FlowCnec> getBorderFlowCnecs(Crac crac, Network network, Country fr) {
+        return crac.getFlowCnecs().stream()
+            .filter(flowCnec -> flowCnec.isOptimized() && flowCnec.getLocation(network).contains(Optional.of(fr)))
+            .collect(Collectors.toSet());
     }
 
     public boolean hasNoFlowCnecNegativeMargin(RaoResult raoResult, Set<FlowCnec> flowCnecs) {

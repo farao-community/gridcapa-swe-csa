@@ -7,10 +7,15 @@ import com.farao_community.farao.gridcapa_swe_commons.shift.CountryBalanceComput
 import com.farao_community.farao.rao_runner.api.exceptions.RaoRunnerException;
 import com.farao_community.farao.swe_csa.api.exception.CsaInvalidDataException;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
+import com.farao_community.farao.swe_csa.api.results.CounterTradeRangeActionResult;
+import com.farao_community.farao.swe_csa.api.results.CounterTradingResult;
+import com.farao_community.farao.swe_csa.app.rao_result.RaoResultWithCounterTradeRangeActions;
 import com.powsybl.glsk.commons.CountryEICode;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.openrao.commons.Unit;
 import com.powsybl.openrao.data.cracapi.Crac;
+import com.powsybl.openrao.data.cracapi.Identifiable;
 import com.powsybl.openrao.data.cracapi.rangeaction.CounterTradeRangeAction;
 import com.powsybl.openrao.data.raoresultapi.RaoResult;
 import org.slf4j.Logger;
@@ -19,6 +24,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -31,11 +38,14 @@ public class DichotomyRunner {
     private double maxDichotomiesByBorder;
     private final SweCsaRaoValidator sweCsaRaoValidator;
     private final FileImporter fileImporter;
+    private final FileExporter fileExporter;
+
     private static final Logger LOGGER = LoggerFactory.getLogger(DichotomyRunner.class);
 
-    public DichotomyRunner(SweCsaRaoValidator sweCsaRaoValidator, FileImporter fileImporter) {
+    public DichotomyRunner(SweCsaRaoValidator sweCsaRaoValidator, FileImporter fileImporter, FileExporter fileExporter) {
         this.sweCsaRaoValidator = sweCsaRaoValidator;
         this.fileImporter = fileImporter;
+        this.fileExporter = fileExporter;
     }
 
     public RaoResult runDichotomy(CsaRequest csaRequest) throws GlskLimitationException, ShiftingException {
@@ -108,7 +118,9 @@ public class DichotomyRunner {
             logBorderOverload(maxCtStepResult);
             if (!maxCtStepResult.isValid()) {
                 // TODO [US] [CSA-68] Handle cases that CT cannot secure
-                throw new CsaInvalidDataException("Maximum CT value cannot secure this case");
+                String errorMessage = "Maximum CT value cannot secure this case";
+                LOGGER.error(errorMessage);
+                throw new CsaInvalidDataException(errorMessage);
             } else {
                 LOGGER.info("Best case in unsecure, worst case is secure, trying to find optimum in between using dichotomy");
                 Index index = new Index(0, ctPtEsUpperBound, 0, ctFrEsUpperBound, 10, 15);
@@ -141,14 +153,21 @@ public class DichotomyRunner {
                     index.addPtEsDichotomyStepResult(counterTradingValues.getPtEsCt(), ctStepResult);
                     index.addFrEsDichotomyStepResult(counterTradingValues.getFrEsCt(), ctStepResult);
                 }
-                LOGGER.info("Dichotomy stop criterion reached, CT PT-ES: {}, CT FR-ES: {}", index.getPtEsLowestSecureStep().getLeft(), index.getFrEsLowestSecureStep().getLeft());
+                LOGGER.info("Dichotomy stop criterion reached, CT PT-ES: {}, CT FR-ES: {}", Math.round(index.getPtEsLowestSecureStep().getLeft()), Math.round(index.getFrEsLowestSecureStep().getLeft()));
                 RaoResult raoResult =  index.getFrEsLowestSecureStep().getRight().getRaoResult(); // arbitrary choice rao result is the same for pt-es and fr-es
-          // TODO enhance with raoresultwithct
-                return raoResult;
+
+                Map<CounterTradeRangeAction, CounterTradeRangeActionResult> counterTradingResult = new HashMap<>();
+                List<String> frEsFlowCnecs = SweCsaRaoValidator.getBorderFlowCnecs(crac, network, Country.FR).stream().map(Identifiable::getId).toList();
+                List<String> ptEsFlowCnecs = SweCsaRaoValidator.getBorderFlowCnecs(crac, network, Country.PT).stream().map(Identifiable::getId).toList();
+                counterTradingResult.put(crac.getCounterTradeRangeAction("CT_RA_PTES"), new CounterTradeRangeActionResult("CT_RA_PTES", index.getPtEsLowestSecureStep().getLeft(), ptEsFlowCnecs));
+                counterTradingResult.put(crac.getCounterTradeRangeAction("CT_RA_FRES"), new CounterTradeRangeActionResult("CT_RA_FRES", index.getFrEsLowestSecureStep().getLeft(), frEsFlowCnecs));
+                CounterTradingResult ctResult = new CounterTradingResult(counterTradingResult);
+                RaoResultWithCounterTradeRangeActions raoResultWithRangeAction = new RaoResultWithCounterTradeRangeActions(raoResult, ctResult);
+                fileExporter.saveRaoResultInArtifact(raoResultWithRangeAction, crac, Unit.AMPERE, csaRequest.getBusinessTimestamp());
+                return raoResultWithRangeAction;
             }
         }
     }
-
 
     private void setWorkingVariant(Network network, String initialVariant, String newVariantName) {
         network.getVariantManager().cloneVariant(initialVariant, newVariantName);
@@ -159,6 +178,7 @@ public class DichotomyRunner {
         network.getVariantManager().setWorkingVariant(initialVariant);
         network.getVariantManager().removeVariant(newVariantName);
     }
+
     private CounterTradeRangeAction getCounterTradeRangeActionByCountries(Crac crac, Country exportingCountry, Country importingCountry) {
         for (CounterTradeRangeAction counterTradeRangeAction : crac.getCounterTradeRangeActions()) {
             if (counterTradeRangeAction.getExportingCountry() == exportingCountry && counterTradeRangeAction.getImportingCountry() == importingCountry) {
