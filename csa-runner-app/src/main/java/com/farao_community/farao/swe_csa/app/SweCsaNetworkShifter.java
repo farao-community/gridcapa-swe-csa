@@ -27,7 +27,7 @@ import static com.powsybl.openrao.commons.logs.OpenRaoLoggerProvider.BUSINESS_WA
  */
 
 public final class SweCsaNetworkShifter {
-    private static final double DEFAULT_EPSILON = 1e-3;
+    private static final double DEFAULT_EPSILON = 1;
     public static final String EI_CODE_FR = new EICode(Country.FR).getAreaCode();
     public static final String EI_CODE_PT = new EICode(Country.PT).getAreaCode();
     public static final String EI_CODE_ES = new EICode(Country.ES).getAreaCode();
