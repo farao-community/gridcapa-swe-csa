@@ -35,7 +35,6 @@ public final class DichotomyStepResult {
         return new DichotomyStepResult(reasonInvalid, failureMessage, ptEsCnecsSecure, frEsCnecsSecure);
     }
 
-
     public static DichotomyStepResult fromNetworkValidationResult(RaoResult raoResult, RaoResponse raoResponse, boolean ptEsCnecsSecure, boolean frEsCnecsSecure) {
         return new DichotomyStepResult(raoResult, raoResponse, ptEsCnecsSecure, frEsCnecsSecure);
     }

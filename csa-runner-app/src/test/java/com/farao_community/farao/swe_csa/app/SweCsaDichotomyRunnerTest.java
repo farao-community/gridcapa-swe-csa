@@ -23,7 +23,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+//import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SpringBootTest
 public class SweCsaDichotomyRunnerTest {
@@ -104,6 +104,7 @@ public class SweCsaDichotomyRunnerTest {
         Set<FlowCnec> criticalCnecs = new HashSet<>();
         FileExporter fileExporter;
         AsynchronousRaoRunnerClient raoRunnerClient;
+
         public SweCsaRaoValidatorMock(FileExporter fileExporter, AsynchronousRaoRunnerClient raoRunnerClient) {
             super(fileExporter,
                 raoRunnerClient);

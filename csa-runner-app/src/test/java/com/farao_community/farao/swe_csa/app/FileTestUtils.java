@@ -53,8 +53,7 @@ public class FileTestUtils {
         CsaProfileCracCreator cracCreator = new CsaProfileCracCreator();
         CracCreationParameters cracCreationParameters = new CracCreationParameters();
         cracCreationParameters.addExtension(CsaCracCreationParameters.class, new CsaCracCreationParameters());
-        CsaProfileCracCreationContext
-        cracCreationContext = cracCreator.createCrac(nativeCrac, network, utcInstant.atOffset(ZoneOffset.UTC), cracCreationParameters);
+        CsaProfileCracCreationContext cracCreationContext = cracCreator.createCrac(nativeCrac, network, utcInstant.atOffset(ZoneOffset.UTC), cracCreationParameters);
         Crac crac = cracCreationContext.getCrac();
 
         /*Set<Contingency> allContingencies = crac.getContingencies();

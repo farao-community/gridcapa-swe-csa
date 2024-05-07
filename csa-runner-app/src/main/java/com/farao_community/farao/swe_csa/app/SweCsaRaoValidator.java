@@ -26,7 +26,6 @@ import com.powsybl.openrao.data.cracapi.cnec.FlowCnec;
 import com.powsybl.openrao.data.raoresultapi.RaoResult;
 import com.powsybl.openrao.data.raoresultjson.RaoResultImporter;
 import com.powsybl.openrao.monitoring.voltagemonitoring.VoltageMonitoring;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -61,7 +60,7 @@ public class SweCsaRaoValidator {
         RaoResult raoResult;
         RaoResponse raoResponse;
         try {
-            try{
+            try {
                 raoResponse = raoResponseFuture.get();
                 LOGGER.info("RAO response received: {}", raoResponse);
             } catch (ExecutionException | InterruptedException e) {

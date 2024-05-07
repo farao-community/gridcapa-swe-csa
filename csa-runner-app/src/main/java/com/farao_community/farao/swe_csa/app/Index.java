@@ -39,6 +39,7 @@ public class Index {
     public Pair<Double, DichotomyStepResult> getFrEsLowestSecureStep() {
         return frEsLowestSecureStep;
     }
+
     public Pair<Double, DichotomyStepResult> getPtEsLowestSecureStep() {
         return ptEsLowestSecureStep;
     }
