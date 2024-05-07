@@ -51,7 +51,6 @@ public class SweCsaDichotomyRunnerTest {
         Instant utcInstant = Instant.parse("2023-09-13T09:30:00Z");
         Network network = fileTestUtils.getNetworkFromResource(filePath);
         Crac crac = fileTestUtils.importCrac(filePath, network, utcInstant);
-        updateCracWithCounterTrageRangeActions(crac);
         RaoParameters raoParameters = new RaoParameters();
         JsonRaoParameters.update(raoParameters, getClass().getResourceAsStream("/RaoParameters.json"));
 
@@ -68,45 +67,6 @@ public class SweCsaDichotomyRunnerTest {
         assertNotNull(sweCsaDichotomyRunner.runDichotomy(csaRequest));
     }
 
-    //TODO : counter-trade range actions should be integrated in the CSA profiles input files
-    private void updateCracWithCounterTrageRangeActions(Crac crac) {
-        crac.newCounterTradeRangeAction()
-            .withId("CT_RA_PTES")
-            .withOperator("REN")
-            .newRange().withMin(-5000.0)
-            .withMax(5000.0).add()
-            .withInitialSetpoint(0.0)
-            .withExportingCountry(Country.PT)
-            .withImportingCountry(Country.ES)
-            .add();
-        crac.newCounterTradeRangeAction()
-            .withId("CT_RA_ESPT")
-            .withOperator("REE")
-            .newRange().withMin(-5000.0)
-            .withMax(5000.0).add()
-            .withInitialSetpoint(0.0)
-            .withExportingCountry(Country.ES)
-            .withImportingCountry(Country.PT)
-            .add();
-        crac.newCounterTradeRangeAction()
-            .withId("CT_RA_ESFR")
-            .withOperator("REE")
-            .newRange().withMin(-5000.0)
-            .withMax(5000.0).add()
-            .withInitialSetpoint(0.0)
-            .withExportingCountry(Country.ES)
-            .withImportingCountry(Country.FR)
-            .add();
-        crac.newCounterTradeRangeAction()
-            .withId("CT_RA_FRES")
-            .withOperator("RTE")
-            .newRange().withMin(-5000.0)
-            .withMax(5000.0).add()
-            .withInitialSetpoint(0.0)
-            .withExportingCountry(Country.FR)
-            .withImportingCountry(Country.ES)
-            .add();
-    }
 
     public class SweCsaRaoValidatorMock extends SweCsaRaoValidator {
         Set<FlowCnec> criticalCnecs = new HashSet<>();

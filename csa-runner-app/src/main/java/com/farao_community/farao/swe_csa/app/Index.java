@@ -21,6 +21,7 @@ public class Index {
     private final List<Pair<Double, DichotomyStepResult>> frEsStepResults = new ArrayList<>();
     private Pair<Double, DichotomyStepResult> frEsHighestUnsecureStep;
     private Pair<Double, DichotomyStepResult> frEsLowestSecureStep;
+    private DichotomyStepResult bestValidDichotomyStepResult;
     private int frEsDichotomyCount = 0;
     private int ptEsDichotomyCount = 0;
 
@@ -39,52 +40,43 @@ public class Index {
     public Pair<Double, DichotomyStepResult> getFrEsLowestSecureStep() {
         return frEsLowestSecureStep;
     }
+
     public Pair<Double, DichotomyStepResult> getPtEsLowestSecureStep() {
         return ptEsLowestSecureStep;
     }
 
-    public void addPtEsDichotomyStepResult(double ptEsCtStepValue, DichotomyStepResult stepResult) {
+    public boolean addPtEsDichotomyStepResult(double ptEsCtStepValue, DichotomyStepResult stepResult) {
         ptEsDichotomyCount++;
-        if (stepResult.isValid()) {
-            if (ptEsLowestSecureStep != null && ptEsLowestSecureStep.getLeft() < ptEsCtStepValue) {
-                throw new AssertionError("Step result tested is secure but its value is higher than lowest secure step one. Should not happen");
-            }
+        if (stepResult.isPtEsCnecsSecure()) {
             ptEsLowestSecureStep = Pair.of(ptEsCtStepValue, stepResult);
             ptEsStepResults.add(ptEsLowestSecureStep);
+            return true;
         } else {
-            if (ptEsHighestUnsecureStep != null && ptEsHighestUnsecureStep.getRight().getReasonInvalid().equals(ReasonInvalid.UNSECURE_AFTER_VALIDATION)
-                && ptEsHighestUnsecureStep.getLeft() > ptEsCtStepValue) {
-                throw new AssertionError("Step result tested is unsecure but its value is lower than highest unsecure step one. Should not happen");
-            }
             ptEsHighestUnsecureStep = Pair.of(ptEsCtStepValue, stepResult);
             ptEsStepResults.add(ptEsHighestUnsecureStep);
         }
+        return false;
     }
 
-    public void addFrEsDichotomyStepResult(double frEsCtStepValue, DichotomyStepResult stepResult) {
+    public boolean addFrEsDichotomyStepResult(double frEsCtStepValue, DichotomyStepResult stepResult) {
         frEsDichotomyCount++;
-        if (stepResult.isValid()) {
-            if (frEsLowestSecureStep != null && frEsLowestSecureStep.getLeft() < frEsCtStepValue) {
-                throw new AssertionError("Step result tested is secure but its value is higher than lowest secure step one. Should not happen");
-            }
+        if (stepResult.isFrEsCnecsSecure()) {
             frEsLowestSecureStep = Pair.of(frEsCtStepValue, stepResult);
             frEsStepResults.add(frEsLowestSecureStep);
+            return true;
         } else {
-            if (frEsHighestUnsecureStep != null && frEsHighestUnsecureStep.getRight().getReasonInvalid().equals(ReasonInvalid.UNSECURE_AFTER_VALIDATION)
-                && frEsHighestUnsecureStep.getLeft() > frEsCtStepValue) {
-                throw new AssertionError("Step result tested is unsecure but its value is lower than highest unsecure step one. Should not happen");
-            }
             frEsHighestUnsecureStep = Pair.of(frEsCtStepValue, stepResult);
             frEsStepResults.add(frEsHighestUnsecureStep);
         }
+        return false;
     }
 
     public boolean exitConditionIsNotMetForPtEs() {
-        return !(ptEsDichotomyCount >= maxDichotomiesByBorder) && !(ptEsLowestSecureStep.getLeft() - ptEsHighestUnsecureStep.getLeft() <= precision) && ptEsLowestSecureStep.getLeft() != ptEsMinValue;
+        return ptEsLowestSecureStep.getLeft() != ptEsMinValue && !(ptEsDichotomyCount >= maxDichotomiesByBorder) && !(ptEsLowestSecureStep.getLeft() - ptEsHighestUnsecureStep.getLeft() <= precision);
     }
 
     public boolean exitConditionIsNotMetForFrEs() {
-        return !(frEsDichotomyCount >= maxDichotomiesByBorder) && !(frEsLowestSecureStep.getLeft() - frEsHighestUnsecureStep.getLeft() <= precision) && frEsLowestSecureStep.getLeft() != frEsMinValue;
+        return frEsLowestSecureStep.getLeft() != frEsMinValue && !(frEsDichotomyCount >= maxDichotomiesByBorder) && !(frEsLowestSecureStep.getLeft() - frEsHighestUnsecureStep.getLeft() <= precision);
     }
 
     public CounterTradingValues nextValues() {
@@ -95,5 +87,13 @@ public class Index {
         } else {
             return new CounterTradingValues((ptEsLowestSecureStep.getLeft() + ptEsHighestUnsecureStep.getLeft()) / 2, (frEsLowestSecureStep.getLeft() + frEsHighestUnsecureStep.getLeft()) / 2);
         }
+    }
+
+    public void setBestValidDichotomyStepResult(DichotomyStepResult bestValidDichotomyStepResult) {
+        this.bestValidDichotomyStepResult = bestValidDichotomyStepResult;
+    }
+
+    public DichotomyStepResult getBestValidDichotomyStepResult() {
+        return bestValidDichotomyStepResult;
     }
 }

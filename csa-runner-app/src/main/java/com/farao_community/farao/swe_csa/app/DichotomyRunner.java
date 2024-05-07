@@ -125,8 +125,9 @@ public class DichotomyRunner {
                 LOGGER.info("Best case in unsecure, worst case is secure, trying to find optimum in between using dichotomy");
                 Index index = new Index(0, ctPtEsUpperBound, 0, ctFrEsUpperBound, 10, 15);
                 index.addPtEsDichotomyStepResult(0, noCtStepResult);
-                index.addFrEsDichotomyStepResult(0, noCtStepResult);
                 index.addPtEsDichotomyStepResult(ctPtEsUpperBound, maxCtStepResult);
+
+                index.addFrEsDichotomyStepResult(0, noCtStepResult);
                 index.addFrEsDichotomyStepResult(ctFrEsUpperBound, maxCtStepResult);
 
                 while (index.exitConditionIsNotMetForPtEs() || index.exitConditionIsNotMetForFrEs()) {
@@ -150,11 +151,15 @@ public class DichotomyRunner {
                         resetToInitialVariant(network, initialVariant, newVariantName);
                     }
                     logBorderOverload(ctStepResult);
-                    index.addPtEsDichotomyStepResult(counterTradingValues.getPtEsCt(), ctStepResult);
-                    index.addFrEsDichotomyStepResult(counterTradingValues.getFrEsCt(), ctStepResult);
+                    boolean ptEsCtSecure = index.addPtEsDichotomyStepResult(counterTradingValues.getPtEsCt(), ctStepResult);
+                    boolean frEsCtSecure = index.addFrEsDichotomyStepResult(counterTradingValues.getFrEsCt(), ctStepResult);
+                    if (ptEsCtSecure && frEsCtSecure) {
+                        index.setBestValidDichotomyStepResult(ctStepResult);
+                    }
                 }
                 LOGGER.info("Dichotomy stop criterion reached, CT PT-ES: {}, CT FR-ES: {}", Math.round(index.getPtEsLowestSecureStep().getLeft()), Math.round(index.getFrEsLowestSecureStep().getLeft()));
-                RaoResult raoResult =  index.getFrEsLowestSecureStep().getRight().getRaoResult(); // arbitrary choice rao result is the same for pt-es and fr-es
+                //  arbitrary choice rao result is the same for pt-es and fr-es
+                RaoResult raoResult =  index.getBestValidDichotomyStepResult().getRaoResult();
 
                 Map<CounterTradeRangeAction, CounterTradeRangeActionResult> counterTradingResult = new HashMap<>();
                 List<String> frEsFlowCnecs = SweCsaRaoValidator.getBorderFlowCnecs(crac, network, Country.FR).stream().map(Identifiable::getId).toList();
@@ -192,13 +197,13 @@ public class DichotomyRunner {
         if (ctStepResult.isFrEsCnecsSecure()) {
             LOGGER.info("There is no overload on FR-ES border");
         } else {
-            LOGGER.info("There is overloads on FR-ES border, netowrk is not secure");
+            LOGGER.info("There is overloads on FR-ES border, network is not secure");
         }
 
         if (ctStepResult.isPtEsCnecsSecure()) {
             LOGGER.info("There is no overload on PT-ES border");
         } else {
-            LOGGER.info("There is overloads on PT-ES border, netowrk is not secure");
+            LOGGER.info("There is overloads on PT-ES border, network is not secure");
         }
     }
 
@@ -210,8 +215,8 @@ public class DichotomyRunner {
         crac.newCounterTradeRangeAction()
             .withId("CT_RA_PTES")
             .withOperator("REN")
-            .newRange().withMin(-5000.0)
-            .withMax(5000.0).add()
+            .newRange().withMin(-50000.0)
+            .withMax(50000.0).add()
             .withInitialSetpoint(0.0)
             .withExportingCountry(Country.PT)
             .withImportingCountry(Country.ES)
@@ -219,8 +224,8 @@ public class DichotomyRunner {
         crac.newCounterTradeRangeAction()
             .withId("CT_RA_ESPT")
             .withOperator("REE")
-            .newRange().withMin(-5000.0)
-            .withMax(5000.0).add()
+            .newRange().withMin(-50000.0)
+            .withMax(50000.0).add()
             .withInitialSetpoint(0.0)
             .withExportingCountry(Country.ES)
             .withImportingCountry(Country.PT)
@@ -228,8 +233,8 @@ public class DichotomyRunner {
         crac.newCounterTradeRangeAction()
             .withId("CT_RA_ESFR")
             .withOperator("REE")
-            .newRange().withMin(-5000.0)
-            .withMax(5000.0).add()
+            .newRange().withMin(-50000.0)
+            .withMax(50000.0).add()
             .withInitialSetpoint(0.0)
             .withExportingCountry(Country.ES)
             .withImportingCountry(Country.FR)
@@ -237,8 +242,8 @@ public class DichotomyRunner {
         crac.newCounterTradeRangeAction()
             .withId("CT_RA_FRES")
             .withOperator("RTE")
-            .newRange().withMin(-5000.0)
-            .withMax(5000.0).add()
+            .newRange().withMin(-50000.0)
+            .withMax(50000.0).add()
             .withInitialSetpoint(0.0)
             .withExportingCountry(Country.FR)
             .withImportingCountry(Country.ES)
