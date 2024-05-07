@@ -31,10 +31,9 @@ public final class DichotomyStepResult {
         this.failureMessage = "None";
     }
 
-    public static DichotomyStepResult fromFailure(ReasonInvalid reasonInvalid, String failureMessage, boolean ptEsFailure, boolean frEsFailure) {
-        return new DichotomyStepResult(reasonInvalid, failureMessage, ptEsFailure, frEsFailure);
+    public static DichotomyStepResult fromFailure(ReasonInvalid reasonInvalid, String failureMessage, boolean ptEsCnecsSecure, boolean frEsCnecsSecure) {
+        return new DichotomyStepResult(reasonInvalid, failureMessage, ptEsCnecsSecure, frEsCnecsSecure);
     }
-
 
     public static DichotomyStepResult fromNetworkValidationResult(RaoResult raoResult, RaoResponse raoResponse, boolean ptEsCnecsSecure, boolean frEsCnecsSecure) {
         return new DichotomyStepResult(raoResult, raoResponse, ptEsCnecsSecure, frEsCnecsSecure);

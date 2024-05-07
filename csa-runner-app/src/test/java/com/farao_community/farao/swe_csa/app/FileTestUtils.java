@@ -1,4 +1,4 @@
-package com.farao_community.farao.swe_csa.app.dichotomy;
+package com.farao_community.farao.swe_csa.app;
 
 import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
 import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
@@ -69,5 +69,4 @@ public class FileTestUtils {
 
         return crac;
     }
-
 }
