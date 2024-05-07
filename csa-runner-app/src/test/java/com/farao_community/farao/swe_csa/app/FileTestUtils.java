@@ -1,4 +1,4 @@
-package com.farao_community.farao.swe_csa.app.dichotomy;
+package com.farao_community.farao.swe_csa.app;
 
 import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
 import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
@@ -53,7 +53,8 @@ public class FileTestUtils {
         CsaProfileCracCreator cracCreator = new CsaProfileCracCreator();
         CracCreationParameters cracCreationParameters = new CracCreationParameters();
         cracCreationParameters.addExtension(CsaCracCreationParameters.class, new CsaCracCreationParameters());
-        CsaProfileCracCreationContext cracCreationContext = cracCreator.createCrac(nativeCrac, network, utcInstant.atOffset(ZoneOffset.UTC), cracCreationParameters);
+        CsaProfileCracCreationContext
+        cracCreationContext = cracCreator.createCrac(nativeCrac, network, utcInstant.atOffset(ZoneOffset.UTC), cracCreationParameters);
         Crac crac = cracCreationContext.getCrac();
 
         /*Set<Contingency> allContingencies = crac.getContingencies();
@@ -69,5 +70,4 @@ public class FileTestUtils {
 
         return crac;
     }
-
 }
