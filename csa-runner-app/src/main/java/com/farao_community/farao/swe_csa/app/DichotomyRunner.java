@@ -123,7 +123,7 @@ public class DichotomyRunner {
                 throw new CsaInvalidDataException(errorMessage);
             } else {
                 LOGGER.info("Best case in unsecure, worst case is secure, trying to find optimum in between using dichotomy");
-                Index index = new Index(0, ctPtEsUpperBound, 0, ctFrEsUpperBound, 10, 15);
+                Index index = new Index(0, 0, 10, 10);
                 index.addPtEsDichotomyStepResult(0, noCtStepResult);
                 index.addPtEsDichotomyStepResult(ctPtEsUpperBound, maxCtStepResult);
 

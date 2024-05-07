@@ -1,5 +1,7 @@
 package com.farao_community.farao.swe_csa.app;
 
+import com.farao_community.farao.dichotomy.api.exceptions.GlskLimitationException;
+import com.farao_community.farao.dichotomy.api.exceptions.ShiftingException;
 import com.farao_community.farao.rao_runner.api.resource.RaoResponse;
 import com.farao_community.farao.rao_runner.starter.AsynchronousRaoRunnerClient;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
@@ -13,17 +15,23 @@ import com.powsybl.openrao.raoapi.Rao;
 import com.powsybl.openrao.raoapi.RaoInput;
 import com.powsybl.openrao.raoapi.json.JsonRaoParameters;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
+import com.powsybl.openrao.searchtreerao.faorao.FastRao;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-//import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SpringBootTest
 public class SweCsaDichotomyRunnerTest {
@@ -37,9 +45,9 @@ public class SweCsaDichotomyRunnerTest {
     @Mock
     AsynchronousRaoRunnerClient raoRunnerClient;
 
-    /*@Test
+    @Test
     void launchCoresoTest() throws GlskLimitationException, ShiftingException {
-        Path filePath = Paths.get(new File(getClass().getResource("/TestCase_1_29.zip").getFile()).toString());
+        Path filePath = Paths.get(new File(getClass().getResource("/TestCase_1_16_2.zip").getFile()).toString());
         Instant utcInstant = Instant.parse("2023-09-13T09:30:00Z");
         Network network = fileTestUtils.getNetworkFromResource(filePath);
         Crac crac = fileTestUtils.importCrac(filePath, network, utcInstant);
@@ -57,7 +65,7 @@ public class SweCsaDichotomyRunnerTest {
         DichotomyRunner sweCsaDichotomyRunner = new DichotomyRunner(sweCsaRaoValidator, fileImporter, fileExporter);
         CsaRequest csaRequest = new CsaRequest("id", "2023-09-13T09:30:00Z", "cgm-url", "crac-url", "rao-result-url");
         assertNotNull(sweCsaDichotomyRunner.runDichotomy(csaRequest));
-    }*/
+    }
 
 
     public class SweCsaRaoValidatorMock extends SweCsaRaoValidator {
@@ -78,8 +86,8 @@ public class SweCsaDichotomyRunnerTest {
             JsonRaoParameters.update(raoParameters, getClass().getResourceAsStream("/RaoParameters.json"));
             Network networkCopy = NetworkSerDe.copy(network);
             RaoInput raoInput = RaoInput.build(networkCopy, crac).build();
-            RaoResult raoResult = Rao.find("SearchTreeRao").run(raoInput, raoParameters, null);
-            //RaoResult raoResult = FastRao.launchFilteredRao(raoInput, raoParameters, null, criticalCnecs);
+           // RaoResult raoResult = Rao.find("SearchTreeRao").run(raoInput, raoParameters, null);
+            RaoResult raoResult = FastRao.launchFilteredRao(raoInput, raoParameters, null, criticalCnecs);
 
             RaoResponse raoResponse = Mockito.mock(RaoResponse.class);
             Set<FlowCnec> frEsFlowCnecs = crac.getFlowCnecs().stream()
