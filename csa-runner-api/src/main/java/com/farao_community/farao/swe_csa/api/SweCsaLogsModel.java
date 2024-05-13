@@ -30,6 +30,11 @@ public class SweCsaLogsModel {
         this.message = message;
     }
 
+    @JsonCreator
+    public SweCsaLogsModel(@JsonProperty("taskId") String taskId, @JsonProperty("level") String level, @JsonProperty("timestamp") String timestamp, @JsonProperty("message") String message) {
+        this(taskId, null, level, timestamp, message);
+    }
+
     public String getTaskId() {
         return taskId;
     }
