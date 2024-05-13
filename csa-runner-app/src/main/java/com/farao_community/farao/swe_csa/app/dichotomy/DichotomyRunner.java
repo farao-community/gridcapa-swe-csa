@@ -1,4 +1,4 @@
-package com.farao_community.farao.swe_csa.app;
+package com.farao_community.farao.swe_csa.app.dichotomy;
 
 import com.farao_community.farao.dichotomy.api.exceptions.GlskLimitationException;
 import com.farao_community.farao.dichotomy.api.exceptions.ShiftingException;
@@ -9,6 +9,7 @@ import com.farao_community.farao.swe_csa.api.exception.CsaInvalidDataException;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.api.results.CounterTradeRangeActionResult;
 import com.farao_community.farao.swe_csa.api.results.CounterTradingResult;
+import com.farao_community.farao.swe_csa.app.*;
 import com.farao_community.farao.swe_csa.app.rao_result.RaoResultWithCounterTradeRangeActions;
 import com.powsybl.glsk.commons.CountryEICode;
 import com.powsybl.iidm.network.Country;
@@ -69,6 +70,7 @@ public class DichotomyRunner {
         double expPtEs0 = -expEsPt0;
         LOGGER.info("Initial exchanges: PT->ES: {}, FR->ES: {}", expPtEs0, expFrEs0);
 
+        CounterTradingValues minCounterTradingValues = new CounterTradingValues(0, 0);
         CounterTradeRangeAction ctRaFrEs;
         CounterTradeRangeAction ctRaEsFr;
         CounterTradeRangeAction ctRaPtEs;
@@ -81,13 +83,13 @@ public class DichotomyRunner {
         } catch (CsaInvalidDataException e) {
             LOGGER.warn(e.getMessage());
             LOGGER.warn("No counter trading will be done, only input network will be checked by rao");
-            return sweCsaRaoValidator.validateNetwork("input-network", network, crac, csaRequest, raoParametersUrl, true, true).getRaoResult();
+            return sweCsaRaoValidator.validateNetwork("input-network", network, crac, csaRequest, raoParametersUrl, true, true, minCounterTradingValues).getRaoResult();
         }
         // best case no counter trading , no scaling
         LOGGER.info("Starting Counter trading algorithm by validating input network without scaling");
         String noCtVariantName = "no-ct-PT-ES-0_FR-ES-0";
         setWorkingVariant(network, initialVariant, noCtVariantName);
-        DichotomyStepResult noCtStepResult = sweCsaRaoValidator.validateNetwork("input-network", network, crac, csaRequest, raoParametersUrl, true, true);
+        DichotomyStepResult noCtStepResult = sweCsaRaoValidator.validateNetwork("input-network", network, crac, csaRequest, raoParametersUrl, true, true, minCounterTradingValues);
         resetToInitialVariant(network, initialVariant, noCtVariantName);
 
         logBorderOverload(noCtStepResult);
@@ -112,7 +114,7 @@ public class DichotomyRunner {
 
             SweCsaNetworkShifter networkShifter = new SweCsaNetworkShifter(SweCsaZonalData.getZonalData(network), new ShiftDispatcher(initialNetPositions));
             networkShifter.shiftNetwork(maxCounterTradingValues, network);
-            DichotomyStepResult maxCtStepResult = sweCsaRaoValidator.validateNetwork(maxCounterTradingValues.print(), network, crac, csaRequest, raoParametersUrl, true, true);
+            DichotomyStepResult maxCtStepResult = sweCsaRaoValidator.validateNetwork(maxCounterTradingValues.print(), network, crac, csaRequest, raoParametersUrl, true, true, maxCounterTradingValues);
             resetToInitialVariant(network, initialVariant, maxCtVariantName);
 
             logBorderOverload(maxCtStepResult);
@@ -123,7 +125,7 @@ public class DichotomyRunner {
                 throw new CsaInvalidDataException(errorMessage);
             } else {
                 LOGGER.info("Best case in unsecure, worst case is secure, trying to find optimum in between using dichotomy");
-                Index index = new Index(0, 0, 10, 10);
+                Index index = new Index(0, 0, indexPrecision, maxDichotomiesByBorder);
                 index.addPtEsDichotomyStepResult(0, noCtStepResult);
                 index.addPtEsDichotomyStepResult(ctPtEsUpperBound, maxCtStepResult);
 
@@ -140,13 +142,13 @@ public class DichotomyRunner {
 
                         setWorkingVariant(network, initialVariant, newVariantName);
                         networkShifter.shiftNetwork(counterTradingValues, network);
-                        ctStepResult = sweCsaRaoValidator.validateNetwork(counterTradingValues.print(), network, crac, csaRequest, raoParametersUrl, true, true);
+                        ctStepResult = sweCsaRaoValidator.validateNetwork(counterTradingValues.print(), network, crac, csaRequest, raoParametersUrl, true, true, counterTradingValues);
                     } catch (GlskLimitationException e) {
                         LOGGER.warn("GLSK limits have been reached with CT of '{}' for PT-ES and '{}' for FR-ES", counterTradingValues.getPtEsCt(), counterTradingValues.getFrEsCt());
-                        ctStepResult = DichotomyStepResult.fromFailure(ReasonInvalid.GLSK_LIMITATION, e.getMessage(), true, true);
+                        ctStepResult = DichotomyStepResult.fromFailure(ReasonInvalid.GLSK_LIMITATION, e.getMessage(), true, true, counterTradingValues);
                     } catch (ShiftingException | RaoRunnerException e) {
                         LOGGER.warn("Validation failed with CT of '{}' for PT-ES and '{}' for FR-ES", counterTradingValues.getPtEsCt(), counterTradingValues.getFrEsCt());
-                        ctStepResult = DichotomyStepResult.fromFailure(ReasonInvalid.GLSK_LIMITATION, e.getMessage(), true, true);
+                        ctStepResult = DichotomyStepResult.fromFailure(ReasonInvalid.GLSK_LIMITATION, e.getMessage(), true, true, counterTradingValues);
                     } finally {
                         resetToInitialVariant(network, initialVariant, newVariantName);
                     }
@@ -157,9 +159,8 @@ public class DichotomyRunner {
                         index.setBestValidDichotomyStepResult(ctStepResult);
                     }
                 }
-                LOGGER.info("Dichotomy stop criterion reached, CT PT-ES: {}, CT FR-ES: {}", Math.round(index.getPtEsLowestSecureStep().getLeft()), Math.round(index.getFrEsLowestSecureStep().getLeft()));
-                //  arbitrary choice rao result is the same for pt-es and fr-es
-                RaoResult raoResult =  index.getBestValidDichotomyStepResult().getRaoResult();
+                LOGGER.info("Dichotomy stop criterion reached, CT PT-ES: {}, CT FR-ES: {}", Math.round(index.getBestValidDichotomyStepResult().getCounterTradingValues().getPtEsCt()), Math.round(index.getBestValidDichotomyStepResult().getCounterTradingValues().getFrEsCt()));
+                RaoResult raoResult = index.getBestValidDichotomyStepResult().getRaoResult();
 
                 Map<CounterTradeRangeAction, CounterTradeRangeActionResult> counterTradingResult = new HashMap<>();
                 List<String> frEsFlowCnecs = SweCsaRaoValidator.getBorderFlowCnecs(crac, network, Country.FR).stream().map(Identifiable::getId).toList();

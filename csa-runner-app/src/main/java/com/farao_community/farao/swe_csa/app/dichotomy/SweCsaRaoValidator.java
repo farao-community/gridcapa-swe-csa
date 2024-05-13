@@ -1,4 +1,4 @@
-package com.farao_community.farao.swe_csa.app;
+package com.farao_community.farao.swe_csa.app.dichotomy;
 
 /*
  * Copyright (c) 2024, RTE (http://www.rte-france.com)
@@ -16,6 +16,7 @@ import com.farao_community.farao.rao_runner.api.resource.RaoResponse;
 import com.farao_community.farao.rao_runner.starter.AsynchronousRaoRunnerClient;
 import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
+import com.farao_community.farao.swe_csa.app.FileExporter;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlow;
@@ -52,7 +53,7 @@ public class SweCsaRaoValidator {
         this.raoRunnerClient = raoRunnerClient;
     }
 
-    public DichotomyStepResult validateNetwork(String stepFolder, Network network, Crac crac, CsaRequest csaRequest, String raoParametersUrl, boolean withVoltageMonitoring, boolean withAngleMonitoring) {
+    public DichotomyStepResult validateNetwork(String stepFolder, Network network, Crac crac, CsaRequest csaRequest, String raoParametersUrl, boolean withVoltageMonitoring, boolean withAngleMonitoring, CounterTradingValues counterTradingValues) {
         RaoRequest raoRequest = buildRaoRequest(stepFolder, csaRequest.getBusinessTimestamp(), csaRequest.getId(), network, csaRequest.getCracFileUri(), raoParametersUrl);
 
         LOGGER.info("RAO request sent: {}", raoRequest);
@@ -86,7 +87,7 @@ public class SweCsaRaoValidator {
         boolean cnecsOnPtEsBorderAreSecure = hasNoFlowCnecNegativeMargin(raoResult, ptEsFlowCnecs);
         boolean cnecsOnFrEsBorderAreSecure = hasNoFlowCnecNegativeMargin(raoResult, frEsFlowCnecs);
 
-        return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, cnecsOnPtEsBorderAreSecure, cnecsOnFrEsBorderAreSecure);
+        return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, cnecsOnPtEsBorderAreSecure, cnecsOnFrEsBorderAreSecure, counterTradingValues);
     }
 
     static Set<FlowCnec> getBorderFlowCnecs(Crac crac, Network network, Country fr) {

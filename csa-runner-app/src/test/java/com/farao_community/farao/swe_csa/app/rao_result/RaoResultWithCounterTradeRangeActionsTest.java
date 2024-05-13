@@ -1,15 +1,10 @@
 package com.farao_community.farao.swe_csa.app.rao_result;
 
-import com.powsybl.iidm.network.Network;
-import com.powsybl.openrao.data.cracapi.Crac;
 import com.powsybl.openrao.data.cracapi.RemedialAction;
 import com.powsybl.openrao.data.cracapi.State;
 import com.powsybl.openrao.data.cracapi.rangeaction.CounterTradeRangeAction;
 import com.powsybl.openrao.data.cracapi.rangeaction.RangeAction;
-import com.powsybl.openrao.data.craciojson.JsonImport;
-import com.powsybl.openrao.data.raoresultapi.ComputationStatus;
 import com.powsybl.openrao.data.raoresultapi.RaoResult;
-import com.powsybl.openrao.data.raoresultjson.RaoResultImporter;
 import com.farao_community.farao.swe_csa.api.results.CounterTradeRangeActionResult;
 import com.farao_community.farao.swe_csa.api.results.CounterTradingResult;
 import com.powsybl.iidm.network.Country;
@@ -17,7 +12,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.io.InputStream;
 import java.util.*;
 import java.util.stream.Collectors;
 

@@ -39,7 +39,7 @@ public class FileExporter {
         return s3ArtifactsAdapter.generatePreSignedUrl(networkFilePath);
     }
 
-    void saveRaoResultInArtifact(RaoResult raoResult, Crac crac, Unit unit, String timestamp) {
+    public void saveRaoResultInArtifact(RaoResult raoResult, Crac crac, Unit unit, String timestamp) {
         ByteArrayOutputStream outputStreamRaoResult = new ByteArrayOutputStream();
         new RaoResultExporter().export(raoResult, crac, Set.of(unit), outputStreamRaoResult);
         s3ArtifactsAdapter.uploadFile(generateArtifactsFolder(timestamp), new ByteArrayInputStream(outputStreamRaoResult.toByteArray()));

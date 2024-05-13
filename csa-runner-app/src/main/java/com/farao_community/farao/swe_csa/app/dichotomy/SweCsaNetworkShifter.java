@@ -1,4 +1,4 @@
-package com.farao_community.farao.swe_csa.app;
+package com.farao_community.farao.swe_csa.app.dichotomy;
 
 /*
  * Copyright (c) 2024, RTE (http://www.rte-france.com)
@@ -10,6 +10,7 @@ package com.farao_community.farao.swe_csa.app;
 import com.farao_community.farao.dichotomy.api.exceptions.GlskLimitationException;
 import com.farao_community.farao.dichotomy.api.exceptions.ShiftingException;
 import com.farao_community.farao.gridcapa_swe_commons.shift.ScalableGeneratorConnector;
+import com.farao_community.farao.swe_csa.app.ShiftDispatcher;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.modification.scalable.ScalingParameters;

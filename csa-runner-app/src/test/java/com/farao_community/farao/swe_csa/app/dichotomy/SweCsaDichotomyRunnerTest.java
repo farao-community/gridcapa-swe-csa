@@ -1,17 +1,19 @@
-package com.farao_community.farao.swe_csa.app;
+package com.farao_community.farao.swe_csa.app.dichotomy;
 
 import com.farao_community.farao.dichotomy.api.exceptions.GlskLimitationException;
 import com.farao_community.farao.dichotomy.api.exceptions.ShiftingException;
 import com.farao_community.farao.rao_runner.api.resource.RaoResponse;
 import com.farao_community.farao.rao_runner.starter.AsynchronousRaoRunnerClient;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
+import com.farao_community.farao.swe_csa.app.FileExporter;
+import com.farao_community.farao.swe_csa.app.FileImporter;
+import com.farao_community.farao.swe_csa.app.FileTestUtils;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.serde.NetworkSerDe;
 import com.powsybl.openrao.data.cracapi.Crac;
 import com.powsybl.openrao.data.cracapi.cnec.FlowCnec;
 import com.powsybl.openrao.data.raoresultapi.RaoResult;
-import com.powsybl.openrao.raoapi.Rao;
 import com.powsybl.openrao.raoapi.RaoInput;
 import com.powsybl.openrao.raoapi.json.JsonRaoParameters;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
@@ -67,7 +69,6 @@ public class SweCsaDichotomyRunnerTest {
         assertNotNull(sweCsaDichotomyRunner.runDichotomy(csaRequest));
     }
 
-
     public class SweCsaRaoValidatorMock extends SweCsaRaoValidator {
         Set<FlowCnec> criticalCnecs = new HashSet<>();
         FileExporter fileExporter;
@@ -81,12 +82,11 @@ public class SweCsaDichotomyRunnerTest {
         }
 
         @Override
-        public DichotomyStepResult validateNetwork(String stepFolder, Network network, Crac crac, CsaRequest csaRequest, String raoParametersUrl, boolean withVoltageMonitoring, boolean withAngleMonitoring) {
+        public DichotomyStepResult validateNetwork(String stepFolder, Network network, Crac crac, CsaRequest csaRequest, String raoParametersUrl, boolean withVoltageMonitoring, boolean withAngleMonitoring, CounterTradingValues counterTradingValues) {
             RaoParameters raoParameters = new RaoParameters();
             JsonRaoParameters.update(raoParameters, getClass().getResourceAsStream("/RaoParameters.json"));
             Network networkCopy = NetworkSerDe.copy(network);
             RaoInput raoInput = RaoInput.build(networkCopy, crac).build();
-           // RaoResult raoResult = Rao.find("SearchTreeRao").run(raoInput, raoParameters, null);
             RaoResult raoResult = FastRao.launchFilteredRao(raoInput, raoParameters, null, criticalCnecs);
 
             RaoResponse raoResponse = Mockito.mock(RaoResponse.class);
@@ -98,7 +98,8 @@ public class SweCsaDichotomyRunnerTest {
                 .collect(Collectors.toSet());
             boolean cnecsOnPtEsBorderAreSecure = hasNoFlowCnecNegativeMargin(raoResult, ptEsFlowCnecs);
             boolean cnecsOnFrEsBorderAreSecure = hasNoFlowCnecNegativeMargin(raoResult, frEsFlowCnecs);
-            return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, cnecsOnPtEsBorderAreSecure, cnecsOnFrEsBorderAreSecure);
+            return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, cnecsOnPtEsBorderAreSecure, cnecsOnFrEsBorderAreSecure, counterTradingValues);
         }
     }
 }
+

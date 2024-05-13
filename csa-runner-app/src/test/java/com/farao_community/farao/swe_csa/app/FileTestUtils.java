@@ -13,9 +13,6 @@ import com.powsybl.openrao.data.craccreation.creator.csaprofile.craccreator.CsaP
 import com.powsybl.openrao.data.craccreation.creator.csaprofile.craccreator.CsaProfileCracCreator;
 import com.powsybl.openrao.data.craccreation.creator.csaprofile.importer.CsaProfileCracImporter;
 import com.powsybl.openrao.data.craccreation.creator.csaprofile.parameters.CsaCracCreationParameters;
-import com.powsybl.openrao.data.cracioapi.CracExporters;
-import com.powsybl.openrao.raoapi.json.JsonRaoParameters;
-import com.powsybl.openrao.raoapi.parameters.RaoParameters;
 import org.springframework.stereotype.Service;
 
 import java.io.*;

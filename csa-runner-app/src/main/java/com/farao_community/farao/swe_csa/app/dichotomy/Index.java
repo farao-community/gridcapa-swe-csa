@@ -1,4 +1,4 @@
-package com.farao_community.farao.swe_csa.app;
+package com.farao_community.farao.swe_csa.app.dichotomy;
 
 import org.apache.commons.lang3.tuple.Pair;
 

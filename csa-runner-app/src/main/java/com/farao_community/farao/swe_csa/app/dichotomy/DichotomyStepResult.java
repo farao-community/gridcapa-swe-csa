@@ -1,4 +1,4 @@
-package com.farao_community.farao.swe_csa.app;
+package com.farao_community.farao.swe_csa.app.dichotomy;
 
 import com.farao_community.farao.dichotomy.api.results.ReasonInvalid;
 import com.farao_community.farao.rao_runner.api.resource.RaoResponse;
@@ -12,31 +12,34 @@ public final class DichotomyStepResult {
     private final RaoResponse raoResponse;
     private final ReasonInvalid reasonInvalid;
     private final String failureMessage;
+    private final CounterTradingValues counterTradingValues;
 
-    private DichotomyStepResult(ReasonInvalid reasonInvalid, String failureMessage, boolean fromPtEsFailure, boolean fromFrEsFailure) {
+    private DichotomyStepResult(ReasonInvalid reasonInvalid, String failureMessage, boolean fromPtEsFailure, boolean fromFrEsFailure, CounterTradingValues counterTradingValues) {
         this.ptEsCnecsSecure = !fromPtEsFailure;
         this.frEsCnecsSecure = !fromFrEsFailure;
         this.raoResult = null;
         this.raoResponse = null;
+        this.counterTradingValues = counterTradingValues;
         this.reasonInvalid = reasonInvalid;
         this.failureMessage = failureMessage;
     }
 
-    private DichotomyStepResult(RaoResult raoResult, RaoResponse raoResponse, boolean ptEsCnecsSecure, boolean frEsCnecsSecure) {
+    private DichotomyStepResult(RaoResult raoResult, RaoResponse raoResponse, boolean ptEsCnecsSecure, boolean frEsCnecsSecure, CounterTradingValues counterTradingValues) {
         this.raoResult = raoResult;
         this.raoResponse = raoResponse;
         this.ptEsCnecsSecure = ptEsCnecsSecure;
         this.frEsCnecsSecure = frEsCnecsSecure;
         this.reasonInvalid = ptEsCnecsSecure && frEsCnecsSecure ? ReasonInvalid.NONE : ReasonInvalid.UNSECURE_AFTER_VALIDATION;
+        this.counterTradingValues = counterTradingValues;
         this.failureMessage = "None";
     }
 
-    public static DichotomyStepResult fromFailure(ReasonInvalid reasonInvalid, String failureMessage, boolean ptEsCnecsSecure, boolean frEsCnecsSecure) {
-        return new DichotomyStepResult(reasonInvalid, failureMessage, ptEsCnecsSecure, frEsCnecsSecure);
+    public static DichotomyStepResult fromFailure(ReasonInvalid reasonInvalid, String failureMessage, boolean ptEsCnecsSecure, boolean frEsCnecsSecure, CounterTradingValues counterTradingValues) {
+        return new DichotomyStepResult(reasonInvalid, failureMessage, ptEsCnecsSecure, frEsCnecsSecure, counterTradingValues);
     }
 
-    public static DichotomyStepResult fromNetworkValidationResult(RaoResult raoResult, RaoResponse raoResponse, boolean ptEsCnecsSecure, boolean frEsCnecsSecure) {
-        return new DichotomyStepResult(raoResult, raoResponse, ptEsCnecsSecure, frEsCnecsSecure);
+    public static DichotomyStepResult fromNetworkValidationResult(RaoResult raoResult, RaoResponse raoResponse, boolean ptEsCnecsSecure, boolean frEsCnecsSecure, CounterTradingValues counterTradingValues) {
+        return new DichotomyStepResult(raoResult, raoResponse, ptEsCnecsSecure, frEsCnecsSecure, counterTradingValues);
     }
 
     public RaoResult getRaoResult() {
@@ -73,6 +76,10 @@ public final class DichotomyStepResult {
 
     public boolean isFrEsCnecsSecure() {
         return frEsCnecsSecure;
+    }
+
+    public CounterTradingValues getCounterTradingValues() {
+        return counterTradingValues;
     }
 }
 

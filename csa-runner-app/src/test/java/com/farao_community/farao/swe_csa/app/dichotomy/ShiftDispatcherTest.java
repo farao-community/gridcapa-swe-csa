@@ -1,16 +1,12 @@
-package com.farao_community.farao.swe_csa.app;
-
 /*
  * Copyright (c) 2024, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+package com.farao_community.farao.swe_csa.app.dichotomy;
 
-/**
- * @author Jean-Pierre Arnould {@literal <jean-pierre.arnould at rte-france.com>}
- */
-
+import com.farao_community.farao.swe_csa.app.ShiftDispatcher;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.openrao.commons.EICode;
 import org.junit.jupiter.api.Test;
@@ -18,6 +14,10 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+
+/**
+ * @author Jean-Pierre Arnould {@literal <jean-pierre.arnould at rte-france.com>}
+ */
 
 class ShiftDispatcherTest {
 
