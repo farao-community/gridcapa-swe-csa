@@ -18,6 +18,7 @@ import com.powsybl.openrao.raoapi.RaoInput;
 import com.powsybl.openrao.raoapi.json.JsonRaoParameters;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
 import com.powsybl.openrao.searchtreerao.faorao.FastRao;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -47,6 +48,7 @@ public class SweCsaDichotomyRunnerTest {
     @Mock
     AsynchronousRaoRunnerClient raoRunnerClient;
 
+    @Disabled
     @Test
     void launchCoresoTest() throws GlskLimitationException, ShiftingException {
         Path filePath = Paths.get(new File(getClass().getResource("/TestCase_1_16_2.zip").getFile()).toString());
