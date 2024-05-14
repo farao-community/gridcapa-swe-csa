@@ -212,7 +212,7 @@ public class DichotomyRunner {
         return String.format("network-ScaledBy-%s", counterTradingValues.print());
     }
 
-    private void updateCracWithCounterTrageRangeActions(Crac crac) {
+    void updateCracWithCounterTrageRangeActions(Crac crac) {
         crac.newCounterTradeRangeAction()
             .withId("CT_RA_PTES")
             .withOperator("REN")
