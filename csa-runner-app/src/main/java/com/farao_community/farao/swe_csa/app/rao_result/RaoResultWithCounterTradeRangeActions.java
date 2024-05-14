@@ -66,4 +66,7 @@ public class RaoResultWithCounterTradeRangeActions extends RaoResultClone {
         return raoResult.getOptimizedSetPointsOnState(state);
     }
 
+    public CounterTradingResult getCounterTradingResult() {
+        return counterTradingResult;
+    }
 }
