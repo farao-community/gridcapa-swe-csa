@@ -250,4 +250,12 @@ public class DichotomyRunner {
             .withImportingCountry(Country.ES)
             .add();
     }
+
+    void setIndexPrecision(double indexPrecision) {
+        this.indexPrecision = indexPrecision;
+    }
+
+    void setMaxDichotomiesByBorder(double maxDichotomiesByBorder) {
+        this.maxDichotomiesByBorder = maxDichotomiesByBorder;
+    }
 }

@@ -90,9 +90,9 @@ public class SweCsaRaoValidator {
         return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, cnecsOnPtEsBorderAreSecure, cnecsOnFrEsBorderAreSecure, counterTradingValues);
     }
 
-    static Set<FlowCnec> getBorderFlowCnecs(Crac crac, Network network, Country fr) {
+    static Set<FlowCnec> getBorderFlowCnecs(Crac crac, Network network, Country country) {
         return crac.getFlowCnecs().stream()
-            .filter(flowCnec -> flowCnec.isOptimized() && flowCnec.getLocation(network).contains(Optional.of(fr)))
+            .filter(flowCnec -> flowCnec.isOptimized() && flowCnec.getLocation(network).contains(Optional.of(country)))
             .collect(Collectors.toSet());
     }
 
