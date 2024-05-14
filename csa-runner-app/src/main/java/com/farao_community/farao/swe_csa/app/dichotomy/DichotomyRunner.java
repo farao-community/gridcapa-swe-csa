@@ -112,8 +112,8 @@ public class DichotomyRunner {
             String maxCtVariantName = getNewVariantName(maxCounterTradingValues);
             setWorkingVariant(network, initialVariant, maxCtVariantName);
 
-            SweCsaNetworkShifter networkShifter = new SweCsaNetworkShifter(SweCsaZonalData.getZonalData(network), new ShiftDispatcher(initialNetPositions));
-            networkShifter.shiftNetwork(maxCounterTradingValues, network);
+            SweCsaNetworkShifter networkShifter = new SweCsaNetworkShifter(SweCsaZonalData.getZonalData(network), initialExchanges.get("ES_FR"), initialExchanges.get("ES_PT"), new ShiftDispatcher(initialNetPositions));
+            networkShifter.applyCounterTrading(maxCounterTradingValues, network);
             DichotomyStepResult maxCtStepResult = sweCsaRaoValidator.validateNetwork(maxCounterTradingValues.print(), network, crac, csaRequest, raoParametersUrl, true, true, maxCounterTradingValues);
             resetToInitialVariant(network, initialVariant, maxCtVariantName);
 
@@ -141,7 +141,7 @@ public class DichotomyRunner {
                         LOGGER.info("Next CT values are '{}' for PT-ES and '{}' for FR-ES", counterTradingValues.getPtEsCt(), counterTradingValues.getFrEsCt());
 
                         setWorkingVariant(network, initialVariant, newVariantName);
-                        networkShifter.shiftNetwork(counterTradingValues, network);
+                        networkShifter.applyCounterTrading(counterTradingValues, network);
                         ctStepResult = sweCsaRaoValidator.validateNetwork(counterTradingValues.print(), network, crac, csaRequest, raoParametersUrl, true, true, counterTradingValues);
                     } catch (GlskLimitationException e) {
                         LOGGER.warn("GLSK limits have been reached with CT of '{}' for PT-ES and '{}' for FR-ES", counterTradingValues.getPtEsCt(), counterTradingValues.getFrEsCt());
