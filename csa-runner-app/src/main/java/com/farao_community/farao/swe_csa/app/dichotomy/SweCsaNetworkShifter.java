@@ -142,7 +142,6 @@ public final class SweCsaNetworkShifter {
         return mismatchPerBorder;
     }
 
-
     private void shiftNetPositions(Network network, Map<String, Double> scalingValuePerCountry) throws GlskLimitationException {
         String logTargetCountriesShift = String.format("Target shifts by country: [ES = %.2f, FR = %.2f, PT = %.2f]",
             scalingValuePerCountry.get(EI_CODE_ES), scalingValuePerCountry.get(EI_CODE_FR), scalingValuePerCountry.get(EI_CODE_PT));
