@@ -55,7 +55,6 @@ public class SweCsaDichotomyRunnerTest {
         FileExporter fileExporter;
         AsynchronousRaoRunnerClient raoRunnerClient;
 
-
         public SweCsaRaoValidatorMock(FileExporter fileExporter, AsynchronousRaoRunnerClient raoRunnerClient) {
             super(fileExporter,
                 raoRunnerClient);
