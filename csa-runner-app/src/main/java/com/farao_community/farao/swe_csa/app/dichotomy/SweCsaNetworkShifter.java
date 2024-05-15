@@ -43,8 +43,8 @@ public final class SweCsaNetworkShifter {
     private final int maxShiftIterations;
     private final double esFrInitialExchange;
     private final double esPtInitialExchange;
-    private final static String ES_FR = "ES_FR"; // TODO create enum/record in swe-commons?
-    private final static String ES_PT = "ES_PT";
+    private static final String ES_FR = "ES_FR";
+    private static final String ES_PT = "ES_PT";
 
     private final ShiftDispatcher shiftDispatcher;
 

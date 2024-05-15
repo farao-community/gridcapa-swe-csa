@@ -47,7 +47,7 @@ public class FileExporter {
 
     private String generateArtifactsFolder(String timestamp) {
         OffsetDateTime offsetDateTime = OffsetDateTime.parse(timestamp);
-        return "artifacts" + "/" + offsetDateTime.getYear() + "/" + offsetDateTime.getMonthValue() + "/" + offsetDateTime.getDayOfMonth() + "/" + offsetDateTime.getHour() + "_" + offsetDateTime.getMinute() + "/"  + "rao-result-with-counter-trading.json";
+        return "artifacts" + "/" + offsetDateTime.getYear() + "/" + offsetDateTime.getMonthValue() + "/" + offsetDateTime.getDayOfMonth() + "/" + offsetDateTime.getHour() + "_" + offsetDateTime.getMinute() + "/"  + RAO_RESULT;
     }
 
 }

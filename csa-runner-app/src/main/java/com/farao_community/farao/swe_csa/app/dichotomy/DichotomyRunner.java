@@ -41,6 +41,15 @@ public class DichotomyRunner {
     private final FileImporter fileImporter;
     private final FileExporter fileExporter;
 
+    private static final String CT_RA_PTES = "CT_RA_PTES";
+    private static final String CT_RA_FRES = "CT_RA_FRES";
+    private static final String CT_RA_ESPT = "CT_RA_ESPT";
+
+    private static final String CT_RA_ESFR = "CT_RA_ESFR";
+
+    private static final String ES_FR = "ES_FR";
+    private static final String ES_PT = "ES_PT";
+
     private static final Logger LOGGER = LoggerFactory.getLogger(DichotomyRunner.class);
 
     public DichotomyRunner(SweCsaRaoValidator sweCsaRaoValidator, FileImporter fileImporter, FileExporter fileExporter) {
@@ -61,11 +70,11 @@ public class DichotomyRunner {
             .entrySet().stream()
             .collect(Collectors.toMap(entry -> new CountryEICode(entry.getKey()).getCountry().getName(), Map.Entry::getValue));
 
-        LOGGER.info("Initial net positions: PT: {}, ES: {}, FR: {}", initialNetPositions.get("PORTUGAL"), initialNetPositions.get("SPAIN"), initialNetPositions.get("FRANCE"));
+        LOGGER.info("Initial net positions: PT: {}, ES: {}, FR: {}", initialNetPositions.get(Country.PT.getName()), initialNetPositions.get(Country.ES.getName()), initialNetPositions.get(Country.FR.getName()));
         Map<String, Double> initialExchanges = CountryBalanceComputation.computeSweBordersExchanges(network);
 
-        double expEsFr0 = initialExchanges.get("ES_FR");
-        double expEsPt0 = initialExchanges.get("ES_PT");
+        double expEsFr0 = initialExchanges.get(ES_FR);
+        double expEsPt0 = initialExchanges.get(ES_PT);
         double expFrEs0 = -expEsFr0;
         double expPtEs0 = -expEsPt0;
         LOGGER.info("Initial exchanges: PT->ES: {}, FR->ES: {}", expPtEs0, expFrEs0);
@@ -83,13 +92,13 @@ public class DichotomyRunner {
         } catch (CsaInvalidDataException e) {
             LOGGER.warn(e.getMessage());
             LOGGER.warn("No counter trading will be done, only input network will be checked by rao");
-            return sweCsaRaoValidator.validateNetwork("input-network", network, crac, csaRequest, raoParametersUrl, true, true, minCounterTradingValues).getRaoResult();
+            return sweCsaRaoValidator.validateNetwork(network, crac, csaRequest, raoParametersUrl, true, true, minCounterTradingValues).getRaoResult();
         }
         // best case no counter trading , no scaling
         LOGGER.info("Starting Counter trading algorithm by validating input network without scaling");
         String noCtVariantName = "no-ct-PT-ES-0_FR-ES-0";
         setWorkingVariant(network, initialVariant, noCtVariantName);
-        DichotomyStepResult noCtStepResult = sweCsaRaoValidator.validateNetwork("input-network", network, crac, csaRequest, raoParametersUrl, true, true, minCounterTradingValues);
+        DichotomyStepResult noCtStepResult = sweCsaRaoValidator.validateNetwork(network, crac, csaRequest, raoParametersUrl, true, true, minCounterTradingValues);
         resetToInitialVariant(network, initialVariant, noCtVariantName);
 
         logBorderOverload(noCtStepResult);
@@ -112,14 +121,13 @@ public class DichotomyRunner {
             String maxCtVariantName = getNewVariantName(maxCounterTradingValues);
             setWorkingVariant(network, initialVariant, maxCtVariantName);
 
-            SweCsaNetworkShifter networkShifter = new SweCsaNetworkShifter(SweCsaZonalData.getZonalData(network), initialExchanges.get("ES_FR"), initialExchanges.get("ES_PT"), new ShiftDispatcher(initialNetPositions));
+            SweCsaNetworkShifter networkShifter = new SweCsaNetworkShifter(SweCsaZonalData.getZonalData(network), initialExchanges.get(ES_FR), initialExchanges.get(ES_PT), new ShiftDispatcher(initialNetPositions));
             networkShifter.applyCounterTrading(maxCounterTradingValues, network);
-            DichotomyStepResult maxCtStepResult = sweCsaRaoValidator.validateNetwork(maxCounterTradingValues.print(), network, crac, csaRequest, raoParametersUrl, true, true, maxCounterTradingValues);
+            DichotomyStepResult maxCtStepResult = sweCsaRaoValidator.validateNetwork(network, crac, csaRequest, raoParametersUrl, true, true, maxCounterTradingValues);
             resetToInitialVariant(network, initialVariant, maxCtVariantName);
 
             logBorderOverload(maxCtStepResult);
             if (!maxCtStepResult.isValid()) {
-                // TODO [US] [CSA-68] Handle cases that CT cannot secure
                 String errorMessage = "Maximum CT value cannot secure this case";
                 LOGGER.error(errorMessage);
                 throw new CsaInvalidDataException(errorMessage);
@@ -142,7 +150,7 @@ public class DichotomyRunner {
 
                         setWorkingVariant(network, initialVariant, newVariantName);
                         networkShifter.applyCounterTrading(counterTradingValues, network);
-                        ctStepResult = sweCsaRaoValidator.validateNetwork(counterTradingValues.print(), network, crac, csaRequest, raoParametersUrl, true, true, counterTradingValues);
+                        ctStepResult = sweCsaRaoValidator.validateNetwork(network, crac, csaRequest, raoParametersUrl, true, true, counterTradingValues);
                     } catch (GlskLimitationException e) {
                         LOGGER.warn("GLSK limits have been reached with CT of '{}' for PT-ES and '{}' for FR-ES", counterTradingValues.getPtEsCt(), counterTradingValues.getFrEsCt());
                         ctStepResult = DichotomyStepResult.fromFailure(ReasonInvalid.GLSK_LIMITATION, e.getMessage(), true, true, counterTradingValues);
@@ -162,17 +170,22 @@ public class DichotomyRunner {
                 LOGGER.info("Dichotomy stop criterion reached, CT PT-ES: {}, CT FR-ES: {}", Math.round(index.getBestValidDichotomyStepResult().getCounterTradingValues().getPtEsCt()), Math.round(index.getBestValidDichotomyStepResult().getCounterTradingValues().getFrEsCt()));
                 RaoResult raoResult = index.getBestValidDichotomyStepResult().getRaoResult();
 
-                Map<CounterTradeRangeAction, CounterTradeRangeActionResult> counterTradingResult = new HashMap<>();
-                List<String> frEsFlowCnecs = SweCsaRaoValidator.getBorderFlowCnecs(crac, network, Country.FR).stream().map(Identifiable::getId).toList();
-                List<String> ptEsFlowCnecs = SweCsaRaoValidator.getBorderFlowCnecs(crac, network, Country.PT).stream().map(Identifiable::getId).toList();
-                counterTradingResult.put(crac.getCounterTradeRangeAction("CT_RA_PTES"), new CounterTradeRangeActionResult("CT_RA_PTES", index.getPtEsLowestSecureStep().getLeft(), ptEsFlowCnecs));
-                counterTradingResult.put(crac.getCounterTradeRangeAction("CT_RA_FRES"), new CounterTradeRangeActionResult("CT_RA_FRES", index.getFrEsLowestSecureStep().getLeft(), frEsFlowCnecs));
-                CounterTradingResult ctResult = new CounterTradingResult(counterTradingResult);
-                RaoResultWithCounterTradeRangeActions raoResultWithRangeAction = new RaoResultWithCounterTradeRangeActions(raoResult, ctResult);
+                RaoResultWithCounterTradeRangeActions raoResultWithRangeAction = getRaoResultWithCounterTradeRangeActions(network, crac, index, raoResult);
                 fileExporter.saveRaoResultInArtifact(raoResultWithRangeAction, crac, Unit.AMPERE, csaRequest.getBusinessTimestamp());
                 return raoResultWithRangeAction;
             }
         }
+    }
+
+    private RaoResultWithCounterTradeRangeActions getRaoResultWithCounterTradeRangeActions(Network network, Crac crac, Index index, RaoResult raoResult) {
+        Map<CounterTradeRangeAction, CounterTradeRangeActionResult> counterTradingResultsMap = new HashMap<>();
+        List<String> frEsFlowCnecs = SweCsaRaoValidator.getBorderFlowCnecs(crac, network, Country.FR).stream().map(Identifiable::getId).toList();
+        List<String> ptEsFlowCnecs = SweCsaRaoValidator.getBorderFlowCnecs(crac, network, Country.PT).stream().map(Identifiable::getId).toList();
+        counterTradingResultsMap.put(crac.getCounterTradeRangeAction(CT_RA_PTES), new CounterTradeRangeActionResult(CT_RA_PTES, Math.abs(index.getPtEsLowestSecureStep().getLeft()), ptEsFlowCnecs));
+        counterTradingResultsMap.put(crac.getCounterTradeRangeAction(CT_RA_ESPT), new CounterTradeRangeActionResult(CT_RA_ESPT, Math.abs(index.getPtEsLowestSecureStep().getLeft()), ptEsFlowCnecs));
+        counterTradingResultsMap.put(crac.getCounterTradeRangeAction(CT_RA_FRES), new CounterTradeRangeActionResult(CT_RA_FRES, Math.abs(index.getFrEsLowestSecureStep().getLeft()), frEsFlowCnecs));
+        counterTradingResultsMap.put(crac.getCounterTradeRangeAction(CT_RA_ESFR), new CounterTradeRangeActionResult(CT_RA_ESFR, Math.abs(index.getFrEsLowestSecureStep().getLeft()), frEsFlowCnecs));
+        return new RaoResultWithCounterTradeRangeActions(raoResult, new CounterTradingResult(counterTradingResultsMap));
     }
 
     private void setWorkingVariant(Network network, String initialVariant, String newVariantName) {
@@ -214,7 +227,7 @@ public class DichotomyRunner {
 
     void updateCracWithCounterTrageRangeActions(Crac crac) {
         crac.newCounterTradeRangeAction()
-            .withId("CT_RA_PTES")
+            .withId(CT_RA_PTES)
             .withOperator("REN")
             .newRange().withMin(-50000.0)
             .withMax(50000.0).add()
@@ -223,7 +236,7 @@ public class DichotomyRunner {
             .withImportingCountry(Country.ES)
             .add();
         crac.newCounterTradeRangeAction()
-            .withId("CT_RA_ESPT")
+            .withId(CT_RA_ESPT)
             .withOperator("REE")
             .newRange().withMin(-50000.0)
             .withMax(50000.0).add()
@@ -232,7 +245,7 @@ public class DichotomyRunner {
             .withImportingCountry(Country.PT)
             .add();
         crac.newCounterTradeRangeAction()
-            .withId("CT_RA_ESFR")
+            .withId(CT_RA_ESFR)
             .withOperator("REE")
             .newRange().withMin(-50000.0)
             .withMax(50000.0).add()
@@ -241,7 +254,7 @@ public class DichotomyRunner {
             .withImportingCountry(Country.FR)
             .add();
         crac.newCounterTradeRangeAction()
-            .withId("CT_RA_FRES")
+            .withId(CT_RA_FRES)
             .withOperator("RTE")
             .newRange().withMin(-50000.0)
             .withMax(50000.0).add()

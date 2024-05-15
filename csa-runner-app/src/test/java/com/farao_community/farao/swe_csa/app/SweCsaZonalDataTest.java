@@ -10,7 +10,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -26,7 +25,7 @@ class SweCsaZonalDataTest {
         Network network = fileImporter.importNetwork(Objects.requireNonNull(getClass().getResource("/rao_inputs/network.xiidm")).toString());
         ZonalData<Scalable> zonalData = SweCsaZonalData.getZonalData(network);
         assertNotNull(zonalData);
-        assertEquals("[10YBE----------2, 10YCB-GERMANY--8, 10YFR-RTE------C, 10YNL----------L]", zonalData.getDataPerZone().keySet().stream().sorted().collect(Collectors.toList()).toString());
+        assertEquals("[10YBE----------2, 10YCB-GERMANY--8, 10YFR-RTE------C, 10YNL----------L]", zonalData.getDataPerZone().keySet().stream().sorted().toList().toString());
 
         List<Injection> injectionListBe = zonalData.getData("10YBE----------2").filterInjections(network);
         assertEquals(4, injectionListBe.size());

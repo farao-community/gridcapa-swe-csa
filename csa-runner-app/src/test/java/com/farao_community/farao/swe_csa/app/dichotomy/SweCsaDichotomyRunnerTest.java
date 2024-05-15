@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest
-public class SweCsaDichotomyRunnerTest {
+class SweCsaDichotomyRunnerTest {
 
     @Mock
     FileImporter fileImporter;
@@ -53,14 +53,24 @@ public class SweCsaDichotomyRunnerTest {
         sweCsaDichotomyRunner.setMaxDichotomiesByBorder(10);
         CsaRequest csaRequest = new CsaRequest("id", "2023-09-13T09:30:00Z", "cgm-url", "crac-url", "rao-result-url");
         RaoResultWithCounterTradeRangeActions raoResult = (RaoResultWithCounterTradeRangeActions) sweCsaDichotomyRunner.runDichotomy(csaRequest);
-        Iterator<CounterTradeRangeActionResult> ctRaResultIt  = raoResult.getCounterTradingResult().getCounterTradeRangeActionResults().values().stream().sorted(Comparator.comparing(CounterTradeRangeActionResult::getCtRangeActionId)).collect(Collectors.toCollection(LinkedHashSet::new)).iterator();
-        CounterTradeRangeActionResult frEsCtRaResult = ctRaResultIt.next();
-        CounterTradeRangeActionResult ptEsCtRaResult = ctRaResultIt.next();
 
-        assertEquals("CT_RA_PTES", ptEsCtRaResult.getCtRangeActionId());
-        assertEquals(0., ptEsCtRaResult.getSetPoint());
+        Iterator<CounterTradeRangeActionResult> ctRaResultIt  = raoResult.getCounterTradingResult().getCounterTradeRangeActionResults().values().stream().sorted(Comparator.comparing(CounterTradeRangeActionResult::getCtRangeActionId)).collect(Collectors.toCollection(LinkedHashSet::new)).iterator();
+
+        CounterTradeRangeActionResult esFrCtRaResult = ctRaResultIt.next();
+        assertEquals("CT_RA_ESFR", esFrCtRaResult.getCtRangeActionId());
+        assertEquals(629., esFrCtRaResult.getSetPoint(), 1);
+
+        CounterTradeRangeActionResult esPtCtRaResult = ctRaResultIt.next();
+        assertEquals("CT_RA_ESPT", esPtCtRaResult.getCtRangeActionId());
+        assertEquals(0., esPtCtRaResult.getSetPoint());
+
+        CounterTradeRangeActionResult frEsCtRaResult = ctRaResultIt.next();
         assertEquals("CT_RA_FRES", frEsCtRaResult.getCtRangeActionId());
         assertEquals(629., frEsCtRaResult.getSetPoint(), 1);
+
+        CounterTradeRangeActionResult ptEsCtRaResult = ctRaResultIt.next();
+        assertEquals("CT_RA_PTES", ptEsCtRaResult.getCtRangeActionId());
+        assertEquals(0., ptEsCtRaResult.getSetPoint());
     }
 
     public static class SweCsaRaoValidatorMock extends SweCsaRaoValidator {
@@ -75,7 +85,7 @@ public class SweCsaDichotomyRunnerTest {
         }
 
         @Override
-        public DichotomyStepResult validateNetwork(String stepFolder, Network network, Crac crac, CsaRequest csaRequest, String raoParametersUrl, boolean withVoltageMonitoring, boolean withAngleMonitoring, CounterTradingValues counterTradingValues) {
+        public DichotomyStepResult validateNetwork(Network network, Crac crac, CsaRequest csaRequest, String raoParametersUrl, boolean withVoltageMonitoring, boolean withAngleMonitoring, CounterTradingValues counterTradingValues) {
             RaoResponse raoResponse = Mockito.mock(RaoResponse.class);
             RaoResult raoResult = Mockito.mock(RaoResult.class);
             boolean cnecsOnPtEsBorderAreSecure = counterTradingValues.getPtEsCt() >= 0 && counterTradingValues.getPtEsCt() < 50;

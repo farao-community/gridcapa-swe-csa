@@ -27,8 +27,7 @@ public class SweCsaRunner {
             LOGGER.info("Csa request received : {}", csaRequest);
             Instant utcInstant = Instant.parse(csaRequest.getBusinessTimestamp());
             dichotomyRunner.runDichotomy(csaRequest);
-            // TODO add counter trading range action and push file to results destination
-            LOGGER.info("CSA computation finished for TimeStamp: '{}'", utcInstant.toString());
+            LOGGER.info("CSA computation finished for TimeStamp: '{}'", utcInstant);
             return new CsaResponse(csaRequest.getId(), Status.FINISHED.toString());
         } catch (Exception e) {
             throw new IOException(e);

@@ -27,15 +27,10 @@ public final class SweCsaZonalData {
     }
 
     public static ZonalData<Scalable> getZonalData(Network network) {
-        //TODO : import real glsk file
-        return getCountryGeneratorsScalable(network);
-    }
-
-    private static ZonalData<Scalable> getCountryGeneratorsScalable(Network network) {
         Map<Country, List<Generator>> generatorsByCountries = network.getGeneratorStream()
-            .filter(inj -> isCorrect(inj))
+            .filter(SweCsaZonalData::isCorrect)
             .collect(Collectors.toMap(generator -> generator.getTerminal().getVoltageLevel().getSubstation().map(Substation::getNullableCountry).orElse(null),
-                generator -> List.of(generator),
+                List::of,
                 (list1, list2) -> {
                     List<Generator> list3 = new ArrayList<>(list1);
                     list3.addAll(list2);
@@ -48,7 +43,7 @@ public final class SweCsaZonalData {
             Country c = entry.getKey();
             List<Generator> generators = entry.getValue();
             //calculate sum P of country's generators
-            double totalCountryP = generators.stream().mapToDouble(g -> pseudoTargetP(g)).sum();
+            double totalCountryP = generators.stream().mapToDouble(SweCsaZonalData::pseudoTargetP).sum();
             //calculate factor of each generator
             generators.forEach(generator -> {
                 double generatorPercentage =  100 * pseudoTargetP(generator) / totalCountryP;

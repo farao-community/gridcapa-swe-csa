@@ -53,8 +53,8 @@ public class SweCsaRaoValidator {
         this.raoRunnerClient = raoRunnerClient;
     }
 
-    public DichotomyStepResult validateNetwork(String stepFolder, Network network, Crac crac, CsaRequest csaRequest, String raoParametersUrl, boolean withVoltageMonitoring, boolean withAngleMonitoring, CounterTradingValues counterTradingValues) {
-        RaoRequest raoRequest = buildRaoRequest(stepFolder, csaRequest.getBusinessTimestamp(), csaRequest.getId(), network, csaRequest.getCracFileUri(), raoParametersUrl);
+    public DichotomyStepResult validateNetwork(Network network, Crac crac, CsaRequest csaRequest, String raoParametersUrl, boolean withVoltageMonitoring, boolean withAngleMonitoring, CounterTradingValues counterTradingValues) {
+        RaoRequest raoRequest = buildRaoRequest(counterTradingValues.print(), csaRequest.getBusinessTimestamp(), csaRequest.getId(), network, csaRequest.getCracFileUri(), raoParametersUrl);
 
         LOGGER.info("RAO request sent: {}", raoRequest);
         CompletableFuture<RaoResponse> raoResponseFuture = raoRunnerClient.runRaoAsynchronously(raoRequest);
@@ -76,12 +76,9 @@ public class SweCsaRaoValidator {
 
         if (withVoltageMonitoring) {
             VoltageMonitoring voltageMonitoring = new VoltageMonitoring(crac, network, raoResult);
-            raoResult = voltageMonitoring.runAndUpdateRaoResult(LoadFlow.find().getName(), LoadFlowParameters.load(), 1); // TODO number of LF in parallel?
+            raoResult = voltageMonitoring.runAndUpdateRaoResult(LoadFlow.find().getName(), LoadFlowParameters.load(), 1);
         }
 
-        // TODO when csa glsk is ready add withAngleMonitoring check to raoResult
-
-        //TODO : implement association between cnecs and borders (CSA-67)
         Set<FlowCnec> frEsFlowCnecs = getBorderFlowCnecs(crac, network, Country.FR);
         Set<FlowCnec> ptEsFlowCnecs = getBorderFlowCnecs(crac, network, Country.PT);
         boolean cnecsOnPtEsBorderAreSecure = hasNoFlowCnecNegativeMargin(raoResult, ptEsFlowCnecs);
@@ -120,7 +117,7 @@ public class SweCsaRaoValidator {
 
     private String generateArtifactsFolder(String timestamp, String stepFolder) {
         OffsetDateTime offsetDateTime = OffsetDateTime.parse(timestamp);
-        return "artifacts" + "/" + offsetDateTime.getYear() + "/" + offsetDateTime.getMonthValue() + "/" + offsetDateTime.getDayOfMonth() + "/" + offsetDateTime.getHour() + "_" + offsetDateTime.getMinute() + "/"  + stepFolder;
+        return "artifacts" + "/" + offsetDateTime.getYear() + "/" + offsetDateTime.getMonthValue() + "/" + offsetDateTime.getDayOfMonth() + "/" + offsetDateTime.getHour() + "_" + offsetDateTime.getMinute() + "/" + stepFolder;
     }
 
     private String generateScaledNetworkPath(Network network, String timestamp, String stepFolder) {
