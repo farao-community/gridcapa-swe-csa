@@ -64,11 +64,15 @@ public class SweCsaRaoValidator {
             try {
                 raoResponse = raoResponseFuture.get();
                 LOGGER.info("RAO response received: {}", raoResponse);
-            } catch (ExecutionException | InterruptedException e) {
+            } catch (ExecutionException e) {
                 e.printStackTrace();
                 raoResponse = null;
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                raoResponse = null;
+                Thread.currentThread().interrupt();
             }
-            raoResult = new RaoResultImporter().importRaoResult(new URL(raoResponse.getRaoResultFileUrl()).openStream(), crac);
+            raoResult = raoResponse == null ? null : new RaoResultImporter().importRaoResult(new URL(raoResponse.getRaoResultFileUrl()).openStream(), crac);
             LOGGER.info("RAO result imported: {}", raoResult);
         } catch (IOException ex) {
             throw new CsaInternalException("RAO run failed. Nested exception: " + ex.getMessage());
