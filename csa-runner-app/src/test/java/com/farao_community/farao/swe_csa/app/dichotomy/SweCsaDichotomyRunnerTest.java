@@ -88,8 +88,8 @@ class SweCsaDichotomyRunnerTest {
         public DichotomyStepResult validateNetwork(Network network, Crac crac, CsaRequest csaRequest, String raoParametersUrl, boolean withVoltageMonitoring, boolean withAngleMonitoring, CounterTradingValues counterTradingValues) {
             RaoResponse raoResponse = Mockito.mock(RaoResponse.class);
             RaoResult raoResult = Mockito.mock(RaoResult.class);
-            boolean cnecsOnPtEsBorderAreSecure = counterTradingValues.getPtEsCt() >= 0 && counterTradingValues.getPtEsCt() < 50;
-            boolean cnecsOnFrEsBorderAreSecure = counterTradingValues.getFrEsCt() >= 600 && counterTradingValues.getFrEsCt() <= 2012;
+            boolean cnecsOnPtEsBorderAreSecure = counterTradingValues.getPtEsCt() >= 0;
+            boolean cnecsOnFrEsBorderAreSecure = counterTradingValues.getFrEsCt() >= 600;
             return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, cnecsOnPtEsBorderAreSecure, cnecsOnFrEsBorderAreSecure, counterTradingValues);
         }
     }
