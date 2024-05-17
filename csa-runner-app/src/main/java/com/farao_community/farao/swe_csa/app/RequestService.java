@@ -49,7 +49,7 @@ public class RequestService {
                 LOGGER.info("Csa response sent: {}", resp.get());
             } else if (csaResponse.hasError()) {
                 setResultBytes(jsonApiConverter.toJsonMessage(new CsaResponse(csaRequest.getId(), Status.ERROR.toString()), CsaResponse.class));
-                LOGGER.error("RAO finish with error: {}", csaResponse.getException().getMessage());
+                LOGGER.error("CSA CT process finished with error: {}", csaResponse.getException().getMessage());
             } else {
                 LOGGER.info("Csa run is interrupted, stopping RAO runners...");
                 streamBridge.send(STOP_RAO_BINDING, csaRequest.getId());

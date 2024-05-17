@@ -1,5 +1,8 @@
 package com.farao_community.farao.swe_csa.app.rao_result;
 
+import com.powsybl.iidm.network.Branch;
+import com.powsybl.iidm.network.Line;
+import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.data.cracapi.Crac;
 import com.powsybl.openrao.data.cracapi.RemedialAction;
 import com.powsybl.openrao.data.cracapi.State;
@@ -8,17 +11,16 @@ import com.powsybl.openrao.data.cracapi.rangeaction.RangeAction;
 import com.powsybl.openrao.data.craciojson.JsonImport;
 import com.powsybl.openrao.data.raoresultapi.ComputationStatus;
 import com.powsybl.openrao.data.raoresultapi.RaoResult;
-import com.powsybl.openrao.data.raoresultjson.RaoResultImporter;
 import com.farao_community.farao.swe_csa.api.results.CounterTradeRangeActionResult;
 import com.farao_community.farao.swe_csa.api.results.CounterTradingResult;
 import com.powsybl.iidm.network.Country;
+import com.powsybl.openrao.data.raoresultjson.RaoResultImporter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.InputStream;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -72,11 +74,21 @@ class RaoResultWithCounterTradeRangeActionsTest {
         counterTradingResult = new CounterTradingResult(ctRasToResultsMap);
     }
 
+    private static Network mockNetworkWithLines(String... lineIds) {
+        Network network = Mockito.mock(Network.class);
+        for (String lineId : lineIds) {
+            Branch l = Mockito.mock(Line.class);
+            Mockito.when(l.getId()).thenReturn(lineId);
+            Mockito.when(network.getIdentifiable(lineId)).thenReturn(l);
+        }
+        return network;
+    }
+
     @Test
     void testRaoResultWithCounterTrading() {
         InputStream raoResultFile = getClass().getResourceAsStream("/rao_result/rao-result-v1.4.json");
         InputStream cracFile = getClass().getResourceAsStream("/rao_result/crac-for-rao-result-v1.4.json");
-        Crac crac = new JsonImport().importCrac(cracFile);
+        Crac crac = new JsonImport().importCrac(cracFile, mockNetworkWithLines("ne1Id", "ne2Id", "ne3Id"));
         RaoResult raoResult = new RaoResultImporter().importRaoResult(raoResultFile, crac);
 
         RaoResult raoResultWithCounterTrading = new RaoResultWithCounterTradeRangeActions(raoResult, counterTradingResult);
@@ -188,14 +200,14 @@ class RaoResultWithCounterTradeRangeActionsTest {
         Mockito.when(raoResultMock.getActivatedRangeActionsDuringState(stateMock2)).thenReturn(Set.of(rangeActionMock4));
 
         List<RangeAction<?>> result1 = raoResultWithCounterTradeRangeActions.getActivatedRangeActionsDuringState(stateMock1)
-            .stream().sorted(Comparator.comparing(Object::toString)).collect(Collectors.toList());
+            .stream().sorted(Comparator.comparing(Object::toString)).toList();
         List<RangeAction<?>> result2 = raoResultWithCounterTradeRangeActions.getActivatedRangeActionsDuringState(stateMock2)
-            .stream().sorted(Comparator.comparing(Object::toString)).collect(Collectors.toList());
+            .stream().sorted(Comparator.comparing(Object::toString)).toList();
 
         List<RangeAction<?>> expected1 = Set.of(rangeActionMock1, rangeActionMock3)
-            .stream().sorted(Comparator.comparing(Object::toString)).collect(Collectors.toList());
+            .stream().sorted(Comparator.comparing(Object::toString)).toList();
         List<RangeAction<?>> expected2 = Set.of(rangeActionMock2, rangeActionMock4)
-            .stream().sorted(Comparator.comparing(Object::toString)).collect(Collectors.toList());
+            .stream().sorted(Comparator.comparing(Object::toString)).toList();
 
         assertEquals(expected1.toString(), result1.toString());
         assertEquals(expected2.toString(), result2.toString());
