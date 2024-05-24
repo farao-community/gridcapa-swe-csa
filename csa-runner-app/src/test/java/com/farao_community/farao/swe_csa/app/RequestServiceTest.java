@@ -12,7 +12,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.cloud.stream.function.StreamBridge;
 
 import java.io.IOException;
-import java.io.InterruptedIOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.UUID;
 
@@ -33,7 +32,7 @@ class RequestServiceTest {
     @Test
     void testInterruptionRequestService() throws IOException {
         String id = UUID.randomUUID().toString();
-        Exception except = new InterruptedIOException("interrupted");
+        Exception except = new RuntimeException(new InterruptedException("interrupted"));
         String businessTimestamp = "2023-08-08T15:30:00Z";
         String gridModelUri = "https://example.com/gridModel";
         String cracFileUri = "https://example.com/crac";
