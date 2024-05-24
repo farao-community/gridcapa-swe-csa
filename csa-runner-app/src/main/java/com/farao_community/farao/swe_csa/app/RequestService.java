@@ -20,10 +20,9 @@ import java.util.Optional;
 public class RequestService {
     private static final Logger LOGGER = LoggerFactory.getLogger(RequestService.class);
     private static final String ACK_BRIDGE_NAME = "acknowledgement";
-    private static final String STOP_RAO_BINDING = "stop-rao";
+    private static final String STOP_RAO_BINDING = "stop-rao-runner";
     private final JsonApiConverter jsonApiConverter = new JsonApiConverter();
     private final StreamBridge streamBridge;
-    private byte[] resultBytes;
     private final SweCsaRunner sweCsaRunner;
 
     public RequestService(StreamBridge streamBridge, SweCsaRunner sweCsaRunner) {
@@ -32,39 +31,36 @@ public class RequestService {
     }
 
     public byte[] launchCsaRequest(byte[] req) {
+        byte[] resultBytes;
         CsaRequest csaRequest = jsonApiConverter.fromJsonMessage(req, CsaRequest.class);
         MDC.put("gridcapa-task-id", csaRequest.getId());
         try {
             String requestId = csaRequest.getId();
             // send ack message
             streamBridge.send(ACK_BRIDGE_NAME, jsonApiConverter.toJsonMessage(new CsaResponse(requestId, Status.ACCEPTED.toString()), CsaResponse.class));
-
             GenericThreadLauncher<SweCsaRunner, CsaResponse> launcher = new GenericThreadLauncher<>(sweCsaRunner, csaRequest.getId(), csaRequest);
             launcher.start();
             ThreadLauncherResult<CsaResponse> csaResponse = launcher.getResult();
-
+            if (csaResponse.hasError() && csaResponse.getException() != null) {
+                throw csaResponse.getException();
+            }
             Optional<CsaResponse> resp = csaResponse.getResult();
+
             if (resp.isPresent() && !csaResponse.hasError()) {
-                setResultBytes(jsonApiConverter.toJsonMessage(resp.get(), CsaResponse.class));
+                resultBytes  = jsonApiConverter.toJsonMessage(resp.get(), CsaResponse.class);
                 LOGGER.info("Csa response sent: {}", resp.get());
-            } else if (csaResponse.hasError()) {
-                setResultBytes(jsonApiConverter.toJsonMessage(new CsaResponse(csaRequest.getId(), Status.ERROR.toString()), CsaResponse.class));
-                LOGGER.error("CSA CT process finished with error: {}", csaResponse.getException().getMessage());
             } else {
                 LOGGER.info("Csa run is interrupted, stopping RAO runners...");
                 streamBridge.send(STOP_RAO_BINDING, csaRequest.getId());
                 // TODO read acknowledgment from rao runner to make sure rao is interrupted
-                setResultBytes(jsonApiConverter.toJsonMessage(new CsaResponse(csaRequest.getId(), Status.INTERRUPTED.toString()), CsaResponse.class));
+                resultBytes = jsonApiConverter.toJsonMessage(new CsaResponse(csaRequest.getId(), Status.INTERRUPTED.toString()), CsaResponse.class);
             }
         } catch (Exception e) {
             AbstractCsaException csaException = new CsaInvalidDataException("Exception happened", e);
             LOGGER.error(csaException.getDetails(), csaException);
-            setResultBytes(jsonApiConverter.toJsonMessage(csaException));
+            resultBytes = jsonApiConverter.toJsonMessage(csaException);
         }
         return resultBytes;
     }
 
-    public void setResultBytes(byte[] resultBytes) {
-        this.resultBytes = resultBytes;
-    }
 }

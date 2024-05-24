@@ -1,6 +1,7 @@
 package com.farao_community.farao.swe_csa.app;
 
 import com.farao_community.farao.swe_csa.api.JsonApiConverter;
+import com.farao_community.farao.swe_csa.api.exception.CsaInvalidDataException;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.api.resource.CsaResponse;
 import com.farao_community.farao.swe_csa.api.resource.Status;
@@ -12,6 +13,7 @@ import org.springframework.cloud.stream.function.StreamBridge;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -51,7 +53,7 @@ class RequestServiceTest {
     @Test
     void testRequestServiceOnRaoError() throws IOException {
         String id = UUID.randomUUID().toString();
-        Exception except = new InterruptedIOException("otherError");
+        Exception except = new IOException("Mocked exception");
         String businessTimestamp = "2023-08-08T15:30:00Z";
         String gridModelUri = "https://example.com/gridModel";
         String cracFileUri = "https://example.com/crac";
@@ -60,8 +62,7 @@ class RequestServiceTest {
         CsaRequest csaRequest = new CsaRequest(id, businessTimestamp, gridModelUri, cracFileUri, resultsUri);
         JsonApiConverter jsonApiConverter = new JsonApiConverter();
         byte[] req = jsonApiConverter.toJsonMessage(csaRequest, CsaRequest.class);
-        CsaResponse csaResponse = new CsaResponse(csaRequest.getId(), Status.ERROR.toString());
-        byte[] resp = jsonApiConverter.toJsonMessage(csaResponse, CsaResponse.class);
+        byte[] resp = jsonApiConverter.toJsonMessage(new CsaInvalidDataException("Exception happened", new InvocationTargetException(except)));
         when(sweCsaRunner.run(any())).thenThrow(except);
         when(streamBridge.send(any(), any())).thenReturn(true);
         byte[] result = requestService.launchCsaRequest(req);

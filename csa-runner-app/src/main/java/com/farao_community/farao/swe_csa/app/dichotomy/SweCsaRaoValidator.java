@@ -13,7 +13,7 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
 
 import com.farao_community.farao.rao_runner.api.resource.RaoRequest;
 import com.farao_community.farao.rao_runner.api.resource.RaoResponse;
-import com.farao_community.farao.rao_runner.starter.AsynchronousRaoRunnerClient;
+import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
 import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.app.FileExporter;
@@ -31,24 +31,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.net.URL;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 @Service
 public class SweCsaRaoValidator {
 
     private final FileExporter fileExporter;
-    private final AsynchronousRaoRunnerClient raoRunnerClient;
+    private final RaoRunnerClient raoRunnerClient;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SweCsaRaoValidator.class);
 
-    public SweCsaRaoValidator(FileExporter fileExporter, AsynchronousRaoRunnerClient raoRunnerClient) {
+    public SweCsaRaoValidator(FileExporter fileExporter, RaoRunnerClient raoRunnerClient) {
         this.fileExporter = fileExporter;
         this.raoRunnerClient = raoRunnerClient;
     }
@@ -56,39 +53,27 @@ public class SweCsaRaoValidator {
     public DichotomyStepResult validateNetwork(Network network, Crac crac, CsaRequest csaRequest, String raoParametersUrl, boolean withVoltageMonitoring, boolean withAngleMonitoring, CounterTradingValues counterTradingValues) {
         RaoRequest raoRequest = buildRaoRequest(counterTradingValues.print(), csaRequest.getBusinessTimestamp(), csaRequest.getId(), network, csaRequest.getCracFileUri(), raoParametersUrl);
 
-        LOGGER.info("RAO request sent: {}", raoRequest);
-        CompletableFuture<RaoResponse> raoResponseFuture = raoRunnerClient.runRaoAsynchronously(raoRequest);
-        RaoResult raoResult;
-        RaoResponse raoResponse;
         try {
-            try {
-                raoResponse = raoResponseFuture.get();
-                LOGGER.info("RAO response received: {}", raoResponse);
-            } catch (ExecutionException e) {
-                e.printStackTrace();
-                raoResponse = null;
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-                raoResponse = null;
-                Thread.currentThread().interrupt();
-            }
-            raoResult = raoResponse == null ? null : new RaoResultImporter().importRaoResult(new URL(raoResponse.getRaoResultFileUrl()).openStream(), crac);
+            LOGGER.info("RAO request sent: {}", raoRequest);
+            RaoResponse raoResponse = raoRunnerClient.runRao(raoRequest);
+            LOGGER.info("RAO response received: {}", raoResponse);
+            RaoResult raoResult = raoResponse == null ? null : new RaoResultImporter().importRaoResult(new URL(raoResponse.getRaoResultFileUrl()).openStream(), crac);
             LOGGER.info("RAO result imported: {}", raoResult);
-        } catch (IOException ex) {
-            throw new CsaInternalException("RAO run failed. Nested exception: " + ex.getMessage());
+
+            if (withVoltageMonitoring) {
+                VoltageMonitoring voltageMonitoring = new VoltageMonitoring(crac, network, raoResult);
+                raoResult = voltageMonitoring.runAndUpdateRaoResult(LoadFlow.find().getName(), LoadFlowParameters.load(), 1);
+            }
+
+            Set<FlowCnec> frEsFlowCnecs = getBorderFlowCnecs(crac, network, Country.FR);
+            Set<FlowCnec> ptEsFlowCnecs = getBorderFlowCnecs(crac, network, Country.PT);
+            boolean cnecsOnPtEsBorderAreSecure = hasNoFlowCnecNegativeMargin(raoResult, ptEsFlowCnecs);
+            boolean cnecsOnFrEsBorderAreSecure = hasNoFlowCnecNegativeMargin(raoResult, frEsFlowCnecs);
+
+            return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, cnecsOnPtEsBorderAreSecure, cnecsOnFrEsBorderAreSecure, counterTradingValues);
+        } catch (Exception e) {
+            throw new CsaInternalException("RAO run failed", e);
         }
-
-        if (withVoltageMonitoring) {
-            VoltageMonitoring voltageMonitoring = new VoltageMonitoring(crac, network, raoResult);
-            raoResult = voltageMonitoring.runAndUpdateRaoResult(LoadFlow.find().getName(), LoadFlowParameters.load(), 1);
-        }
-
-        Set<FlowCnec> frEsFlowCnecs = getBorderFlowCnecs(crac, network, Country.FR);
-        Set<FlowCnec> ptEsFlowCnecs = getBorderFlowCnecs(crac, network, Country.PT);
-        boolean cnecsOnPtEsBorderAreSecure = hasNoFlowCnecNegativeMargin(raoResult, ptEsFlowCnecs);
-        boolean cnecsOnFrEsBorderAreSecure = hasNoFlowCnecNegativeMargin(raoResult, frEsFlowCnecs);
-
-        return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, cnecsOnPtEsBorderAreSecure, cnecsOnFrEsBorderAreSecure, counterTradingValues);
     }
 
     static Set<FlowCnec> getBorderFlowCnecs(Crac crac, Network network, Country country) {

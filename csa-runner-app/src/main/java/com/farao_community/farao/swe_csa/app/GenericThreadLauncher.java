@@ -87,7 +87,7 @@ public class GenericThreadLauncher<T, U> extends Thread {
         boolean isInterrupt = false;
         Throwable e = exception;
         while (e != null && !isInterrupt) {
-            if ("interrupted".equals(e.getMessage())) {
+            if ("java.lang.InterruptedException".equals(e.getMessage())) {
                 isInterrupt = true;
             }
             e = e.getCause();
