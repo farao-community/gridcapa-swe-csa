@@ -13,6 +13,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.data.cracapi.Crac;
 import com.powsybl.openrao.data.cracapi.CracFactory;
 import com.powsybl.openrao.data.raoresultapi.RaoResult;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -88,9 +89,9 @@ class SweCsaDichotomyRunnerTest {
         public DichotomyStepResult validateNetwork(Network network, Crac crac, CsaRequest csaRequest, String raoParametersUrl, boolean withVoltageMonitoring, boolean withAngleMonitoring, CounterTradingValues counterTradingValues) {
             RaoResponse raoResponse = Mockito.mock(RaoResponse.class);
             RaoResult raoResult = Mockito.mock(RaoResult.class);
-            boolean cnecsOnPtEsBorderAreSecure = counterTradingValues.getPtEsCt() >= 0;
-            boolean cnecsOnFrEsBorderAreSecure = counterTradingValues.getFrEsCt() >= 600;
-            return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, cnecsOnPtEsBorderAreSecure, cnecsOnFrEsBorderAreSecure, counterTradingValues);
+            Pair<String, Double> ptEsMostLimitingCnec = Pair.of("ptEsCnec", counterTradingValues.getPtEsCt() >= 0 ? 100.0 : -100.0);
+            Pair<String, Double> frEsMostLimitingCnec = Pair.of("frEsCnec", counterTradingValues.getFrEsCt() >= 600 ? 200.0 : -200.0);
+            return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, ptEsMostLimitingCnec, frEsMostLimitingCnec, counterTradingValues);
         }
     }
 }

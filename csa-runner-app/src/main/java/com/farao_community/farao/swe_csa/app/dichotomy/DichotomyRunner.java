@@ -153,10 +153,10 @@ public class DichotomyRunner {
                         ctStepResult = sweCsaRaoValidator.validateNetwork(network, crac, csaRequest, raoParametersUrl, true, true, counterTradingValues);
                     } catch (GlskLimitationException e) {
                         LOGGER.warn("GLSK limits have been reached with CT of '{}' for PT-ES and '{}' for FR-ES", counterTradingValues.getPtEsCt(), counterTradingValues.getFrEsCt());
-                        ctStepResult = DichotomyStepResult.fromFailure(ReasonInvalid.GLSK_LIMITATION, e.getMessage(), true, true, counterTradingValues);
+                        ctStepResult = DichotomyStepResult.fromFailure(ReasonInvalid.GLSK_LIMITATION, e.getMessage(), counterTradingValues);
                     } catch (ShiftingException | RaoRunnerException e) {
                         LOGGER.warn("Validation failed with CT of '{}' for PT-ES and '{}' for FR-ES", counterTradingValues.getPtEsCt(), counterTradingValues.getFrEsCt());
-                        ctStepResult = DichotomyStepResult.fromFailure(ReasonInvalid.GLSK_LIMITATION, e.getMessage(), true, true, counterTradingValues);
+                        ctStepResult = DichotomyStepResult.fromFailure(ReasonInvalid.GLSK_LIMITATION, e.getMessage(), counterTradingValues);
                     } finally {
                         resetToInitialVariant(network, initialVariant, newVariantName);
                     }
@@ -212,12 +212,18 @@ public class DichotomyRunner {
             LOGGER.info("There is no overload on FR-ES border");
         } else {
             LOGGER.info("There is overloads on FR-ES border, network is not secure");
+            if (ctStepResult.getFrEsMostLimitingCnec() != null) {
+                LOGGER.info("On the FR-ES border, the most limiting CNEC is {}", ctStepResult.getFrEsMostLimitingCnec().getLeft());
+            }
         }
 
         if (ctStepResult.isPtEsCnecsSecure()) {
             LOGGER.info("There is no overload on PT-ES border");
         } else {
             LOGGER.info("There is overloads on PT-ES border, network is not secure");
+            if (ctStepResult.getPtEsMostLimitingCnec() != null) {
+                LOGGER.info("On the PT-ES border, the most limiting CNEC is {}", ctStepResult.getPtEsMostLimitingCnec().getLeft());
+            }
         }
     }
 
