@@ -49,7 +49,7 @@ class SweCsaDichotomyRunnerTest {
 
         DichotomyRunner sweCsaDichotomyRunner = new DichotomyRunner(sweCsaRaoValidator, fileImporter, fileExporter);
         sweCsaDichotomyRunner.setIndexPrecision(50);
-        sweCsaDichotomyRunner.setMaxDichotomiesByBorder(10);
+        sweCsaDichotomyRunner.setMaxDichotomiesByBorder(10, 10);
         CsaRequest csaRequest = new CsaRequest("id", "2023-09-13T09:30:00Z", "cgm-url", "crac-url", "rao-result-url");
         RaoResultWithCounterTradeRangeActions raoResult = (RaoResultWithCounterTradeRangeActions) sweCsaDichotomyRunner.runDichotomy(csaRequest);
 

@@ -61,4 +61,5 @@ csa-runner:
 dichotomy-parameters:
   index:
     precision: 10
-    max-iterations-by-border: 10
+    max-iterations-for-pt-es-border: 10
+    max-iterations-for-fr-es-border: 10

@@ -56,6 +56,7 @@ rao-runner-server:
 dichotomy-parameters:
   index:
     precision: 10
-    max-iterations-by-border: 10
+    max-iterations-for-pt-es-border: 10
+    max-iterations-for-fr-es-border: 10
 csa-runner:
   async-time-out: 4500000 # 1h15min (75*60*1000)

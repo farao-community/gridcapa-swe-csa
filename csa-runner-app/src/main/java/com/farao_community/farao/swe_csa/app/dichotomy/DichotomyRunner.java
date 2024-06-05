@@ -35,8 +35,11 @@ public class DichotomyRunner {
 
     @Value("${dichotomy-parameters.index.precision}")
     private double indexPrecision;
-    @Value("${dichotomy-parameters.index.max-iterations-by-border}")
-    private double maxDichotomiesByBorder;
+    @Value("${dichotomy-parameters.index.max-iterations-for-pt-es-border}")
+    private double maxDichotomiesForPtEsBorder;
+
+    @Value("${dichotomy-parameters.index.max-iterations-for-fr-es-border}")
+    private double maxDichotomiesForFrEsBorder;
     private final SweCsaRaoValidator sweCsaRaoValidator;
     private final FileImporter fileImporter;
     private final FileExporter fileExporter;
@@ -133,7 +136,7 @@ public class DichotomyRunner {
                 throw new CsaInvalidDataException(errorMessage);
             } else {
                 LOGGER.info("Best case in unsecure, worst case is secure, trying to find optimum in between using dichotomy");
-                Index index = new Index(0, 0, indexPrecision, maxDichotomiesByBorder);
+                Index index = new Index(0, 0, indexPrecision, maxDichotomiesForPtEsBorder, maxDichotomiesForFrEsBorder);
                 index.addPtEsDichotomyStepResult(0, noCtStepResult);
                 index.addPtEsDichotomyStepResult(ctPtEsUpperBound, maxCtStepResult);
 
@@ -268,7 +271,8 @@ public class DichotomyRunner {
         this.indexPrecision = indexPrecision;
     }
 
-    void setMaxDichotomiesByBorder(double maxDichotomiesByBorder) {
-        this.maxDichotomiesByBorder = maxDichotomiesByBorder;
+    void setMaxDichotomiesByBorder(double maxDichotomiesForPtEsBorder, double maxDichotomiesForFrEsBorder) {
+        this.maxDichotomiesForPtEsBorder = maxDichotomiesForPtEsBorder;
+        this.maxDichotomiesForFrEsBorder = maxDichotomiesForFrEsBorder;
     }
 }
