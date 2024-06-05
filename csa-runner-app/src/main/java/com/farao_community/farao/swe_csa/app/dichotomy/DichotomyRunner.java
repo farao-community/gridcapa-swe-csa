@@ -139,9 +139,9 @@ public class DichotomyRunner {
                 Index index = new Index(0, 0, indexPrecision, maxDichotomiesForPtEsBorder, maxDichotomiesForFrEsBorder);
                 index.addPtEsDichotomyStepResult(0, noCtStepResult);
                 index.addPtEsDichotomyStepResult(ctPtEsUpperBound, maxCtStepResult);
-
                 index.addFrEsDichotomyStepResult(0, noCtStepResult);
                 index.addFrEsDichotomyStepResult(ctFrEsUpperBound, maxCtStepResult);
+                index.setBestValidDichotomyStepResult(maxCtStepResult);
 
                 while (index.exitConditionIsNotMetForPtEs() || index.exitConditionIsNotMetForFrEs()) {
                     CounterTradingValues counterTradingValues = index.nextValues();

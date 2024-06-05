@@ -72,6 +72,84 @@ class SweCsaDichotomyRunnerTest {
         assertEquals(0., ptEsCtRaResult.getSetPoint());
     }
 
+
+    @Test
+    void checkCounterTradingRunWhileLimitingMaxDichotomiesOnFrESBorder() throws GlskLimitationException, ShiftingException {
+        Instant utcInstant = Instant.parse("2023-09-13T09:30:00Z");
+        Network network = Network.read("/dichotomy/TestCase_with_swe_countries.xiidm", getClass().getResourceAsStream("/dichotomy/TestCase_with_swe_countries.xiidm"));
+        Crac crac = CracFactory.findDefault().create("id");
+        Mockito.when(fileImporter.uploadRaoParameters(utcInstant)).thenReturn("rao-parameters-url");
+        Mockito.when(fileImporter.importNetwork("cgm-url")).thenReturn(network);
+        Mockito.when(fileImporter.importCrac("crac-url", network)).thenReturn(crac);
+        Mockito.when(fileExporter.saveNetworkInArtifact(Mockito.any(), Mockito.any())).thenReturn("scaled-network-url");
+        RaoResponse raoResponse = Mockito.mock(RaoResponse.class);
+        Mockito.when(raoRunnerClient.runRao(Mockito.any())).thenReturn(raoResponse);
+        SweCsaRaoValidator sweCsaRaoValidator = new SweCsaRaoValidatorMock(fileExporter, raoRunnerClient);
+
+        DichotomyRunner sweCsaDichotomyRunner = new DichotomyRunner(sweCsaRaoValidator, fileImporter, fileExporter);
+        sweCsaDichotomyRunner.setIndexPrecision(50);
+        sweCsaDichotomyRunner.setMaxDichotomiesByBorder(10, 3);
+        CsaRequest csaRequest = new CsaRequest("id", "2023-09-13T09:30:00Z", "cgm-url", "crac-url", "rao-result-url");
+        RaoResultWithCounterTradeRangeActions raoResult = (RaoResultWithCounterTradeRangeActions) sweCsaDichotomyRunner.runDichotomy(csaRequest);
+
+        Iterator<CounterTradeRangeActionResult> ctRaResultIt  = raoResult.getCounterTradingResult().getCounterTradeRangeActionResults().values().stream().sorted(Comparator.comparing(CounterTradeRangeActionResult::getCtRangeActionId)).collect(Collectors.toCollection(LinkedHashSet::new)).iterator();
+
+        CounterTradeRangeActionResult esFrCtRaResult = ctRaResultIt.next();
+        assertEquals("CT_RA_ESFR", esFrCtRaResult.getCtRangeActionId());
+        assertEquals(1005, esFrCtRaResult.getSetPoint(), 1);
+
+        CounterTradeRangeActionResult esPtCtRaResult = ctRaResultIt.next();
+        assertEquals("CT_RA_ESPT", esPtCtRaResult.getCtRangeActionId());
+        assertEquals(0., esPtCtRaResult.getSetPoint());
+
+        CounterTradeRangeActionResult frEsCtRaResult = ctRaResultIt.next();
+        assertEquals("CT_RA_FRES", frEsCtRaResult.getCtRangeActionId());
+        assertEquals(1005, frEsCtRaResult.getSetPoint(), 1);
+
+        CounterTradeRangeActionResult ptEsCtRaResult = ctRaResultIt.next();
+        assertEquals("CT_RA_PTES", ptEsCtRaResult.getCtRangeActionId());
+        assertEquals(0., ptEsCtRaResult.getSetPoint());
+    }
+
+    @Test
+    void checkCounterTradingLimitedToZeroIteration() throws GlskLimitationException, ShiftingException {
+        Instant utcInstant = Instant.parse("2023-09-13T09:30:00Z");
+        Network network = Network.read("/dichotomy/TestCase_with_swe_countries.xiidm", getClass().getResourceAsStream("/dichotomy/TestCase_with_swe_countries.xiidm"));
+        Crac crac = CracFactory.findDefault().create("id");
+        Mockito.when(fileImporter.uploadRaoParameters(utcInstant)).thenReturn("rao-parameters-url");
+        Mockito.when(fileImporter.importNetwork("cgm-url")).thenReturn(network);
+        Mockito.when(fileImporter.importCrac("crac-url", network)).thenReturn(crac);
+        Mockito.when(fileExporter.saveNetworkInArtifact(Mockito.any(), Mockito.any())).thenReturn("scaled-network-url");
+        RaoResponse raoResponse = Mockito.mock(RaoResponse.class);
+        Mockito.when(raoRunnerClient.runRao(Mockito.any())).thenReturn(raoResponse);
+        SweCsaRaoValidator sweCsaRaoValidator = new SweCsaRaoValidatorMock(fileExporter, raoRunnerClient);
+
+        DichotomyRunner sweCsaDichotomyRunner = new DichotomyRunner(sweCsaRaoValidator, fileImporter, fileExporter);
+        sweCsaDichotomyRunner.setIndexPrecision(50);
+        sweCsaDichotomyRunner.setMaxDichotomiesByBorder(0, 0);
+        CsaRequest csaRequest = new CsaRequest("id", "2023-09-13T09:30:00Z", "cgm-url", "crac-url", "rao-result-url");
+        RaoResultWithCounterTradeRangeActions raoResult = (RaoResultWithCounterTradeRangeActions) sweCsaDichotomyRunner.runDichotomy(csaRequest);
+
+        Iterator<CounterTradeRangeActionResult> ctRaResultIt  = raoResult.getCounterTradingResult().getCounterTradeRangeActionResults().values().stream().sorted(Comparator.comparing(CounterTradeRangeActionResult::getCtRangeActionId)).collect(Collectors.toCollection(LinkedHashSet::new)).iterator();
+
+        CounterTradeRangeActionResult esFrCtRaResult = ctRaResultIt.next();
+        assertEquals("CT_RA_ESFR", esFrCtRaResult.getCtRangeActionId());
+        assertEquals(2011., esFrCtRaResult.getSetPoint(), 1);
+
+        CounterTradeRangeActionResult esPtCtRaResult = ctRaResultIt.next();
+        assertEquals("CT_RA_ESPT", esPtCtRaResult.getCtRangeActionId());
+        assertEquals(0., esPtCtRaResult.getSetPoint());
+
+        CounterTradeRangeActionResult frEsCtRaResult = ctRaResultIt.next();
+        assertEquals("CT_RA_FRES", frEsCtRaResult.getCtRangeActionId());
+        assertEquals(2011., frEsCtRaResult.getSetPoint(), 1);
+
+        CounterTradeRangeActionResult ptEsCtRaResult = ctRaResultIt.next();
+        assertEquals("CT_RA_PTES", ptEsCtRaResult.getCtRangeActionId());
+        assertEquals(0., ptEsCtRaResult.getSetPoint());
+    }
+
+
     public static class SweCsaRaoValidatorMock extends SweCsaRaoValidator {
         FileExporter fileExporter;
         RaoRunnerClient raoRunnerClient;
