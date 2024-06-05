@@ -21,7 +21,6 @@ import com.powsybl.openrao.data.cracapi.rangeaction.CounterTradeRangeAction;
 import com.powsybl.openrao.data.raoresultapi.RaoResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -33,13 +32,7 @@ import java.util.stream.Collectors;
 @Service
 public class DichotomyRunner {
 
-    @Value("${dichotomy-parameters.index.precision}")
-    private double indexPrecision;
-    @Value("${dichotomy-parameters.index.max-iterations-for-pt-es-border}")
-    private double maxDichotomiesForPtEsBorder;
-
-    @Value("${dichotomy-parameters.index.max-iterations-for-fr-es-border}")
-    private double maxDichotomiesForFrEsBorder;
+    private final DichotomyConfigurations dichotomyConfigurations;
     private final SweCsaRaoValidator sweCsaRaoValidator;
     private final FileImporter fileImporter;
     private final FileExporter fileExporter;
@@ -55,7 +48,8 @@ public class DichotomyRunner {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DichotomyRunner.class);
 
-    public DichotomyRunner(SweCsaRaoValidator sweCsaRaoValidator, FileImporter fileImporter, FileExporter fileExporter) {
+    public DichotomyRunner(DichotomyConfigurations dichotomyConfigurations, SweCsaRaoValidator sweCsaRaoValidator, FileImporter fileImporter, FileExporter fileExporter) {
+        this.dichotomyConfigurations = dichotomyConfigurations;
         this.sweCsaRaoValidator = sweCsaRaoValidator;
         this.fileImporter = fileImporter;
         this.fileExporter = fileExporter;
@@ -136,7 +130,7 @@ public class DichotomyRunner {
                 throw new CsaInvalidDataException(errorMessage);
             } else {
                 LOGGER.info("Best case in unsecure, worst case is secure, trying to find optimum in between using dichotomy");
-                Index index = new Index(0, 0, indexPrecision, maxDichotomiesForPtEsBorder, maxDichotomiesForFrEsBorder);
+                Index index = new Index(0, 0, dichotomyConfigurations.getPrecision(), dichotomyConfigurations.getMaxDichotomiesForPtEsBorder(), dichotomyConfigurations.getMaxDichotomiesForFrEsBorder());
                 index.addPtEsDichotomyStepResult(0, noCtStepResult);
                 index.addPtEsDichotomyStepResult(ctPtEsUpperBound, maxCtStepResult);
                 index.addFrEsDichotomyStepResult(0, noCtStepResult);
@@ -232,8 +226,8 @@ public class DichotomyRunner {
         crac.newCounterTradeRangeAction()
             .withId(CT_RA_PTES)
             .withOperator("REN")
-            .newRange().withMin(-50000.0)
-            .withMax(50000.0).add()
+            .newRange().withMin(-dichotomyConfigurations.getMaxCtRaPtEs())
+            .withMax(dichotomyConfigurations.getMaxCtRaPtEs()).add()
             .withInitialSetpoint(0.0)
             .withExportingCountry(Country.PT)
             .withImportingCountry(Country.ES)
@@ -241,8 +235,8 @@ public class DichotomyRunner {
         crac.newCounterTradeRangeAction()
             .withId(CT_RA_ESPT)
             .withOperator("REE")
-            .newRange().withMin(-50000.0)
-            .withMax(50000.0).add()
+            .newRange().withMin(-dichotomyConfigurations.getMaxCtRaPtEs())
+            .withMax(dichotomyConfigurations.getMaxCtRaPtEs()).add()
             .withInitialSetpoint(0.0)
             .withExportingCountry(Country.ES)
             .withImportingCountry(Country.PT)
@@ -250,8 +244,8 @@ public class DichotomyRunner {
         crac.newCounterTradeRangeAction()
             .withId(CT_RA_ESFR)
             .withOperator("REE")
-            .newRange().withMin(-50000.0)
-            .withMax(50000.0).add()
+            .newRange().withMin(-dichotomyConfigurations.getMaxCtRaFrEs())
+            .withMax(dichotomyConfigurations.getMaxCtRaFrEs()).add()
             .withInitialSetpoint(0.0)
             .withExportingCountry(Country.ES)
             .withImportingCountry(Country.FR)
@@ -259,20 +253,11 @@ public class DichotomyRunner {
         crac.newCounterTradeRangeAction()
             .withId(CT_RA_FRES)
             .withOperator("RTE")
-            .newRange().withMin(-50000.0)
-            .withMax(50000.0).add()
+            .newRange().withMin(-dichotomyConfigurations.getMaxCtRaFrEs())
+            .withMax(dichotomyConfigurations.getMaxCtRaFrEs()).add()
             .withInitialSetpoint(0.0)
             .withExportingCountry(Country.FR)
             .withImportingCountry(Country.ES)
             .add();
-    }
-
-    void setIndexPrecision(double indexPrecision) {
-        this.indexPrecision = indexPrecision;
-    }
-
-    void setMaxDichotomiesByBorder(double maxDichotomiesForPtEsBorder, double maxDichotomiesForFrEsBorder) {
-        this.maxDichotomiesForPtEsBorder = maxDichotomiesForPtEsBorder;
-        this.maxDichotomiesForFrEsBorder = maxDichotomiesForFrEsBorder;
     }
 }
