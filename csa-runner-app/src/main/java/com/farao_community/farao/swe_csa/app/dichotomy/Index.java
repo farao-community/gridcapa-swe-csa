@@ -7,7 +7,9 @@ public class Index {
     private final double frEsMinValue;
     private final double precision;
 
-    private final double maxDichotomiesByBorder;
+    private final double maxDichotomiesForPtEsBorder;
+    private final double maxDichotomiesForFrEsBorder;
+
     private Pair<Double, DichotomyStepResult> ptEsHighestUnsecureStep;
     private Pair<Double, DichotomyStepResult> ptEsLowestSecureStep;
     private Pair<Double, DichotomyStepResult> frEsHighestUnsecureStep;
@@ -16,11 +18,12 @@ public class Index {
     private int frEsDichotomyCount = 0;
     private int ptEsDichotomyCount = 0;
 
-    public Index(double ptEsMinValue, double frEsMinValue, double precision, double maxDichotomiesByBorder) {
+    public Index(double ptEsMinValue, double frEsMinValue, double precision, double maxDichotomiesForPtEsBorder, double maxDichotomiesForFrEsBorder) {
         this.ptEsMinValue = ptEsMinValue;
         this.frEsMinValue = frEsMinValue;
         this.precision = precision;
-        this.maxDichotomiesByBorder = maxDichotomiesByBorder;
+        this.maxDichotomiesForPtEsBorder = maxDichotomiesForPtEsBorder;
+        this.maxDichotomiesForFrEsBorder = maxDichotomiesForFrEsBorder;
     }
 
     public Pair<Double, DichotomyStepResult> getFrEsLowestSecureStep() {
@@ -54,11 +57,11 @@ public class Index {
     }
 
     public boolean exitConditionIsNotMetForPtEs() {
-        return ptEsLowestSecureStep.getLeft() != ptEsMinValue && !(ptEsDichotomyCount >= maxDichotomiesByBorder) && !(ptEsLowestSecureStep.getLeft() - ptEsHighestUnsecureStep.getLeft() <= precision);
+        return ptEsLowestSecureStep.getLeft() != ptEsMinValue && !(ptEsDichotomyCount >= maxDichotomiesForPtEsBorder) && !(ptEsLowestSecureStep.getLeft() - ptEsHighestUnsecureStep.getLeft() <= precision);
     }
 
     public boolean exitConditionIsNotMetForFrEs() {
-        return frEsLowestSecureStep.getLeft() != frEsMinValue && !(frEsDichotomyCount >= maxDichotomiesByBorder) && !(frEsLowestSecureStep.getLeft() - frEsHighestUnsecureStep.getLeft() <= precision);
+        return frEsLowestSecureStep.getLeft() != frEsMinValue && !(frEsDichotomyCount >= maxDichotomiesForFrEsBorder) && !(frEsLowestSecureStep.getLeft() - frEsHighestUnsecureStep.getLeft() <= precision);
     }
 
     public CounterTradingValues nextValues() {
