@@ -72,7 +72,6 @@ class SweCsaDichotomyRunnerTest {
         assertEquals(0., ptEsCtRaResult.getSetPoint());
     }
 
-
     @Test
     void checkCounterTradingRunWhileLimitingMaxDichotomiesOnFrESBorder() throws GlskLimitationException, ShiftingException {
         Instant utcInstant = Instant.parse("2023-09-13T09:30:00Z");
@@ -148,7 +147,6 @@ class SweCsaDichotomyRunnerTest {
         assertEquals("CT_RA_PTES", ptEsCtRaResult.getCtRangeActionId());
         assertEquals(0., ptEsCtRaResult.getSetPoint());
     }
-
 
     public static class SweCsaRaoValidatorMock extends SweCsaRaoValidator {
         FileExporter fileExporter;
