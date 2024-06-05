@@ -1,36 +1,43 @@
 package com.farao_community.farao.swe_csa.app.dichotomy;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@EnableConfigurationProperties
-@ConfigurationProperties("dichotomy-parameters")
 public class DichotomyConfigurations {
-    private int precision;
-    private int maxDichotomiesForPtEsBorder;
-    private int maxDichotomiesForFrEsBorder;
-    private double maxCtRaPtEs;
-    private double maxCtRaFrEs;
 
-    public int getPrecision() {
+    @Value("${dichotomy-parameters.precision}")
+    private Integer precision;
+
+    @Value("${dichotomy-parameters.max-iterations-for-pt-es-border}")
+    private Integer maxDichotomiesForPtEsBorder;
+
+    @Value("${dichotomy-parameters.max-iterations-for-fr-es-border}")
+    private Integer maxDichotomiesForFrEsBorder;
+
+    @Value("${dichotomy-parameters.max-ct-ra-pt-es}")
+    private Double maxCtRaPtEs;
+
+    @Value("${dichotomy-parameters.max-ct-ra-fr-es}")
+    private Double maxCtRaFrEs;
+
+    public Integer getPrecision() {
         return precision;
     }
 
-    public int getMaxDichotomiesForPtEsBorder() {
+    public Integer getMaxDichotomiesForPtEsBorder() {
         return maxDichotomiesForPtEsBorder;
     }
 
-    public int getMaxDichotomiesForFrEsBorder() {
+    public Integer getMaxDichotomiesForFrEsBorder() {
         return maxDichotomiesForFrEsBorder;
     }
 
-    public double getMaxCtRaPtEs() {
+    public Double getMaxCtRaPtEs() {
         return maxCtRaPtEs;
     }
 
-    public double getMaxCtRaFrEs() {
+    public Double getMaxCtRaFrEs() {
         return maxCtRaFrEs;
     }
 }
