@@ -3,7 +3,7 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
 import com.farao_community.farao.dichotomy.api.exceptions.GlskLimitationException;
 import com.farao_community.farao.dichotomy.api.exceptions.ShiftingException;
 import com.farao_community.farao.rao_runner.api.resource.RaoResponse;
-import com.farao_community.farao.rao_runner.starter.AsynchronousRaoRunnerClient;
+import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.api.results.CounterTradeRangeActionResult;
 import com.farao_community.farao.swe_csa.app.FileExporter;
@@ -21,7 +21,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -34,7 +33,7 @@ class SweCsaDichotomyRunnerTest {
     @Mock
     FileExporter fileExporter;
     @Mock
-    AsynchronousRaoRunnerClient raoRunnerClient;
+    RaoRunnerClient raoRunnerClient;
 
     @Test
     void runCounterTradingTest() throws GlskLimitationException, ShiftingException {
@@ -46,7 +45,7 @@ class SweCsaDichotomyRunnerTest {
         Mockito.when(fileImporter.importCrac("crac-url", network)).thenReturn(crac);
         Mockito.when(fileExporter.saveNetworkInArtifact(Mockito.any(), Mockito.any())).thenReturn("scaled-network-url");
         RaoResponse raoResponse = Mockito.mock(RaoResponse.class);
-        Mockito.when(raoRunnerClient.runRaoAsynchronously(Mockito.any())).thenReturn(CompletableFuture.completedFuture(raoResponse));
+        Mockito.when(raoRunnerClient.runRao(Mockito.any())).thenReturn(raoResponse);
         SweCsaRaoValidator sweCsaRaoValidator = new SweCsaRaoValidatorMock(fileExporter, raoRunnerClient);
 
         DichotomyRunner sweCsaDichotomyRunner = new DichotomyRunner(sweCsaRaoValidator, fileImporter, fileExporter);
@@ -76,9 +75,9 @@ class SweCsaDichotomyRunnerTest {
 
     public static class SweCsaRaoValidatorMock extends SweCsaRaoValidator {
         FileExporter fileExporter;
-        AsynchronousRaoRunnerClient raoRunnerClient;
+        RaoRunnerClient raoRunnerClient;
 
-        public SweCsaRaoValidatorMock(FileExporter fileExporter, AsynchronousRaoRunnerClient raoRunnerClient) {
+        public SweCsaRaoValidatorMock(FileExporter fileExporter, RaoRunnerClient raoRunnerClient) {
             super(fileExporter,
                 raoRunnerClient);
             this.fileExporter = fileExporter;
