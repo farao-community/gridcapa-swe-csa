@@ -6,7 +6,6 @@ import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.app.FileExporter;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.data.cracapi.Crac;
-import com.powsybl.openrao.data.cracapi.cnec.FlowCnec;
 import com.powsybl.openrao.data.raoresultapi.RaoResult;
 import org.apache.commons.lang3.tuple.Pair;
 import org.mockito.Mockito;

@@ -12,8 +12,6 @@ import com.farao_community.farao.swe_csa.app.rao_result.RaoResultWithCounterTrad
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.data.cracapi.Crac;
 import com.powsybl.openrao.data.cracapi.CracFactory;
-import com.powsybl.openrao.data.raoresultapi.RaoResult;
-import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -72,7 +70,6 @@ class SweCsaDichotomyRunnerTest {
         assertEquals("CT_RA_PTES", ptEsCtRaResult.getCtRangeActionId());
         assertEquals(0., ptEsCtRaResult.getSetPoint());
     }
-
 
 }
 

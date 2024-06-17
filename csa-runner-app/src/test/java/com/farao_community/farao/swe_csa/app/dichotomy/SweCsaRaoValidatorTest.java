@@ -1,13 +1,11 @@
 package com.farao_community.farao.swe_csa.app.dichotomy;
 
-import com.farao_community.farao.rao_runner.api.resource.RaoResponse;
 import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
 import com.farao_community.farao.swe_csa.app.FileExporter;
 import com.farao_community.farao.swe_csa.app.FileImporter;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.data.cracapi.Crac;
-import com.powsybl.openrao.data.cracapi.CracFactory;
 import com.powsybl.openrao.data.cracapi.Instant;
 import com.powsybl.openrao.data.cracapi.State;
 import com.powsybl.openrao.data.cracapi.cnec.FlowCnec;
@@ -47,19 +45,19 @@ public class SweCsaRaoValidatorTest {
         Set<FlowCnec> cnecsDe = SweCsaRaoValidator.getBorderFlowCnecs(crac, network, Country.DE);
         Set<FlowCnec> cnecsNl = SweCsaRaoValidator.getBorderFlowCnecs(crac, network, Country.NL);
 
-        assertEquals(9,cnecsFr.size());
-        assertEquals(4,cnecsDe.size());
-        assertEquals(2,cnecsNl.size());
+        assertEquals(9, cnecsFr.size());
+        assertEquals(4, cnecsDe.size());
+        assertEquals(2, cnecsNl.size());
     }
 
     @Test
     void testGetFlowCnecShortestMargin() {
         SweCsaRaoValidator sweCsaRaoValidator = new SweCsaRaoValidator(fileExporter, raoRunnerClient);
         RaoResult raoResult = Mockito.mock(RaoResult.class);
-        Mockito.when(raoResult.getMargin( any(), (FlowCnec) any(), any()))
+        Mockito.when(raoResult.getMargin(any(), (FlowCnec) any(), any()))
             .then(i -> {
                 FlowCnec flowCnec = i.getArgument(1);
-                if("id2".equals(flowCnec.getId())) {
+                if ("id2".equals(flowCnec.getId())) {
                     return 50.0;
                 } else {
                     return 100.0;
