@@ -12,7 +12,6 @@ import com.farao_community.farao.swe_csa.app.rao_result.RaoResultWithCounterTrad
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.data.cracapi.Crac;
 import com.powsybl.openrao.data.cracapi.CracFactory;
-import com.powsybl.openrao.data.raoresultapi.RaoResult;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -72,25 +71,5 @@ class SweCsaDichotomyRunnerTest {
         assertEquals(0., ptEsCtRaResult.getSetPoint());
     }
 
-    public static class SweCsaRaoValidatorMock extends SweCsaRaoValidator {
-        FileExporter fileExporter;
-        RaoRunnerClient raoRunnerClient;
-
-        public SweCsaRaoValidatorMock(FileExporter fileExporter, RaoRunnerClient raoRunnerClient) {
-            super(fileExporter,
-                raoRunnerClient);
-            this.fileExporter = fileExporter;
-            this.raoRunnerClient = raoRunnerClient;
-        }
-
-        @Override
-        public DichotomyStepResult validateNetwork(Network network, Crac crac, CsaRequest csaRequest, String raoParametersUrl, boolean withVoltageMonitoring, boolean withAngleMonitoring, CounterTradingValues counterTradingValues) {
-            RaoResponse raoResponse = Mockito.mock(RaoResponse.class);
-            RaoResult raoResult = Mockito.mock(RaoResult.class);
-            boolean cnecsOnPtEsBorderAreSecure = counterTradingValues.getPtEsCt() >= 0;
-            boolean cnecsOnFrEsBorderAreSecure = counterTradingValues.getFrEsCt() >= 600;
-            return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, cnecsOnPtEsBorderAreSecure, cnecsOnFrEsBorderAreSecure, counterTradingValues);
-        }
-    }
 }
 

@@ -27,6 +27,7 @@ import com.powsybl.openrao.data.cracapi.cnec.FlowCnec;
 import com.powsybl.openrao.data.raoresultapi.RaoResult;
 import com.powsybl.openrao.data.raoresultjson.RaoResultImporter;
 import com.powsybl.openrao.monitoring.voltagemonitoring.VoltageMonitoring;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -67,10 +68,10 @@ public class SweCsaRaoValidator {
 
             Set<FlowCnec> frEsFlowCnecs = getBorderFlowCnecs(crac, network, Country.FR);
             Set<FlowCnec> ptEsFlowCnecs = getBorderFlowCnecs(crac, network, Country.PT);
-            boolean cnecsOnPtEsBorderAreSecure = hasNoFlowCnecNegativeMargin(raoResult, ptEsFlowCnecs);
-            boolean cnecsOnFrEsBorderAreSecure = hasNoFlowCnecNegativeMargin(raoResult, frEsFlowCnecs);
+            Pair<String, Double> flowCnecPtEsShortestMargin = getFlowCnecShortestMargin(raoResult, ptEsFlowCnecs);
+            Pair<String, Double> flowCnecFrEsShortestMargin = getFlowCnecShortestMargin(raoResult, frEsFlowCnecs);
 
-            return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, cnecsOnPtEsBorderAreSecure, cnecsOnFrEsBorderAreSecure, counterTradingValues);
+            return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, flowCnecPtEsShortestMargin, flowCnecFrEsShortestMargin, counterTradingValues);
         } catch (Exception e) {
             throw new CsaInternalException("RAO run failed", e);
         }
@@ -82,13 +83,17 @@ public class SweCsaRaoValidator {
             .collect(Collectors.toSet());
     }
 
-    public boolean hasNoFlowCnecNegativeMargin(RaoResult raoResult, Set<FlowCnec> flowCnecs) {
+    Pair<String, Double> getFlowCnecShortestMargin(RaoResult raoResult, Set<FlowCnec> flowCnecs) {
+        String flowCnecId = "";
+        double shortestMargin = Double.MAX_VALUE;
         for (FlowCnec flowCnec : flowCnecs) {
-            if (raoResult.getMargin(flowCnec.getState().getInstant(), flowCnec, Unit.AMPERE) < 0) {
-                return false;
+            double margin = raoResult.getMargin(flowCnec.getState().getInstant(), flowCnec, Unit.AMPERE);
+            if (margin < shortestMargin) {
+                flowCnecId = flowCnec.getId();
+                shortestMargin = margin;
             }
         }
-        return true;
+        return Pair.of(flowCnecId, shortestMargin);
     }
 
     private RaoRequest buildRaoRequest(String stepFolder, String timestamp, String taskId, Network network, String cracUrl, String raoParametersUrl) {
