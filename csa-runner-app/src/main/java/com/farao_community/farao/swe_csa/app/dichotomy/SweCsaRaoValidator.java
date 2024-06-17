@@ -83,7 +83,7 @@ public class SweCsaRaoValidator {
             .collect(Collectors.toSet());
     }
 
-    public Pair<String, Double> getFlowCnecShortestMargin(RaoResult raoResult, Set<FlowCnec> flowCnecs) {
+    Pair<String, Double> getFlowCnecShortestMargin(RaoResult raoResult, Set<FlowCnec> flowCnecs) {
         String flowCnecId = "";
         double shortestMargin = Double.MAX_VALUE;
         for (FlowCnec flowCnec : flowCnecs) {
