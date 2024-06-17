@@ -60,7 +60,7 @@ public final class DichotomyStepResult {
     }
 
     public boolean isValid() {
-        return this.ptEsMostLimitingCnec.getRight() >= 0 && this.frEsMostLimitingCnec.getRight() >= 0;
+        return isPtEsCnecsSecure() && isFrEsCnecsSecure();
     }
 
     public ReasonInvalid getReasonInvalid() {
