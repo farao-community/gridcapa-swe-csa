@@ -26,7 +26,7 @@ import com.powsybl.openrao.data.cracapi.Crac;
 import com.powsybl.openrao.data.cracapi.cnec.FlowCnec;
 import com.powsybl.openrao.data.raoresultapi.RaoResult;
 import com.powsybl.openrao.data.raoresultjson.RaoResultImporter;
-import com.powsybl.openrao.monitoring.voltagemonitoring.VoltageMonitoring;
+import com.powsybl.openrao.monitoring.anglemonitoring.AngleMonitoring;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +34,8 @@ import org.springframework.stereotype.Service;
 
 import java.net.URL;
 import java.time.OffsetDateTime;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -51,7 +53,7 @@ public class SweCsaRaoValidator {
         this.raoRunnerClient = raoRunnerClient;
     }
 
-    public DichotomyStepResult validateNetwork(Network network, Crac crac, CsaRequest csaRequest, String raoParametersUrl, boolean withVoltageMonitoring, boolean withAngleMonitoring, CounterTradingValues counterTradingValues) {
+    public DichotomyStepResult validateNetwork(Network network, Crac crac, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
         RaoRequest raoRequest = buildRaoRequest(counterTradingValues.print(), csaRequest.getBusinessTimestamp(), csaRequest.getId(), network, csaRequest.getCracFileUri(), raoParametersUrl);
 
         try {
@@ -61,10 +63,7 @@ public class SweCsaRaoValidator {
             RaoResult raoResult = raoResponse == null ? null : new RaoResultImporter().importRaoResult(new URL(raoResponse.getRaoResultFileUrl()).openStream(), crac);
             LOGGER.info("RAO result imported: {}", raoResult);
 
-            if (withVoltageMonitoring) {
-                VoltageMonitoring voltageMonitoring = new VoltageMonitoring(crac, network, raoResult);
-                raoResult = voltageMonitoring.runAndUpdateRaoResult(LoadFlow.find().getName(), LoadFlowParameters.load(), 1);
-            }
+            raoResult = updateRaoResultWithAngleMonitoring(network, crac, raoResult);
 
             Set<FlowCnec> frEsFlowCnecs = getBorderFlowCnecs(crac, network, Country.FR);
             Set<FlowCnec> ptEsFlowCnecs = getBorderFlowCnecs(crac, network, Country.PT);
@@ -75,6 +74,12 @@ public class SweCsaRaoValidator {
         } catch (Exception e) {
             throw new CsaInternalException("RAO run failed", e);
         }
+    }
+
+    private RaoResult updateRaoResultWithAngleMonitoring(Network network, Crac crac, RaoResult raoResult) {
+        Set<Country> sweCountries = new HashSet<>(Arrays.asList(Country.FR, Country.PT, Country.ES));
+        AngleMonitoring angleMonitoring = new AngleMonitoring(crac, network, raoResult, sweCountries);
+        return angleMonitoring.runAndUpdateRaoResult(LoadFlow.find().getName(), LoadFlowParameters.load(), 1);
     }
 
     static Set<FlowCnec> getBorderFlowCnecs(Crac crac, Network network, Country country) {

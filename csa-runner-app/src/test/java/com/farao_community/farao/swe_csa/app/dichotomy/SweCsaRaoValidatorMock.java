@@ -22,7 +22,7 @@ public class SweCsaRaoValidatorMock extends SweCsaRaoValidator {
     }
 
     @Override
-    public DichotomyStepResult validateNetwork(Network network, Crac crac, CsaRequest csaRequest, String raoParametersUrl, boolean withVoltageMonitoring, boolean withAngleMonitoring, CounterTradingValues counterTradingValues) {
+    public DichotomyStepResult validateNetwork(Network network, Crac crac, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
         RaoResponse raoResponse = Mockito.mock(RaoResponse.class);
         RaoResult raoResult = Mockito.mock(RaoResult.class);
         Pair<String, Double> ptEsMostLimitingCnec = Pair.of("ptEsCnec", counterTradingValues.getPtEsCt() >= 0 ? 100.0 : -100.0);
