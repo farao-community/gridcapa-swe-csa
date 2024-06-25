@@ -108,18 +108,8 @@ public class DichotomyRunner {
             return noCtStepResult.getRaoResult();
         } else {
             // initial network not secure, try worst case maximum counter trading
-            double ctFrEsMax = expFrEs0 >= 0 ? Math.min(Math.min(-ctRaFrEs.getMinAdmissibleSetpoint(expFrEs0), ctRaEsFr.getMaxAdmissibleSetpoint(expEsFr0)), expFrEs0)
-                : Math.min(Math.min(ctRaFrEs.getMaxAdmissibleSetpoint(expFrEs0), -ctRaEsFr.getMinAdmissibleSetpoint(expEsFr0)), -expFrEs0);
-            double ctPtEsMax = expPtEs0 >= 0 ? Math.min(Math.min(-ctRaPtEs.getMinAdmissibleSetpoint(expPtEs0), ctRaEsPt.getMaxAdmissibleSetpoint(expEsPt0)), expPtEs0)
-                : Math.min(Math.min(ctRaPtEs.getMaxAdmissibleSetpoint(expPtEs0), -ctRaEsPt.getMinAdmissibleSetpoint(expEsPt0)), -expPtEs0);
-
-            if (ctFrEsMax < Math.abs(expFrEs0)) {
-                LOGGER.warn("Maximum counter trading FR-ES '{}' is smaller than initial exchange FR-ES '{}' ", ctFrEsMax, expFrEs0);
-            }
-
-            if (ctPtEsMax < Math.abs(expPtEs0)) {
-                LOGGER.warn("Maximum counter trading PT-ES '{}' is smaller than initial exchange PT-ES '{}' ", ctPtEsMax, expPtEs0);
-            }
+            double ctFrEsMax = getMaxCounterTrading(ctRaFrEs, ctRaEsFr, expFrEs0, expEsFr0, "FR-ES");
+            double ctPtEsMax = getMaxCounterTrading(ctRaPtEs, ctRaEsPt, expPtEs0, expEsPt0, "PT-ES");
 
             double ctPtEsUpperBound = noCtStepResult.isPtEsCnecsSecure() ? 0 : ctPtEsMax;
             double ctFrEsUpperBound = noCtStepResult.isFrEsCnecsSecure() ? 0 : ctFrEsMax;
@@ -183,6 +173,17 @@ public class DichotomyRunner {
                 return raoResultWithRangeAction;
             }
         }
+    }
+
+    double getMaxCounterTrading(CounterTradeRangeAction ctra1, CounterTradeRangeAction ctra2, double initialExchange1, double initialExchange2, String borderName) {
+        double ctMax = initialExchange1 >= 0 ? Math.min(Math.min(-ctra1.getMinAdmissibleSetpoint(initialExchange1), ctra2.getMaxAdmissibleSetpoint(initialExchange2)), initialExchange1)
+            : Math.min(Math.min(ctra1.getMaxAdmissibleSetpoint(initialExchange1), -ctra2.getMinAdmissibleSetpoint(initialExchange2)), -initialExchange1);
+
+        if (ctMax != Math.abs(initialExchange1)) {
+            LOGGER.warn("Maximum counter trading " + borderName + " '{}' is different from initial exchange " + borderName + " '{}' ", ctMax, Math.abs(initialExchange1));
+        }
+
+        return ctMax;
     }
 
     private RaoResultWithCounterTradeRangeActions getRaoResultWithCounterTradeRangeActions(Network network, Crac crac, Index index, RaoResult raoResult) {
