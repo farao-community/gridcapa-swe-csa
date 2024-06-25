@@ -78,7 +78,7 @@ public class SweCsaRaoValidator {
     private RaoResult updateRaoResultWithAngleMonitoring(Network network, Crac crac, RaoResult raoResult, RaoParameters raoParameters) {
         Set<Country> sweCountries = new HashSet<>(Arrays.asList(Country.FR, Country.PT, Country.ES));
         AngleMonitoring angleMonitoring = new AngleMonitoring(crac, network, raoResult, sweCountries);
-        return angleMonitoring.runAndUpdateRaoResult(raoParameters.getLoadFlowAndSensitivityParameters().getLoadFlowProvider(), raoParameters.getLoadFlowAndSensitivityParameters().getSensitivityWithLoadFlowParameters().getLoadFlowParameters(), 4);
+        return angleMonitoring.runAndUpdateRaoResult(raoParameters.getLoadFlowAndSensitivityParameters().getLoadFlowProvider(), raoParameters.getLoadFlowAndSensitivityParameters().getSensitivityWithLoadFlowParameters().getLoadFlowParameters(), Runtime.getRuntime().availableProcessors());
     }
 
     static Set<FlowCnec> getBorderFlowCnecs(Crac crac, Network network, Country country) {
