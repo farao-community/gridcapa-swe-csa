@@ -66,8 +66,8 @@ public class SweCsaRaoValidator {
 
             Set<FlowCnec> frEsFlowCnecs = getBorderFlowCnecs(crac, network, Country.FR);
             Set<FlowCnec> ptEsFlowCnecs = getBorderFlowCnecs(crac, network, Country.PT);
-            Pair<String, Double> flowCnecPtEsShortestMargin = getFlowCnecShortestMargin(raoResult, ptEsFlowCnecs);
-            Pair<String, Double> flowCnecFrEsShortestMargin = getFlowCnecShortestMargin(raoResult, frEsFlowCnecs);
+            Pair<String, Double> flowCnecPtEsShortestMargin = getFlowCnecSmallesttMargin(raoResult, ptEsFlowCnecs);
+            Pair<String, Double> flowCnecFrEsShortestMargin = getFlowCnecSmallesttMargin(raoResult, frEsFlowCnecs);
 
             return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, flowCnecPtEsShortestMargin, flowCnecFrEsShortestMargin, counterTradingValues);
         } catch (Exception e) {
@@ -87,17 +87,17 @@ public class SweCsaRaoValidator {
             .collect(Collectors.toSet());
     }
 
-    Pair<String, Double> getFlowCnecShortestMargin(RaoResult raoResult, Set<FlowCnec> flowCnecs) {
+    Pair<String, Double> getFlowCnecSmallesttMargin(RaoResult raoResult, Set<FlowCnec> flowCnecs) {
         String flowCnecId = "";
-        double shortestMargin = Double.MAX_VALUE;
+        double smallestMargin = Double.MAX_VALUE;
         for (FlowCnec flowCnec : flowCnecs) {
             double margin = raoResult.getMargin(flowCnec.getState().getInstant(), flowCnec, Unit.AMPERE);
-            if (margin < shortestMargin) {
+            if (margin < smallestMargin) {
                 flowCnecId = flowCnec.getId();
-                shortestMargin = margin;
+                smallestMargin = margin;
             }
         }
-        return Pair.of(flowCnecId, shortestMargin);
+        return Pair.of(flowCnecId, smallestMargin);
     }
 
     private RaoRequest buildRaoRequest(String stepFolder, String timestamp, String taskId, Network network, String cracUrl, String raoParametersUrl) {
