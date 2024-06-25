@@ -113,12 +113,12 @@ public class DichotomyRunner {
             double ctPtEsMax = expPtEs0 >= 0 ? Math.min(Math.min(-ctRaPtEs.getMinAdmissibleSetpoint(expPtEs0), ctRaEsPt.getMaxAdmissibleSetpoint(expEsPt0)), expPtEs0)
                 : Math.min(Math.min(ctRaPtEs.getMaxAdmissibleSetpoint(expPtEs0), -ctRaEsPt.getMinAdmissibleSetpoint(expEsPt0)), -expPtEs0);
 
-            if (ctFrEsMax != Math.abs(expFrEs0)) {
-                LOGGER.warn("Maximum counter trading FR-ES '{}' is different from initial exchange FR-ES '{}' ", ctFrEsMax, expFrEs0);
+            if (ctFrEsMax < Math.abs(expFrEs0)) {
+                LOGGER.warn("Maximum counter trading FR-ES '{}' is smaller than initial exchange FR-ES '{}' ", ctFrEsMax, expFrEs0);
             }
 
-            if (ctPtEsMax != Math.abs(expPtEs0)) {
-                LOGGER.warn("Maximum counter trading PT-ES '{}' is different from initial exchange PT-ES '{}' ", ctPtEsMax, expPtEs0);
+            if (ctPtEsMax < Math.abs(expPtEs0)) {
+                LOGGER.warn("Maximum counter trading PT-ES '{}' is smaller than initial exchange PT-ES '{}' ", ctPtEsMax, expPtEs0);
             }
 
             double ctPtEsUpperBound = noCtStepResult.isPtEsCnecsSecure() ? 0 : ctPtEsMax;
