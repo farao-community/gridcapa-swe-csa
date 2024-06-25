@@ -14,14 +14,13 @@ import com.farao_community.farao.swe_csa.app.rao_result.RaoResultWithCounterTrad
 import com.powsybl.glsk.commons.CountryEICode;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.loadflow.LoadFlow;
-import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openrao.commons.Unit;
 import com.powsybl.openrao.data.cracapi.Crac;
 import com.powsybl.openrao.data.cracapi.Identifiable;
 import com.powsybl.openrao.data.cracapi.rangeaction.CounterTradeRangeAction;
 import com.powsybl.openrao.data.raoresultapi.RaoResult;
 import com.powsybl.openrao.monitoring.voltagemonitoring.VoltageMonitoring;
+import com.powsybl.openrao.raoapi.parameters.RaoParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -62,6 +61,7 @@ public class DichotomyRunner {
     }
 
     public RaoResult runDichotomy(CsaRequest csaRequest) throws GlskLimitationException, ShiftingException {
+        RaoParameters raoParameters = RaoParameters.load();
         String raoParametersUrl = fileImporter.uploadRaoParameters(Instant.parse(csaRequest.getBusinessTimestamp()));
         Network network = fileImporter.importNetwork(csaRequest.getGridModelUri());
         Crac crac = fileImporter.importCrac(csaRequest.getCracFileUri(), network);
@@ -95,13 +95,13 @@ public class DichotomyRunner {
         } catch (CsaInvalidDataException e) {
             LOGGER.warn(e.getMessage());
             LOGGER.warn("No counter trading will be done, only input network will be checked by rao");
-            return sweCsaRaoValidator.validateNetwork(network, crac, csaRequest, raoParametersUrl, minCounterTradingValues).getRaoResult();
+            return sweCsaRaoValidator.validateNetwork(network, crac, raoParameters, csaRequest, raoParametersUrl, minCounterTradingValues).getRaoResult();
         }
         // best case no counter trading , no scaling
         LOGGER.info("Starting Counter trading algorithm by validating input network without scaling");
         String noCtVariantName = "no-ct-PT-ES-0_FR-ES-0";
         setWorkingVariant(network, initialVariant, noCtVariantName);
-        DichotomyStepResult noCtStepResult = sweCsaRaoValidator.validateNetwork(network, crac, csaRequest, raoParametersUrl, minCounterTradingValues);
+        DichotomyStepResult noCtStepResult = sweCsaRaoValidator.validateNetwork(network, crac, raoParameters, csaRequest, raoParametersUrl, minCounterTradingValues);
         resetToInitialVariant(network, initialVariant, noCtVariantName);
 
         logBorderOverload(noCtStepResult);
@@ -126,7 +126,7 @@ public class DichotomyRunner {
 
             SweCsaNetworkShifter networkShifter = new SweCsaNetworkShifter(SweCsaZonalData.getZonalData(network), initialExchanges.get(ES_FR), initialExchanges.get(ES_PT), new ShiftDispatcher(initialNetPositions));
             networkShifter.applyCounterTrading(maxCounterTradingValues, network);
-            DichotomyStepResult maxCtStepResult = sweCsaRaoValidator.validateNetwork(network, crac, csaRequest, raoParametersUrl, maxCounterTradingValues);
+            DichotomyStepResult maxCtStepResult = sweCsaRaoValidator.validateNetwork(network, crac, raoParameters, csaRequest, raoParametersUrl, maxCounterTradingValues);
             resetToInitialVariant(network, initialVariant, maxCtVariantName);
 
             logBorderOverload(maxCtStepResult);
@@ -153,7 +153,7 @@ public class DichotomyRunner {
 
                         setWorkingVariant(network, initialVariant, newVariantName);
                         networkShifter.applyCounterTrading(counterTradingValues, network);
-                        ctStepResult = sweCsaRaoValidator.validateNetwork(network, crac, csaRequest, raoParametersUrl, counterTradingValues);
+                        ctStepResult = sweCsaRaoValidator.validateNetwork(network, crac, raoParameters, csaRequest, raoParametersUrl, counterTradingValues);
                     } catch (GlskLimitationException e) {
                         LOGGER.warn("GLSK limits have been reached with CT of '{}' for PT-ES and '{}' for FR-ES", counterTradingValues.getPtEsCt(), counterTradingValues.getFrEsCt());
                         ctStepResult = DichotomyStepResult.fromFailure(ReasonInvalid.GLSK_LIMITATION, e.getMessage(), counterTradingValues);
@@ -173,7 +173,7 @@ public class DichotomyRunner {
                 LOGGER.info("Dichotomy stop criterion reached, CT PT-ES: {}, CT FR-ES: {}", Math.round(index.getBestValidDichotomyStepResult().getCounterTradingValues().getPtEsCt()), Math.round(index.getBestValidDichotomyStepResult().getCounterTradingValues().getFrEsCt()));
                 RaoResult raoResult = index.getBestValidDichotomyStepResult().getRaoResult();
 
-                raoResult = updateRaoResultWithVoltageMonitoring(network, crac, raoResult);
+                raoResult = updateRaoResultWithVoltageMonitoring(network, crac, raoResult, raoParameters);
                 RaoResultWithCounterTradeRangeActions raoResultWithRangeAction = updateRaoResultWithCounterTradingRAs(network, crac, index, raoResult);
                 fileExporter.saveRaoResultInArtifact(raoResultWithRangeAction, crac, Unit.AMPERE, csaRequest.getBusinessTimestamp());
                 return raoResultWithRangeAction;
@@ -181,9 +181,9 @@ public class DichotomyRunner {
         }
     }
 
-    private static RaoResult updateRaoResultWithVoltageMonitoring(Network network, Crac crac, RaoResult raoResult) {
+    private static RaoResult updateRaoResultWithVoltageMonitoring(Network network, Crac crac, RaoResult raoResult, RaoParameters raoParameters) {
         VoltageMonitoring voltageMonitoring = new VoltageMonitoring(crac, network, raoResult);
-        return voltageMonitoring.runAndUpdateRaoResult(LoadFlow.find().getName(), LoadFlowParameters.load(), 1);
+        return voltageMonitoring.runAndUpdateRaoResult(raoParameters.getLoadFlowAndSensitivityParameters().getLoadFlowProvider(), raoParameters.getLoadFlowAndSensitivityParameters().getSensitivityWithLoadFlowParameters().getLoadFlowParameters(), 4);
     }
 
     private RaoResultWithCounterTradeRangeActions updateRaoResultWithCounterTradingRAs(Network network, Crac crac, Index index, RaoResult raoResult) {
