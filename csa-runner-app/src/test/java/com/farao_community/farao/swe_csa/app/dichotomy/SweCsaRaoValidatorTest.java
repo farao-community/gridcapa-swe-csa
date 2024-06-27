@@ -81,7 +81,7 @@ public class SweCsaRaoValidatorTest {
         Mockito.when(fc2.getState()).thenReturn(stateMock);
         Mockito.when(fc3.getState()).thenReturn(stateMock);
 
-        Pair<String, Double> flowCnecShortestMargin = sweCsaRaoValidator.getFlowCnecShortestMargin(raoResult, flowCnecs);
+        Pair<String, Double> flowCnecShortestMargin = sweCsaRaoValidator.getFlowCnecSmallesttMargin(raoResult, flowCnecs);
         assertEquals("id2", flowCnecShortestMargin.getLeft());
         assertEquals(50.0, flowCnecShortestMargin.getRight());
     }
