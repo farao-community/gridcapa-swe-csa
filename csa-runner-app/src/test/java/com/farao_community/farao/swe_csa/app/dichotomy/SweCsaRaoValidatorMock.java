@@ -10,6 +10,7 @@ import com.powsybl.openrao.data.raoresultapi.RaoResult;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
 import org.apache.commons.lang3.tuple.Pair;
 import org.mockito.Mockito;
+import org.slf4j.LoggerFactory;
 
 public class SweCsaRaoValidatorMock extends SweCsaRaoValidator {
     FileExporter fileExporter;
@@ -17,7 +18,7 @@ public class SweCsaRaoValidatorMock extends SweCsaRaoValidator {
 
     public SweCsaRaoValidatorMock(FileExporter fileExporter, RaoRunnerClient raoRunnerClient) {
         super(fileExporter,
-            raoRunnerClient);
+            raoRunnerClient, LoggerFactory.getLogger(SweCsaRaoValidatorMock.class));
         this.fileExporter = fileExporter;
         this.raoRunnerClient = raoRunnerClient;
     }

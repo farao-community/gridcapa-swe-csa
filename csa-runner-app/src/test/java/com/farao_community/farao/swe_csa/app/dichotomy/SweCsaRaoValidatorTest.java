@@ -14,6 +14,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -52,7 +53,7 @@ public class SweCsaRaoValidatorTest {
 
     @Test
     void testGetFlowCnecShortestMargin() {
-        SweCsaRaoValidator sweCsaRaoValidator = new SweCsaRaoValidator(fileExporter, raoRunnerClient);
+        SweCsaRaoValidator sweCsaRaoValidator = new SweCsaRaoValidator(fileExporter, raoRunnerClient, LoggerFactory.getLogger(SweCsaRaoValidatorTest.class));
         RaoResult raoResult = Mockito.mock(RaoResult.class);
         Mockito.when(raoResult.getMargin(any(), (FlowCnec) any(), any()))
             .then(i -> {

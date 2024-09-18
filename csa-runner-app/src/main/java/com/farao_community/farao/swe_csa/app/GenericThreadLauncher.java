@@ -34,7 +34,7 @@ public class GenericThreadLauncher<T, U> extends Thread {
     @Override
     public void run() {
         try {
-            MDC.put("gridcapa-task-id", getName());
+            MDC.put("gridcapaTaskId", getName());
             U threadResult = (U) this.run.invoke(threadable, args);
             this.result = ThreadLauncherResult.success(threadResult);
         } catch (IllegalAccessException | InvocationTargetException e) {

@@ -5,7 +5,6 @@ import com.farao_community.farao.swe_csa.api.resource.CsaResponse;
 import com.farao_community.farao.swe_csa.api.resource.Status;
 import com.farao_community.farao.swe_csa.app.dichotomy.DichotomyRunner;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -15,19 +14,20 @@ import java.time.Instant;
 public class SweCsaRunner {
 
     private final DichotomyRunner dichotomyRunner;
-    private static final Logger LOGGER = LoggerFactory.getLogger(SweCsaRunner.class);
+    private final Logger businessLogger;
 
-    public SweCsaRunner(DichotomyRunner dichotomyRunner) {
+    public SweCsaRunner(DichotomyRunner dichotomyRunner, Logger businessLogger) {
         this.dichotomyRunner = dichotomyRunner;
+        this.businessLogger = businessLogger;
     }
 
     @Threadable
     public CsaResponse run(CsaRequest csaRequest) throws IOException {
         try {
-            LOGGER.info("Csa request received : {}", csaRequest);
+            businessLogger.info("Csa request received : {}", csaRequest);
             Instant utcInstant = Instant.parse(csaRequest.getBusinessTimestamp());
             dichotomyRunner.runDichotomy(csaRequest);
-            LOGGER.info("CSA computation finished for TimeStamp: '{}'", utcInstant);
+            businessLogger.info("CSA computation finished for TimeStamp: '{}'", utcInstant);
             return new CsaResponse(csaRequest.getId(), Status.FINISHED.toString());
         } catch (Exception e) {
             throw new IOException(e);

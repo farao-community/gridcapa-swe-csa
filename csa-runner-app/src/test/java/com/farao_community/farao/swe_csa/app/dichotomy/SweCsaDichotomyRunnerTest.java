@@ -16,6 +16,7 @@ import com.powsybl.openrao.data.cracimpl.CounterTradeRangeActionImpl;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.Instant;
@@ -48,7 +49,7 @@ class SweCsaDichotomyRunnerTest {
         Mockito.when(raoRunnerClient.runRao(Mockito.any())).thenReturn(raoResponse);
         SweCsaRaoValidator sweCsaRaoValidator = new SweCsaRaoValidatorMock(fileExporter, raoRunnerClient);
 
-        DichotomyRunner sweCsaDichotomyRunner = new DichotomyRunner(sweCsaRaoValidator, fileImporter, fileExporter);
+        DichotomyRunner sweCsaDichotomyRunner = new DichotomyRunner(sweCsaRaoValidator, fileImporter, fileExporter, LoggerFactory.getLogger(SweCsaDichotomyRunnerTest.class));
         sweCsaDichotomyRunner.setIndexPrecision(50);
         sweCsaDichotomyRunner.setMaxDichotomiesByBorder(10);
         CsaRequest csaRequest = new CsaRequest("id", "2023-09-13T09:30:00Z", "cgm-url", "crac-url", "rao-result-url");
@@ -76,7 +77,7 @@ class SweCsaDichotomyRunnerTest {
     @Test
     void getMaxCounterTradingTestMaximumReached() {
         SweCsaRaoValidator sweCsaRaoValidatorMock = Mockito.mock(SweCsaRaoValidator.class);
-        DichotomyRunner dichotomyRunner = new DichotomyRunner(sweCsaRaoValidatorMock, fileImporter, fileExporter);
+        DichotomyRunner dichotomyRunner = new DichotomyRunner(sweCsaRaoValidatorMock, fileImporter, fileExporter, LoggerFactory.getLogger(SweCsaDichotomyRunnerTest.class));
         CounterTradeRangeActionImpl ctraMock1 = Mockito.mock(CounterTradeRangeActionImpl.class);
         Mockito.when(ctraMock1.getMinAdmissibleSetpoint(anyDouble())).thenReturn(-1000.0);
         Mockito.when(ctraMock1.getMaxAdmissibleSetpoint(anyDouble())).thenReturn(1000.0);
@@ -97,7 +98,7 @@ class SweCsaDichotomyRunnerTest {
     @Test
     void getMaxCounterTradingTestMaximumUnreached() {
         SweCsaRaoValidator sweCsaRaoValidatorMock = Mockito.mock(SweCsaRaoValidator.class);
-        DichotomyRunner dichotomyRunner = new DichotomyRunner(sweCsaRaoValidatorMock, fileImporter, fileExporter);
+        DichotomyRunner dichotomyRunner = new DichotomyRunner(sweCsaRaoValidatorMock, fileImporter, fileExporter, LoggerFactory.getLogger(SweCsaDichotomyRunnerTest.class));
         CounterTradeRangeActionImpl ctraMock1 = Mockito.mock(CounterTradeRangeActionImpl.class);
         Mockito.when(ctraMock1.getMinAdmissibleSetpoint(anyDouble())).thenReturn(-350.0);
         Mockito.when(ctraMock1.getMaxAdmissibleSetpoint(anyDouble())).thenReturn(300.0);

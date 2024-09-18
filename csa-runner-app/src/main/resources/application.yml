@@ -63,3 +63,8 @@ dichotomy-parameters:
   index:
     precision: 10
     max-iterations-by-border: 10
+
+logback:
+  amqp:
+    exchange: swe-csa-logs-exchange
+    routing-key: "#"

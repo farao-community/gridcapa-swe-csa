@@ -27,7 +27,6 @@ import com.powsybl.openrao.monitoring.anglemonitoring.AngleMonitoring;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.net.URL;
@@ -44,22 +43,23 @@ public class SweCsaRaoValidator {
     private final FileExporter fileExporter;
     private final RaoRunnerClient raoRunnerClient;
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(SweCsaRaoValidator.class);
+    private final Logger businessLogger;
 
-    public SweCsaRaoValidator(FileExporter fileExporter, RaoRunnerClient raoRunnerClient) {
+    public SweCsaRaoValidator(FileExporter fileExporter, RaoRunnerClient raoRunnerClient, Logger businessLogger) {
         this.fileExporter = fileExporter;
         this.raoRunnerClient = raoRunnerClient;
+        this.businessLogger = businessLogger;
     }
 
     public DichotomyStepResult validateNetwork(Network network, Crac crac, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
         RaoRequest raoRequest = buildRaoRequest(counterTradingValues.print(), csaRequest.getBusinessTimestamp(), csaRequest.getId(), network, csaRequest.getCracFileUri(), raoParametersUrl);
 
         try {
-            LOGGER.info("RAO request sent: {}", raoRequest);
+            businessLogger.info("RAO request sent: {}", raoRequest);
             RaoResponse raoResponse = raoRunnerClient.runRao(raoRequest);
-            LOGGER.info("RAO response received: {}", raoResponse);
+            businessLogger.info("RAO response received: {}", raoResponse);
             RaoResult raoResult = raoResponse == null ? null : RaoResult.read(new URL(raoResponse.getRaoResultFileUrl()).openStream(), crac);
-            LOGGER.info("RAO result imported: {}", raoResult);
+            businessLogger.info("RAO result imported: {}", raoResult);
 
             raoResult = updateRaoResultWithAngleMonitoring(network, crac, raoResult, raoParameters);
 
