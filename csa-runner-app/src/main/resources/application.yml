@@ -18,6 +18,7 @@ spring:
     stream:
       default:
         binder: rabbit
+        group: swe-csa-runner
       bindings:
         interrupt-in-0:
           destination: csa-interrupt

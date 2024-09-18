@@ -7,7 +7,6 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.commons.Unit;
 import com.powsybl.openrao.data.cracapi.Crac;
 import com.powsybl.openrao.data.raoresultapi.RaoResult;
-import com.powsybl.openrao.data.raoresultjson.RaoResultExporter;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
@@ -41,7 +40,7 @@ public class FileExporter {
 
     public void saveRaoResultInArtifact(RaoResult raoResult, Crac crac, Unit unit, String timestamp) {
         ByteArrayOutputStream outputStreamRaoResult = new ByteArrayOutputStream();
-        new RaoResultExporter().export(raoResult, crac, Set.of(unit), outputStreamRaoResult);
+        raoResult.write("JSON", crac, Set.of(unit), outputStreamRaoResult);
         s3ArtifactsAdapter.uploadFile(generateArtifactsFolder(timestamp), new ByteArrayInputStream(outputStreamRaoResult.toByteArray()));
     }
 

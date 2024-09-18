@@ -69,7 +69,7 @@ public class DichotomyRunner {
 
         String initialVariant = network.getVariantManager().getWorkingVariantId();
 
-        Map<String, Double> initialNetPositions = CountryBalanceComputation.computeSweCountriesBalances(network)
+        Map<String, Double> initialNetPositions = CountryBalanceComputation.computeSweCountriesBalances(network, raoParameters.getLoadFlowAndSensitivityParameters().getSensitivityWithLoadFlowParameters().getLoadFlowParameters())
             .entrySet().stream()
             .collect(Collectors.toMap(entry -> new CountryEICode(entry.getKey()).getCountry().getName(), Map.Entry::getValue));
 

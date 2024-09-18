@@ -24,9 +24,9 @@
 
     <properties>
         <!-- BUSINESS DEPENDENCIES -->
-        <farao.dependencies.version>1.30.0</farao.dependencies.version>
-        <gridcapa.rao.runner.version>1.23.1</gridcapa.rao.runner.version>
-        <gridcapa.swe.commons.version>1.16.0</gridcapa.swe.commons.version>
+        <farao.dependencies.version>1.32.0-SNAPSHOT</farao.dependencies.version>
+        <gridcapa.rao.runner.version>1.23.3-SNAPSHOT</gridcapa.rao.runner.version>
+        <gridcapa.swe.commons.version>1.22.0-SNAPSHOT</gridcapa.swe.commons.version>
 
         <!-- TECHNICAL DEPENDENCIES -->
         <commons.lang.version>3.11</commons.lang.version>
