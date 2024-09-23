@@ -5,7 +5,6 @@ import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.commons.OpenRaoException;
 import com.powsybl.openrao.data.cracapi.Crac;
-import com.powsybl.openrao.data.cracioapi.CracImporters;
 import com.powsybl.openrao.raoapi.json.JsonRaoParameters;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
 import org.apache.commons.io.FilenameUtils;
@@ -29,8 +28,8 @@ public class FileImporter {
 
     public Crac importCrac(String cracFileUrl, Network network) {
         try {
-            return CracImporters.importCrac(getFileNameFromUrl(cracFileUrl), openUrlStream(cracFileUrl), network);
-        } catch (OpenRaoException | RaoRunnerException e) {
+            return Crac.read(getFileNameFromUrl(cracFileUrl), openUrlStream(cracFileUrl), network);
+        } catch (OpenRaoException | RaoRunnerException | IOException e) {
             String message = String.format("Exception occurred while importing CRAC file %s", getFileNameFromUrl(cracFileUrl));
             throw new RaoRunnerException(message, e);
         }

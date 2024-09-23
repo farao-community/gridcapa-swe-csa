@@ -10,6 +10,7 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
 import com.farao_community.farao.dichotomy.api.exceptions.GlskLimitationException;
 import com.farao_community.farao.dichotomy.api.exceptions.ShiftingException;
 import com.farao_community.farao.gridcapa_swe_commons.shift.CountryBalanceComputation;
+import com.farao_community.farao.gridcapa_swe_commons.shift.GeneratorLimitsHandler;
 import com.farao_community.farao.gridcapa_swe_commons.shift.ScalableGeneratorConnector;
 import com.farao_community.farao.swe_csa.app.ShiftDispatcher;
 import com.powsybl.computation.local.LocalComputationManager;
@@ -79,6 +80,7 @@ public final class SweCsaNetworkShifter {
 
     private void shiftExchangeValues(Network network, Map<String, Double> targetExchanges, Map<String, Double> scalingValueEstimationPerCountry) throws ShiftingException, GlskLimitationException {
         ScalableGeneratorConnector scalableGeneratorConnector = new ScalableGeneratorConnector(zonalScalable);
+        GeneratorLimitsHandler generatorLimitsHandler = new GeneratorLimitsHandler(zonalScalable);
         Map<String, Double> scalingValuePerCountry = new HashMap<>(scalingValueEstimationPerCountry);
         try {
             int iterationCounter = 0;
@@ -88,7 +90,7 @@ public final class SweCsaNetworkShifter {
             String initialVariantId = network.getVariantManager().getWorkingVariantId();
             String processedVariantId = initialVariantId + " PROCESSED COPY";
             String workingVariantCopyId = initialVariantId + " WORKING COPY";
-            preProcessNetwork(network, scalableGeneratorConnector, initialVariantId, processedVariantId, workingVariantCopyId);
+            preProcessNetwork(network, scalableGeneratorConnector, generatorLimitsHandler, initialVariantId, processedVariantId, workingVariantCopyId);
             do {
                 // Step 1: Perform the scaling given the current estimation
                 shiftNetPositions(network, scalingValuePerCountry);
@@ -121,8 +123,8 @@ public final class SweCsaNetworkShifter {
             network.getVariantManager().removeVariant(processedVariantId);
             network.getVariantManager().removeVariant(workingVariantCopyId);
         } finally {
-            // revert connections of TWT on generators that were not used by the scaling
-            scalableGeneratorConnector.revertUnnecessaryChanges(network);
+            // here set working variant generators pmin and pmax values to initial values
+            generatorLimitsHandler.resetInitialPminPmax(network);
         }
     }
 
@@ -171,10 +173,11 @@ public final class SweCsaNetworkShifter {
         }
     }
 
-    private void preProcessNetwork(Network network, ScalableGeneratorConnector scalableGeneratorConnector, String initialVariantId, String processedVariantId, String workingVariantCopyId) throws ShiftingException {
+    private void preProcessNetwork(Network network, ScalableGeneratorConnector scalableGeneratorConnector, GeneratorLimitsHandler generatorLimitsHandler, String initialVariantId, String processedVariantId, String workingVariantCopyId) throws ShiftingException {
         network.getVariantManager().cloneVariant(initialVariantId, processedVariantId, true);
         network.getVariantManager().setWorkingVariant(processedVariantId);
-        scalableGeneratorConnector.prepareForScaling(network, Set.of(Country.ES, Country.FR, Country.PT));
+        scalableGeneratorConnector.fillGeneratorsInitialState(network, Set.of(Country.ES, Country.FR, Country.PT));
+        generatorLimitsHandler.setPminPmaxToDefaultValue(network, Set.of(Country.ES, Country.PT));
         network.getVariantManager().cloneVariant(processedVariantId, workingVariantCopyId, true);
         network.getVariantManager().setWorkingVariant(workingVariantCopyId);
     }
