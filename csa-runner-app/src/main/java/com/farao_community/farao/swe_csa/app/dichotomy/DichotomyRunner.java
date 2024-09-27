@@ -7,6 +7,7 @@ import com.farao_community.farao.gridcapa_swe_commons.shift.CountryBalanceComput
 import com.farao_community.farao.rao_runner.api.exceptions.RaoRunnerException;
 import com.farao_community.farao.swe_csa.api.exception.CsaInvalidDataException;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
+import com.farao_community.farao.swe_csa.api.resource.Status;
 import com.farao_community.farao.swe_csa.api.results.CounterTradeRangeActionResult;
 import com.farao_community.farao.swe_csa.api.results.CounterTradingResult;
 import com.farao_community.farao.swe_csa.app.*;
@@ -21,6 +22,7 @@ import com.powsybl.openrao.data.cracapi.rangeaction.CounterTradeRangeAction;
 import com.powsybl.openrao.data.raoresultapi.RaoResult;
 import com.powsybl.openrao.monitoring.voltagemonitoring.VoltageMonitoring;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
+import kotlin.Pair;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -60,7 +62,7 @@ public class DichotomyRunner {
         this.businessLogger = businessLogger;
     }
 
-    public RaoResult runDichotomy(CsaRequest csaRequest) throws GlskLimitationException, ShiftingException {
+    public Pair<RaoResult, Status> runDichotomy(CsaRequest csaRequest) throws GlskLimitationException, ShiftingException {
         RaoParameters raoParameters = RaoParameters.load();
         String raoParametersUrl = fileImporter.uploadRaoParameters(Instant.parse(csaRequest.getBusinessTimestamp()));
         Network network = fileImporter.importNetwork(csaRequest.getGridModelUri());
@@ -95,7 +97,9 @@ public class DichotomyRunner {
         } catch (CsaInvalidDataException e) {
             businessLogger.warn(e.getMessage());
             businessLogger.warn("No counter trading will be done, only input network will be checked by rao");
-            return sweCsaRaoValidator.validateNetwork(network, crac, raoParameters, csaRequest, raoParametersUrl, minCounterTradingValues).getRaoResult();
+            RaoResult raoResult = sweCsaRaoValidator.validateNetwork(network, crac, raoParameters, csaRequest, raoParametersUrl, minCounterTradingValues).getRaoResult();
+            fileExporter.saveRaoResultInArtifact(csaRequest.getResultsUri(), raoResult, crac, Unit.AMPERE);
+            return raoResult.isSecure() ? new Pair<>(raoResult, Status.FINISHED_SECURE) : new Pair<>(raoResult, Status.FINISHED_UNSECURE);
         }
         // best case no counter trading , no scaling
         businessLogger.info("Starting Counter trading algorithm by validating input network without scaling");
@@ -108,7 +112,8 @@ public class DichotomyRunner {
 
         if (noCtStepResult.isValid()) {
             businessLogger.info("Input network is secure no need for counter trading");
-            return noCtStepResult.getRaoResult();
+            fileExporter.saveRaoResultInArtifact(csaRequest.getResultsUri(), noCtStepResult.getRaoResult(), crac, Unit.AMPERE);
+            return new Pair<>(noCtStepResult.getRaoResult(), Status.FINISHED_SECURE);
         } else {
             // initial network not secure, try worst case maximum counter trading
             double ctFrEsMax = getMaxCounterTrading(ctRaFrEs, ctRaEsFr, expFrEs0, "FR-ES");
@@ -129,9 +134,9 @@ public class DichotomyRunner {
 
             logBorderOverload(maxCtStepResult);
             if (!maxCtStepResult.isValid()) {
-                String errorMessage = "Maximum CT value cannot secure this case";
-                businessLogger.error(errorMessage);
-                throw new CsaInvalidDataException(errorMessage);
+                businessLogger.error("Maximum CT value cannot secure this case");
+                fileExporter.saveRaoResultInArtifact(csaRequest.getResultsUri(), maxCtStepResult.getRaoResult(), crac, Unit.AMPERE);
+                return new Pair<>(maxCtStepResult.getRaoResult(), Status.FINISHED_UNSECURE);
             } else {
                 businessLogger.info("Best case in unsecure, worst case is secure, trying to find optimum in between using dichotomy");
                 Index index = new Index(0, 0, indexPrecision, maxDichotomiesByBorder);
@@ -173,8 +178,8 @@ public class DichotomyRunner {
 
                 raoResult = updateRaoResultWithVoltageMonitoring(network, crac, raoResult, raoParameters);
                 RaoResultWithCounterTradeRangeActions raoResultWithRangeAction = updateRaoResultWithCounterTradingRAs(network, crac, index, raoResult);
-                fileExporter.saveRaoResultInArtifact(raoResultWithRangeAction, crac, Unit.AMPERE, csaRequest.getBusinessTimestamp());
-                return raoResultWithRangeAction;
+                fileExporter.saveRaoResultInArtifact(csaRequest.getResultsUri(), raoResultWithRangeAction, crac, Unit.AMPERE);
+                return new Pair<>(raoResultWithRangeAction, Status.FINISHED_UNSECURE);
             }
         }
     }

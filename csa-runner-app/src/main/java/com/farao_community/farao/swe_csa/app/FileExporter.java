@@ -10,14 +10,12 @@ import com.powsybl.openrao.data.raoresultapi.RaoResult;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
-import java.time.OffsetDateTime;
 import java.util.Properties;
 import java.util.Set;
 
 @Service
 public class FileExporter {
 
-    private static final String RAO_RESULT = "raoResult-with-counter-trading.json";
     private static final String IIDM_EXPORT_FORMAT = "XIIDM";
     private static final String IIDM_EXTENSION = "xiidm";
 
@@ -38,15 +36,10 @@ public class FileExporter {
         return s3ArtifactsAdapter.generatePreSignedUrl(networkFilePath);
     }
 
-    public void saveRaoResultInArtifact(RaoResult raoResult, Crac crac, Unit unit, String timestamp) {
+    public void saveRaoResultInArtifact(String destinationPath, RaoResult raoResult, Crac crac, Unit unit) {
         ByteArrayOutputStream outputStreamRaoResult = new ByteArrayOutputStream();
         raoResult.write("JSON", crac, Set.of(unit), outputStreamRaoResult);
-        s3ArtifactsAdapter.uploadFile(generateArtifactsFolder(timestamp), new ByteArrayInputStream(outputStreamRaoResult.toByteArray()));
-    }
-
-    private String generateArtifactsFolder(String timestamp) {
-        OffsetDateTime offsetDateTime = OffsetDateTime.parse(timestamp);
-        return "artifacts" + "/" + offsetDateTime.getYear() + "/" + offsetDateTime.getMonthValue() + "/" + offsetDateTime.getDayOfMonth() + "/" + offsetDateTime.getHour() + "_" + offsetDateTime.getMinute() + "/"  + RAO_RESULT;
+        s3ArtifactsAdapter.uploadFile(destinationPath, new ByteArrayInputStream(outputStreamRaoResult.toByteArray()));
     }
 
 }
