@@ -40,7 +40,7 @@ class RequestServiceTest {
 
         CsaRequest csaRequest = new CsaRequest(id, businessTimestamp, gridModelUri, cracFileUri, resultsUri);
         JsonApiConverter jsonApiConverter = new JsonApiConverter();
-        CsaResponse csaResponse = new CsaResponse(csaRequest.getId(), Status.INTERRUPTED.toString());
+        CsaResponse csaResponse = new CsaResponse(csaRequest.getId(), Status.INTERRUPTED.toString(), "");
         byte[] req = jsonApiConverter.toJsonMessage(csaRequest, CsaRequest.class);
         byte[] resp = jsonApiConverter.toJsonMessage(csaResponse, CsaResponse.class);
         when(sweCsaRunner.run(any())).thenThrow(except);

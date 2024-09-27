@@ -105,6 +105,7 @@ public class SweCsaRaoValidator {
         String raoResultDestination = generateArtifactsFolder(timestamp, stepFolder);
         return new RaoRequest.RaoRequestBuilder()
             .withId(taskId)
+            .withRunId(taskId)
             .withNetworkFileUrl(scaledNetworkPreSignedUrl)
             .withCracFileUrl(cracUrl)
             .withRaoParametersFileUrl(raoParametersUrl)
