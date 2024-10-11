@@ -27,6 +27,7 @@ import com.powsybl.openrao.monitoring.anglemonitoring.AngleMonitoring;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
 import java.net.URL;
@@ -70,7 +71,7 @@ public class SweCsaRaoValidator {
 
             return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, flowCnecPtEsShortestMargin, flowCnecFrEsShortestMargin, counterTradingValues);
         } catch (Exception e) {
-            throw new CsaInternalException("RAO run failed", e);
+            throw new CsaInternalException(MDC.get("gridcapaTaskId"), "RAO run failed", e);
         }
     }
 

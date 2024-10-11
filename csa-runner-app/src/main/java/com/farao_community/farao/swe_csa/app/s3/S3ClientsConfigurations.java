@@ -2,6 +2,7 @@ package com.farao_community.farao.swe_csa.app.s3;
 
 import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
 import io.minio.MinioClient;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -41,7 +42,7 @@ public class S3ClientsConfigurations {
         try {
             return MinioClient.builder().endpoint(inputsS3Url).credentials(inputsAccessKey, inputsAccessSecret).build();
         } catch (Exception e) {
-            throw new CsaInternalException("Exception in MinIO client", e);
+            throw new CsaInternalException(MDC.get("gridcapaTaskId"), "Exception in MinIO client", e);
         }
     }
 
@@ -50,7 +51,7 @@ public class S3ClientsConfigurations {
         try {
             return MinioClient.builder().endpoint(artifactsS3Url).credentials(artifactsAccessKey, artifactsAccessSecret).build();
         } catch (Exception e) {
-            throw new CsaInternalException("Exception in MinIO client", e);
+            throw new CsaInternalException(MDC.get("gridcapaTaskId"), "Exception in MinIO client", e);
         }
     }
 
@@ -59,7 +60,7 @@ public class S3ClientsConfigurations {
         try {
             return MinioClient.builder().endpoint(outputsS3Url).credentials(outputsAccessKey, outputsAccessSecret).build();
         } catch (Exception e) {
-            throw new CsaInternalException("Exception in MinIO client", e);
+            throw new CsaInternalException(MDC.get("gridcapaTaskId"), "Exception in MinIO client", e);
         }
     }
 

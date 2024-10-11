@@ -55,7 +55,7 @@ public class RequestService {
                 resultBytes = jsonApiConverter.toJsonMessage(new CsaResponse(csaRequest.getId(), Status.INTERRUPTED.toString(), ""), CsaResponse.class);
             }
         } catch (Exception e) {
-            AbstractCsaException csaException = new CsaInvalidDataException("Exception happened", e);
+            AbstractCsaException csaException = new CsaInvalidDataException(MDC.get("gridcapaTaskId"), "Exception happened", e);
             businessLogger.error(csaException.getDetails(), csaException);
             resultBytes = jsonApiConverter.toJsonMessage(csaException);
         }

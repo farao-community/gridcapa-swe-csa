@@ -24,6 +24,7 @@ import com.powsybl.openrao.monitoring.voltagemonitoring.VoltageMonitoring;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
 import kotlin.Pair;
 import org.slf4j.Logger;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -179,7 +180,7 @@ public class DichotomyRunner {
                 raoResult = updateRaoResultWithVoltageMonitoring(network, crac, raoResult, raoParameters);
                 RaoResultWithCounterTradeRangeActions raoResultWithRangeAction = updateRaoResultWithCounterTradingRAs(network, crac, index, raoResult);
                 fileExporter.saveRaoResultInArtifact(csaRequest.getResultsUri(), raoResultWithRangeAction, crac, Unit.AMPERE);
-                return new Pair<>(raoResultWithRangeAction, Status.FINISHED_UNSECURE);
+                return new Pair<>(raoResultWithRangeAction, Status.FINISHED_SECURE);
             }
         }
     }
@@ -227,7 +228,7 @@ public class DichotomyRunner {
                 return counterTradeRangeAction;
             }
         }
-        throw new CsaInvalidDataException(String.format("Crac should contain 4 counter trading remedial actions for csa swe process, Two CT RAs by border, and couldn't find CT RA for '%s' as exporting country and '%s' as importing country", exportingCountry.getName(), importingCountry.getName()));
+        throw new CsaInvalidDataException(MDC.get("gridcapaTaskId"), String.format("Crac should contain 4 counter trading remedial actions for csa swe process, Two CT RAs by border, and couldn't find CT RA for '%s' as exporting country and '%s' as importing country", exportingCountry.getName(), importingCountry.getName()));
     }
 
     private void logBorderOverload(DichotomyStepResult ctStepResult) {
