@@ -1,14 +1,16 @@
 package com.farao_community.farao.swe_csa.app.s3;
 
 import io.minio.MinioClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.io.InputStream;
-import java.nio.file.Path;
 
 @Component
 public class S3ArtifactsAdapter {
+    private static final Logger LOGGER = LoggerFactory.getLogger(S3AdapterUtil.class);
 
     private final MinioClient minioClient;
     private final String bucket;
@@ -29,10 +31,6 @@ public class S3ArtifactsAdapter {
 
     public String generatePreSignedUrl(String minioPath) {
         return S3AdapterUtil.generatePreSignedUrl(minioClient, minioPath, bucket);
-    }
-
-    public Path copyFileInTargetSystemPath(String minioObjectName, Path targetTempPath) {
-        return S3AdapterUtil.copyFileInTargetSystemPath(minioClient, minioObjectName, targetTempPath, bucket);
     }
 
 }

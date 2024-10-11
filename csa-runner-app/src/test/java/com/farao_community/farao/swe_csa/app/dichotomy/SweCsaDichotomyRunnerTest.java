@@ -53,7 +53,7 @@ class SweCsaDichotomyRunnerTest {
         sweCsaDichotomyRunner.setIndexPrecision(50);
         sweCsaDichotomyRunner.setMaxDichotomiesByBorder(10);
         CsaRequest csaRequest = new CsaRequest("id", "2023-09-13T09:30:00Z", "cgm-url", "crac-url", "rao-result-url");
-        RaoResultWithCounterTradeRangeActions raoResult = (RaoResultWithCounterTradeRangeActions) sweCsaDichotomyRunner.runDichotomy(csaRequest);
+        RaoResultWithCounterTradeRangeActions raoResult = (RaoResultWithCounterTradeRangeActions) sweCsaDichotomyRunner.runDichotomy(csaRequest).getFirst();
 
         Iterator<CounterTradeRangeActionResult> ctRaResultIt  = raoResult.getCounterTradingResult().getCounterTradeRangeActionResults().values().stream().sorted(Comparator.comparing(CounterTradeRangeActionResult::getCtRangeActionId)).collect(Collectors.toCollection(LinkedHashSet::new)).iterator();
 

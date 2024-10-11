@@ -6,6 +6,7 @@ import io.minio.http.Method;
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 import java.io.File;
 import java.io.InputStream;
@@ -32,7 +33,7 @@ public final class S3AdapterUtil {
             }
         } catch (Exception e) {
             LOGGER.error(String.format("Exception occurred while creating bucket: %s", bucket));
-            throw new CsaInternalException(String.format("Exception occurred while creating bucket: %s", bucket));
+            throw new CsaInternalException(MDC.get("gridcapaTaskId"), String.format("Exception occurred while creating bucket: %s", bucket));
         }
     }
 
@@ -42,7 +43,7 @@ public final class S3AdapterUtil {
             minioClient.putObject(PutObjectArgs.builder().bucket(bucket).object(pathDestination).stream(sourceInputStream, -1, 50000000).build());
         } catch (Exception e) {
             LOGGER.error(e.getMessage(), e);
-            throw new CsaInternalException(String.format("Exception occurred while uploading file: %s, to minio server", pathDestination));
+            throw new CsaInternalException(MDC.get("gridcapaTaskId"), String.format("Exception occurred while uploading file: %s, to minio server", pathDestination));
         }
     }
 
@@ -50,7 +51,7 @@ public final class S3AdapterUtil {
         try {
             return minioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder().bucket(bucket).object(minioPath).expiry(DEFAULT_DOWNLOAD_LINK_EXPIRY_IN_DAYS, TimeUnit.DAYS).method(Method.GET).build());
         } catch (Exception e) {
-            throw new CsaInternalException("Exception in MinIO connection.", e);
+            throw new CsaInternalException(MDC.get("gridcapaTaskId"), "Exception in MinIO connection.", e);
         }
     }
 
@@ -66,7 +67,7 @@ public final class S3AdapterUtil {
             return file.toPath();
         } catch (Exception e) {
             String message = String.format("Cannot retrieve file '%s'", minioObjectName);
-            throw new CsaInternalException(message, e);
+            throw new CsaInternalException(MDC.get("gridcapaTaskId"), message, e);
         }
     }
 

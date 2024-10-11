@@ -13,12 +13,12 @@ public class CsaInternalException extends AbstractCsaException {
     private static final int STATUS = 500;
     private static final String CODE = "500-Csa-Internal-Server-Exception";
 
-    public CsaInternalException(String message) {
-        super(message);
+    public CsaInternalException(String id, String message) {
+        super(id, message);
     }
 
-    public CsaInternalException(String message, Throwable throwable) {
-        super(message, throwable);
+    public CsaInternalException(String id, String message, Throwable throwable) {
+        super(id, message, throwable);
     }
 
     @Override

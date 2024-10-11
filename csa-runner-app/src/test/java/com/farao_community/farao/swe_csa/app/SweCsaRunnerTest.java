@@ -7,7 +7,10 @@ import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.api.resource.CsaResponse;
 import com.farao_community.farao.swe_csa.api.resource.Status;
 import com.farao_community.farao.swe_csa.app.dichotomy.DichotomyRunner;
+import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.openrao.data.raoresultapi.RaoResult;
+import kotlin.Pair;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +38,9 @@ class SweCsaRunnerTest {
     @MockBean
     StreamBridge streamBridge;
 
+    @MockBean
+    S3ArtifactsAdapter s3ArtifactsAdapter;
+
     @Test
     void testLaunchCsaRequest() throws IOException, GlskLimitationException, ShiftingException {
 
@@ -47,13 +53,15 @@ class SweCsaRunnerTest {
         when(streamBridge.send(any(), any())).thenReturn(true);
         CsaRequest csaRequest = jsonApiConverter.fromJsonMessage(requestBytes, CsaRequest.class);
 
-        Mockito.when(dichotomyRunner.runDichotomy(csaRequest)).thenReturn(Mockito.any());
+        Pair<RaoResult, Status> result = new Pair<>(null, Status.FINISHED_SECURE);
+        Mockito.when(dichotomyRunner.runDichotomy(csaRequest)).thenReturn(result);
+        Mockito.when(s3ArtifactsAdapter.generatePreSignedUrl("https://cds/resultsUri.signed.url")).thenReturn("https://cds/resultsUri.signed.url");
 
         CsaResponse csaResponse = sweCsaRunner.run(csaRequest);
-
-        CsaResponse expectedCsaResponse = new CsaResponse("id", Status.FINISHED.toString());
+        CsaResponse expectedCsaResponse = new CsaResponse("id", Status.FINISHED_SECURE.toString(), "https://cds/resultsUri.signed.url");
         assertEquals(expectedCsaResponse.getId(), csaResponse.getId());
         assertEquals(expectedCsaResponse.getStatus(), csaResponse.getStatus());
+        assertEquals(expectedCsaResponse.getRaoResultUri(), csaResponse.getRaoResultUri());
     }
 
 }

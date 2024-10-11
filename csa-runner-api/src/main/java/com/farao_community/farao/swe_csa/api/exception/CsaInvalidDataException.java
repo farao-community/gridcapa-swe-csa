@@ -14,12 +14,12 @@ public class CsaInvalidDataException extends AbstractCsaException {
     private static final int STATUS = 400;
     private static final String CODE = "400-InvalidDataException";
 
-    public CsaInvalidDataException(String message) {
-        super(message);
+    public CsaInvalidDataException(String id, String message) {
+        super(id, message);
     }
 
-    public CsaInvalidDataException(String message, Throwable throwable) {
-        super(message, throwable);
+    public CsaInvalidDataException(String id, String message, Throwable throwable) {
+        super(id, message, throwable);
     }
 
     @Override

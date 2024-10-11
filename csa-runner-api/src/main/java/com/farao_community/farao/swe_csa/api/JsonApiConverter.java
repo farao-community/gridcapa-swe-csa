@@ -39,7 +39,7 @@ public class JsonApiConverter {
         try {
             return converter.readDocument(jsonMessage, tClass).get();
         } catch (Exception e) {
-            throw new CsaInvalidDataException(String.format("Message cannot be converted to class %s", tClass.getName()), e);
+            throw new CsaInvalidDataException("unknown", String.format("Message cannot be converted to class %s", tClass.getName()), e);
         }
 
     }
@@ -50,7 +50,7 @@ public class JsonApiConverter {
         try {
             return converter.writeDocument(jsonApiDocument);
         } catch (DocumentSerializationException e) {
-            throw new CsaInternalException("Exception occurred during message conversion", e);
+            throw new CsaInternalException("unknown", "Exception occurred during message conversion", e);
         }
     }
 
@@ -60,7 +60,7 @@ public class JsonApiConverter {
         try {
             return converter.writeDocument(jsonApiDocument);
         } catch (DocumentSerializationException e) {
-            throw new CsaInternalException("Exception occurred during message conversion", e);
+            throw new CsaInternalException("unknown", "Exception occurred during message conversion", e);
         }
     }
 
@@ -76,6 +76,7 @@ public class JsonApiConverter {
         error.setCode(exception.getCode());
         error.setTitle(exception.getTitle());
         error.setDetail(exception.getDetails());
+        error.setId(exception.getId());
         return error;
     }
 }

@@ -18,7 +18,7 @@ class CsaInvalidDataExceptionTest {
 
     @Test
     void checkStandardExceptionUsage() {
-        AbstractCsaException exception = new CsaInvalidDataException("Exception message");
+        AbstractCsaException exception = new CsaInvalidDataException("id", "Exception message");
         assertEquals("Exception message", exception.getMessage());
         assertNull(exception.getCause());
         assertEquals(400, exception.getStatus());
@@ -27,7 +27,7 @@ class CsaInvalidDataExceptionTest {
         assertEquals("Exception message", exception.getDetails());
 
         Exception cause = new RuntimeException("Cause");
-        exception = new CsaInvalidDataException("Exception message", cause);
+        exception = new CsaInvalidDataException("id", "Exception message", cause);
         assertEquals("Exception message", exception.getMessage());
         assertEquals(cause, exception.getCause());
         assertEquals(400, exception.getStatus());

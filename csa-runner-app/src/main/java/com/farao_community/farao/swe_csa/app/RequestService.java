@@ -37,7 +37,7 @@ public class RequestService {
         try {
             String requestId = csaRequest.getId();
             // send ack message
-            streamBridge.send(ACK_BRIDGE_NAME, jsonApiConverter.toJsonMessage(new CsaResponse(requestId, Status.ACCEPTED.toString()), CsaResponse.class));
+            streamBridge.send(ACK_BRIDGE_NAME, jsonApiConverter.toJsonMessage(new CsaResponse(requestId, Status.ACCEPTED.toString(), ""), CsaResponse.class));
             GenericThreadLauncher<SweCsaRunner, CsaResponse> launcher = new GenericThreadLauncher<>(sweCsaRunner, csaRequest.getId(), csaRequest);
             launcher.start();
             ThreadLauncherResult<CsaResponse> csaResponse = launcher.getResult();
@@ -52,11 +52,10 @@ public class RequestService {
             } else {
                 businessLogger.info("Csa run is interrupted, stopping RAO runners...");
                 streamBridge.send(STOP_RAO_BINDING, csaRequest.getId());
-                // TODO read acknowledgment from rao runner to make sure rao is interrupted
-                resultBytes = jsonApiConverter.toJsonMessage(new CsaResponse(csaRequest.getId(), Status.INTERRUPTED.toString()), CsaResponse.class);
+                resultBytes = jsonApiConverter.toJsonMessage(new CsaResponse(csaRequest.getId(), Status.INTERRUPTED.toString(), ""), CsaResponse.class);
             }
         } catch (Exception e) {
-            AbstractCsaException csaException = new CsaInvalidDataException("Exception happened", e);
+            AbstractCsaException csaException = new CsaInvalidDataException(MDC.get("gridcapaTaskId"), "Exception happened", e);
             businessLogger.error(csaException.getDetails(), csaException);
             resultBytes = jsonApiConverter.toJsonMessage(csaException);
         }

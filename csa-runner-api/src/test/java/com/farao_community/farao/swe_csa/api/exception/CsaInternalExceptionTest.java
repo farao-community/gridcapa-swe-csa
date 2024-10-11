@@ -17,12 +17,12 @@ class CsaInternalExceptionTest {
 
     @Test
     void checkException() {
-        AbstractCsaException csaException = new CsaInternalException("Exception message");
+        AbstractCsaException csaException = new CsaInternalException("id", "Exception message");
         assertEquals("Exception message", csaException.getMessage());
         assertEquals(500, csaException.getStatus());
 
         Exception cause = new RuntimeException("Cause");
-        AbstractCsaException exception = new CsaInternalException("Exception message", cause);
+        AbstractCsaException exception = new CsaInternalException("id", "Exception message", cause);
         assertEquals("Exception message", exception.getMessage());
         assertEquals(cause, exception.getCause());
     }
