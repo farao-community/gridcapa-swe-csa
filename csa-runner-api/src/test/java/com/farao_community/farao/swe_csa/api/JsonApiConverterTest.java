@@ -52,7 +52,7 @@ class JsonApiConverterTest {
     @Test
     void checkExceptionJsonConversion() throws URISyntaxException, IOException {
         JsonApiConverter jsonApiConverter = new JsonApiConverter();
-        AbstractCsaException exception = new CsaInternalException("Something really bad happened");
+        AbstractCsaException exception = new CsaInternalException("id", "Something really bad happened");
         String expectedExceptionMessage = Files.readString(Paths.get(getClass().getResource("/errorMessage.json").toURI()));
         assertEquals(expectedExceptionMessage, new String(jsonApiConverter.toJsonMessage(exception)));
 

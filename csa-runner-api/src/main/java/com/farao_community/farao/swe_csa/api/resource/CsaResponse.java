@@ -20,11 +20,13 @@ public class CsaResponse {
     @Id
     private final String id;
     private final Status status;
+    private final String raoResultUri;
 
     @JsonCreator
-    public CsaResponse(@JsonProperty("id") String id, @JsonProperty("status") String status) {
+    public CsaResponse(@JsonProperty("id") String id, @JsonProperty("status") String status, @JsonProperty("rao-result-uri") String raoResultUri) {
         this.id = id;
         this.status = Status.valueOf(status);
+        this.raoResultUri = raoResultUri;
     }
 
     public String getId() {
@@ -33,6 +35,10 @@ public class CsaResponse {
 
     public Status getStatus() {
         return status;
+    }
+
+    public String getRaoResultUri() {
+        return raoResultUri;
     }
 
     @Override

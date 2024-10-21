@@ -56,12 +56,12 @@ public class GenericThreadLauncher<T, U> extends Thread {
         return result;
     }
 
-    private static Method getMethodAnnotatedWith(final Class<?> type) {
+    private Method getMethodAnnotatedWith(final Class<?> type) {
         List<Method> methods = getMethodsAnnotatedWith(type);
         if (methods.isEmpty()) {
-            throw new CsaInternalException("the class " + type.getCanonicalName() + " does not have his running method annotated with @Threadable");
+            throw new CsaInternalException(getName(), "the class " + type.getCanonicalName() + " does not have his running method annotated with @Threadable");
         } else if (methods.size() > 1) {
-            throw new CsaInternalException("the class " + type.getCanonicalName() + " must have only one method annotated with @Threadable");
+            throw new CsaInternalException(getName(), "the class " + type.getCanonicalName() + " must have only one method annotated with @Threadable");
         } else {
             return methods.get(0);
         }
