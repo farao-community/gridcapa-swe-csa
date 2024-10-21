@@ -103,10 +103,10 @@ class RaoResultWithCounterTradeRangeActionsTest {
         assertEquals(0., counterTradingResult.getPreOptimizationSetPointOnState(preventiveState, ptEsCounterTradeRangeActionMock));
         assertEquals(0., counterTradingResult.getPreOptimizationSetPointOnState(preventiveState, esPtCounterTradeRangeActionMock));
 
-        assertEquals(10., counterTradingResult.getOptimizedSetPointOnState(preventiveState, frEsCounterTradeRangeActionMock));
-        assertEquals(-10., counterTradingResult.getOptimizedSetPointOnState(preventiveState, esFrCounterTradeRangeActionMock));
-        assertEquals(0., counterTradingResult.getOptimizedSetPointOnState(preventiveState, ptEsCounterTradeRangeActionMock));
-        assertEquals(0., counterTradingResult.getOptimizedSetPointOnState(preventiveState, esPtCounterTradeRangeActionMock));
+        assertEquals(10., counterTradingResult.getOptimizedSetPointOnState(frEsCounterTradeRangeActionMock));
+        assertEquals(-10., counterTradingResult.getOptimizedSetPointOnState(esFrCounterTradeRangeActionMock));
+        assertEquals(0., counterTradingResult.getOptimizedSetPointOnState(ptEsCounterTradeRangeActionMock));
+        assertEquals(0., counterTradingResult.getOptimizedSetPointOnState(esPtCounterTradeRangeActionMock));
 
         assertEquals(Set.of(esFrCounterTradeRangeActionMock, frEsCounterTradeRangeActionMock), counterTradingResult.getActivatedRangeActionsDuringState(preventiveState));
     }
@@ -173,7 +173,7 @@ class RaoResultWithCounterTradeRangeActionsTest {
         assertEquals(11.1, raoResultWithCounterTradeRangeActions.getOptimizedSetPointOnState(stateMock, rangeActionMock));
 
         CounterTradeRangeAction counterTradeRangeActionMock = Mockito.mock(CounterTradeRangeAction.class);
-        Mockito.when(counterTradingResultMock.getOptimizedSetPointOnState(any(), any())).thenReturn(22.2);
+        Mockito.when(counterTradingResultMock.getOptimizedSetPointOnState(any())).thenReturn(22.2);
         assertEquals(22.2, raoResultWithCounterTradeRangeActions.getOptimizedSetPointOnState(stateMock, counterTradeRangeActionMock));
     }
 

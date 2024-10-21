@@ -36,12 +36,14 @@ public class S3ClientsConfigurations {
     @Value("${s3.outputs.bucket}")
     private String outputsBucket;
 
+    private final String minioClientException = "Exception in MinIO client";
+
     @Bean
     public MinioClient getInputsClient() {
         try {
             return MinioClient.builder().endpoint(inputsS3Url).credentials(inputsAccessKey, inputsAccessSecret).build();
         } catch (Exception e) {
-            throw new CsaInternalException("Exception in MinIO client", e);
+            throw new CsaInternalException(minioClientException, e);
         }
     }
 
@@ -50,7 +52,7 @@ public class S3ClientsConfigurations {
         try {
             return MinioClient.builder().endpoint(artifactsS3Url).credentials(artifactsAccessKey, artifactsAccessSecret).build();
         } catch (Exception e) {
-            throw new CsaInternalException("Exception in MinIO client", e);
+            throw new CsaInternalException(minioClientException, e);
         }
     }
 
@@ -59,7 +61,7 @@ public class S3ClientsConfigurations {
         try {
             return MinioClient.builder().endpoint(outputsS3Url).credentials(outputsAccessKey, outputsAccessSecret).build();
         } catch (Exception e) {
-            throw new CsaInternalException("Exception in MinIO client", e);
+            throw new CsaInternalException(minioClientException, e);
         }
     }
 

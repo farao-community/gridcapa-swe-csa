@@ -37,9 +37,8 @@ public class CounterTradingResult {
         }
     }
 
-    public double getOptimizedSetPointOnState(State state, CounterTradeRangeAction counterTradeRangeAction) {
+    public double getOptimizedSetPointOnState(CounterTradeRangeAction counterTradeRangeAction) {
         return counterTradeRangeActionResults.get(counterTradeRangeAction).getSetPoint();
-        // TODO add curative results when curative CT is implemented
     }
 
     public Set<RangeAction<?>> getActivatedRangeActionsDuringState(State state) {
@@ -53,7 +52,6 @@ public class CounterTradingResult {
             return activatedCounterTradeActions;
         } else {
             return activatedCounterTradeActions;
-            // TODO add curative results when curative CT is implemented
         }
     }
 

@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 
 @SpringBootTest
-public class SweCsaRaoValidatorTest {
+class SweCsaRaoValidatorTest {
 
     @Autowired
     FileImporter fileImporter;

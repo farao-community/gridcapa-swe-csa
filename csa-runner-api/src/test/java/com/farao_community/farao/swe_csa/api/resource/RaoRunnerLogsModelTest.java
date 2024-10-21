@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * @author Jean-Pierre Arnould {@literal <jean-pierre.arnould at rte-france.com>}
  */
 
-public class RaoRunnerLogsModelTest {
+class RaoRunnerLogsModelTest {
     @Test
     void testRaoRunnerLogsModel() {
         RaoRunnerLogsModel raoRunnerLogsModel = new RaoRunnerLogsModel("gridcapaTaskId", "computationId",

@@ -54,11 +54,11 @@ public class Index {
     }
 
     public boolean exitConditionIsNotMetForPtEs() {
-        return ptEsLowestSecureStep.getLeft() != ptEsMinValue && !(ptEsDichotomyCount >= maxDichotomiesByBorder) && !(ptEsLowestSecureStep.getLeft() - ptEsHighestUnsecureStep.getLeft() <= precision);
+        return ptEsLowestSecureStep.getLeft() != ptEsMinValue && ptEsDichotomyCount < maxDichotomiesByBorder && ptEsLowestSecureStep.getLeft() - ptEsHighestUnsecureStep.getLeft() > precision;
     }
 
     public boolean exitConditionIsNotMetForFrEs() {
-        return frEsLowestSecureStep.getLeft() != frEsMinValue && !(frEsDichotomyCount >= maxDichotomiesByBorder) && !(frEsLowestSecureStep.getLeft() - frEsHighestUnsecureStep.getLeft() <= precision);
+        return frEsLowestSecureStep.getLeft() != frEsMinValue && frEsDichotomyCount < maxDichotomiesByBorder && frEsLowestSecureStep.getLeft() - frEsHighestUnsecureStep.getLeft() > precision;
     }
 
     public CounterTradingValues nextValues() {

@@ -32,9 +32,7 @@ class InterruptionServiceTest {
 
         @Override
         public void run() {
-            int count = 0;
             for (int i = 0; i < 10; i++) {
-                count += i;
                 await().atMost(i, SECONDS);
             }
         }
@@ -42,12 +40,15 @@ class InterruptionServiceTest {
 
     @Test
     void threadInterruption() {
-        String jsonApiMessage = "{\n" +
-            "  \"data\": {\n" +
-            "    \"type\": \"csa-interruption-request\",\n" +
-            "    \"id\": \"myThread\",\n" +
-            "    \"attributes\": {}}\n" +
-            "}";
+        String jsonApiMessage =
+            """
+              {
+              "data": {
+                "type": "csa-interruption-request",
+                "id": "myThread",
+                "attributes": {}}
+            }
+            """;
         MyThread th = new MyThread("myThread");
         assertEquals(false,  isRunning("myThread").isPresent());
 
