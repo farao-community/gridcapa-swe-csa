@@ -39,7 +39,7 @@ class FileImporterTest {
             .isInstanceOf(RaoRunnerException.class)
             .hasCauseInstanceOf(MalformedURLException.class)
             .hasMessageContaining("Exception occurred while retrieving file name from : networkUrl")
-            .getCause()
+            .cause()
             .hasMessageContaining("no protocol: networkUrl");
     }
 
@@ -59,7 +59,7 @@ class FileImporterTest {
             .isInstanceOf(RaoRunnerException.class)
             .hasCauseInstanceOf(MalformedURLException.class)
             .hasMessageContaining("Exception occurred while retrieving file name from : cracUrl")
-            .getCause()
+            .cause()
             .hasMessageContaining("no protocol: cracUrl");
     }
 

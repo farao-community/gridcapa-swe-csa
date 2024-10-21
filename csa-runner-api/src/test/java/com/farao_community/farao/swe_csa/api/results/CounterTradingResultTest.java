@@ -93,10 +93,10 @@ class CounterTradingResultTest {
 
     @Test
     void testGetOptimizedSetPointOnState() {
-        assertEquals(10., counterTradingResult.getOptimizedSetPointOnState(preventiveState, frEsCounterTradeRangeActionMock));
-        assertEquals(-10., counterTradingResult.getOptimizedSetPointOnState(preventiveState, esFrCounterTradeRangeActionMock));
-        assertEquals(0., counterTradingResult.getOptimizedSetPointOnState(preventiveState, ptEsCounterTradeRangeActionMock));
-        assertEquals(0., counterTradingResult.getOptimizedSetPointOnState(preventiveState, esPtCounterTradeRangeActionMock));
+        assertEquals(10., counterTradingResult.getOptimizedSetPointOnState(frEsCounterTradeRangeActionMock));
+        assertEquals(-10., counterTradingResult.getOptimizedSetPointOnState(esFrCounterTradeRangeActionMock));
+        assertEquals(0., counterTradingResult.getOptimizedSetPointOnState(ptEsCounterTradeRangeActionMock));
+        assertEquals(0., counterTradingResult.getOptimizedSetPointOnState(esPtCounterTradeRangeActionMock));
     }
 
     @Test
