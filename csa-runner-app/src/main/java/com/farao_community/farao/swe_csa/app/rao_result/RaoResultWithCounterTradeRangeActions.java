@@ -38,16 +38,16 @@ public class RaoResultWithCounterTradeRangeActions extends RaoResultClone {
 
     @Override
     public double getPreOptimizationSetPointOnState(State state, RangeAction<?> rangeAction) {
-        if (rangeAction instanceof CounterTradeRangeAction) {
-            return counterTradingResult.getPreOptimizationSetPointOnState(state, (CounterTradeRangeAction) rangeAction);
+        if (rangeAction instanceof CounterTradeRangeAction counterTradeRangeAction) {
+            return counterTradingResult.getPreOptimizationSetPointOnState(state, counterTradeRangeAction);
         }
         return raoResult.getPreOptimizationSetPointOnState(state, rangeAction);
     }
 
     @Override
     public double getOptimizedSetPointOnState(State state, RangeAction<?> rangeAction) {
-        if (rangeAction instanceof CounterTradeRangeAction) {
-            return counterTradingResult.getOptimizedSetPointOnState(state, (CounterTradeRangeAction) rangeAction);
+        if (rangeAction instanceof CounterTradeRangeAction counterTradeRangeAction) {
+            return counterTradingResult.getOptimizedSetPointOnState(counterTradeRangeAction);
         }
         return raoResult.getOptimizedSetPointOnState(state, rangeAction);
     }

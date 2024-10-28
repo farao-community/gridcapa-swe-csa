@@ -60,10 +60,7 @@ class GenericThreadLauncherTest {
     void testNotAnnotatedClass() {
         int exception = 0;
         try {
-            GenericThreadLauncher<LaunchWithoutThreadableAnnotation, Integer> gtl = new GenericThreadLauncher<>(
-                new LaunchWithoutThreadableAnnotation(),
-                "withThreadable",
-                10);
+            new GenericThreadLauncher<>(new LaunchWithoutThreadableAnnotation(), "withThreadable", 10);
         } catch (Exception e) {
             exception++;
             assertEquals(e.getClass(), CsaInternalException.class);
@@ -77,10 +74,7 @@ class GenericThreadLauncherTest {
     void testMultipleAnnotatedClass() {
         int exception = 0;
         try {
-            GenericThreadLauncher<LaunchWithMultipleThreadableAnnotation, Integer> gtl = new GenericThreadLauncher<>(
-                new LaunchWithMultipleThreadableAnnotation(),
-                "withThreadable",
-                10);
+            new GenericThreadLauncher<>(new LaunchWithMultipleThreadableAnnotation(), "withThreadable", 10);
         } catch (Exception e) {
             exception++;
             assertEquals(e.getClass(), CsaInternalException.class);
