@@ -1,8 +1,6 @@
 package com.farao_community.farao.swe_csa.app.rao_result;
 
-import com.powsybl.iidm.network.Branch;
-import com.powsybl.iidm.network.Line;
-import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.*;
 import com.powsybl.openrao.data.cracapi.Crac;
 import com.powsybl.openrao.data.cracapi.RemedialAction;
 import com.powsybl.openrao.data.cracapi.State;
@@ -12,7 +10,6 @@ import com.powsybl.openrao.data.raoresultapi.ComputationStatus;
 import com.powsybl.openrao.data.raoresultapi.RaoResult;
 import com.farao_community.farao.swe_csa.api.results.CounterTradeRangeActionResult;
 import com.farao_community.farao.swe_csa.api.results.CounterTradingResult;
-import com.powsybl.iidm.network.Country;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -73,9 +70,12 @@ class RaoResultWithCounterTradeRangeActionsTest {
         counterTradingResult = new CounterTradingResult(ctRasToResultsMap);
     }
 
-    private static Network mockNetworkWithLines(String... lineIds) {
+    private static Network getMockedNetwork() {
         Network network = Mockito.mock(Network.class);
-        for (String lineId : lineIds) {
+        Identifiable ne = Mockito.mock(Identifiable.class);
+        Mockito.when(ne.getType()).thenReturn(IdentifiableType.SHUNT_COMPENSATOR);
+        Mockito.when(network.getIdentifiable("injection")).thenReturn(ne);
+        for (String lineId : List.of("ne1Id", "ne2Id", "ne3Id")) {
             Branch l = Mockito.mock(Line.class);
             Mockito.when(l.getId()).thenReturn(lineId);
             Mockito.when(network.getIdentifiable(lineId)).thenReturn(l);
@@ -85,9 +85,9 @@ class RaoResultWithCounterTradeRangeActionsTest {
 
     @Test
     void testRaoResultWithCounterTrading() throws IOException {
-        InputStream raoResultFile = getClass().getResourceAsStream("/rao_result/rao-result-v1.4.json");
-        InputStream cracFile = getClass().getResourceAsStream("/rao_result/crac-for-rao-result-v1.4.json");
-        Crac crac = Crac.read("crac-for-rao-result-v1.4.json", cracFile, mockNetworkWithLines("ne1Id", "ne2Id", "ne3Id"));
+        InputStream raoResultFile = getClass().getResourceAsStream("/rao_result/rao-result-v1.6.json");
+        InputStream cracFile = getClass().getResourceAsStream("/rao_result/crac-for-rao-result-v1.6.json");
+        Crac crac = Crac.read("crac-for-rao-result-v1.6.json", cracFile, getMockedNetwork());
         RaoResult raoResult = RaoResult.read(raoResultFile, crac);
 
         RaoResult raoResultWithCounterTrading = new RaoResultWithCounterTradeRangeActions(raoResult, counterTradingResult);
