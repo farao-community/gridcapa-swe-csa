@@ -12,13 +12,22 @@ package com.farao_community.farao.swe_csa.api.exception;
  *
  * @author mohamed ben-rejeb {@literal <mohamed.ben-rejeb at rte-france.com>}
  */
-public abstract class AbstractCsaException extends RuntimeException  {
-    protected AbstractCsaException(String message) {
+public abstract class AbstractCsaException extends RuntimeException {
+
+    private final String id;
+
+    protected AbstractCsaException(String id, String message) {
         super(message);
+        this.id = id;
     }
 
-    protected AbstractCsaException(String message, Throwable throwable) {
+    protected AbstractCsaException(String id, String message, Throwable throwable) {
         super(message, throwable);
+        this.id = id;
+    }
+
+    public String getId() {
+        return id;
     }
 
     public abstract int getStatus();
