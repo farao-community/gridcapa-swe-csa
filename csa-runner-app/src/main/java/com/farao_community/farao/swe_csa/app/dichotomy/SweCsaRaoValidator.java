@@ -17,13 +17,15 @@ import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
 import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.app.FileExporter;
+import com.farao_community.farao.swe_csa.app.SweCsaZonalData;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.commons.Unit;
 import com.powsybl.openrao.data.cracapi.Crac;
 import com.powsybl.openrao.data.cracapi.cnec.FlowCnec;
 import com.powsybl.openrao.data.raoresultapi.RaoResult;
-import com.powsybl.openrao.monitoring.anglemonitoring.AngleMonitoring;
+import com.powsybl.openrao.monitoring.Monitoring;
+import com.powsybl.openrao.monitoring.MonitoringInput;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -32,8 +34,6 @@ import org.springframework.stereotype.Service;
 
 import java.net.URL;
 import java.time.OffsetDateTime;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -76,9 +76,8 @@ public class SweCsaRaoValidator {
     }
 
     private RaoResult updateRaoResultWithAngleMonitoring(Network network, Crac crac, RaoResult raoResult, RaoParameters raoParameters) {
-        Set<Country> sweCountries = new HashSet<>(Arrays.asList(Country.FR, Country.PT, Country.ES));
-        AngleMonitoring angleMonitoring = new AngleMonitoring(crac, network, raoResult, sweCountries);
-        return angleMonitoring.runAndUpdateRaoResult(raoParameters.getLoadFlowAndSensitivityParameters().getLoadFlowProvider(), raoParameters.getLoadFlowAndSensitivityParameters().getSensitivityWithLoadFlowParameters().getLoadFlowParameters(), Runtime.getRuntime().availableProcessors());
+        MonitoringInput angleMonitoringInput = MonitoringInput.buildWithAngle(network, crac, raoResult, SweCsaZonalData.getZonalData(network)).build();
+        return Monitoring.runAngleAndUpdateRaoResult(raoParameters.getLoadFlowAndSensitivityParameters().getLoadFlowProvider(), raoParameters.getLoadFlowAndSensitivityParameters().getSensitivityWithLoadFlowParameters().getLoadFlowParameters(), Runtime.getRuntime().availableProcessors(), angleMonitoringInput);
     }
 
     static Set<FlowCnec> getBorderFlowCnecs(Crac crac, Network network, Country country) {

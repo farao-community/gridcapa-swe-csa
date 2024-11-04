@@ -20,7 +20,8 @@ import com.powsybl.openrao.data.cracapi.Crac;
 import com.powsybl.openrao.data.cracapi.Identifiable;
 import com.powsybl.openrao.data.cracapi.rangeaction.CounterTradeRangeAction;
 import com.powsybl.openrao.data.raoresultapi.RaoResult;
-import com.powsybl.openrao.monitoring.voltagemonitoring.VoltageMonitoring;
+import com.powsybl.openrao.monitoring.Monitoring;
+import com.powsybl.openrao.monitoring.MonitoringInput;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
 import kotlin.Pair;
 import org.slf4j.Logger;
@@ -201,8 +202,8 @@ public class DichotomyRunner {
     }
 
     private static RaoResult updateRaoResultWithVoltageMonitoring(Network network, Crac crac, RaoResult raoResult, RaoParameters raoParameters) {
-        VoltageMonitoring voltageMonitoring = new VoltageMonitoring(crac, network, raoResult);
-        return voltageMonitoring.runAndUpdateRaoResult(raoParameters.getLoadFlowAndSensitivityParameters().getLoadFlowProvider(), raoParameters.getLoadFlowAndSensitivityParameters().getSensitivityWithLoadFlowParameters().getLoadFlowParameters(), Runtime.getRuntime().availableProcessors());
+        MonitoringInput voltageMonitoringInput = MonitoringInput.buildWithVoltage(network, crac, raoResult).build();
+        return Monitoring.runVoltageAndUpdateRaoResult(raoParameters.getLoadFlowAndSensitivityParameters().getLoadFlowProvider(), raoParameters.getLoadFlowAndSensitivityParameters().getSensitivityWithLoadFlowParameters().getLoadFlowParameters(), Runtime.getRuntime().availableProcessors(), voltageMonitoringInput);
     }
 
     private RaoResultWithCounterTradeRangeActions updateRaoResultWithCounterTradingRAs(Network network, Crac crac, Index index, RaoResult raoResult) {

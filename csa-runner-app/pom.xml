@@ -107,11 +107,7 @@
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
-            <artifactId>open-rao-angle-monitoring</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.powsybl</groupId>
-            <artifactId>open-rao-voltage-monitoring</artifactId>
+            <artifactId>monitoring</artifactId>
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
