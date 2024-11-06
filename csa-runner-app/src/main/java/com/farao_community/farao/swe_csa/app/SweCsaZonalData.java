@@ -27,7 +27,6 @@ public final class SweCsaZonalData {
     }
 
     public static ZonalData<Scalable> getZonalData(Network network, Set<Country> countries) {
-        //
         Map<Country, List<Generator>> generatorsByCountries = getGeneratorsListByCountry(network).entrySet().stream()
             .filter(entry -> countries.contains(entry.getKey()))
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
