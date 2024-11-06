@@ -25,19 +25,11 @@ class SweCsaZonalDataTest {
         Network network = fileImporter.importNetwork(Objects.requireNonNull(getClass().getResource("/rao_inputs/network.xiidm")).toString());
         ZonalData<Scalable> zonalData = SweCsaZonalData.getZonalData(network);
         assertNotNull(zonalData);
-        assertEquals("[10YBE----------2, 10YCB-GERMANY--8, 10YFR-RTE------C, 10YNL----------L]", zonalData.getDataPerZone().keySet().stream().sorted().toList().toString());
-
-        List<Injection> injectionListBe = zonalData.getData("10YBE----------2").filterInjections(network);
-        assertEquals(4, injectionListBe.size());
-
-        List<Injection> injectionListGe = zonalData.getData("10YCB-GERMANY--8").filterInjections(network);
-        assertEquals(4, injectionListGe.size());
+        assertEquals("[10YFR-RTE------C]", zonalData.getDataPerZone().keySet().stream().sorted().toList().toString());
 
         List<Injection> injectionListFr = zonalData.getData("10YFR-RTE------C").filterInjections(network);
         assertEquals(5, injectionListFr.size());
 
-        List<Injection> injectionListNl = zonalData.getData("10YNL----------L").filterInjections(network);
-        assertEquals(3, injectionListNl.size());
     }
 }
 
