@@ -26,19 +26,22 @@ public final class SweCsaZonalData {
         //private constructor
     }
 
+    public static ZonalData<Scalable> getZonalData(Network network, Set<Country> countries) {
+        //
+        Map<Country, List<Generator>> generatorsByCountries = getGeneratorsListByCountry(network).entrySet().stream()
+            .filter(entry -> countries.contains(entry.getKey()))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        return getScalableZonalData(generatorsByCountries);
+    }
+
     public static ZonalData<Scalable> getZonalData(Network network) {
-        Map<Country, List<Generator>> generatorsByCountries = network.getGeneratorStream()
-            .filter(SweCsaZonalData::isCorrect)
-            .collect(Collectors.toMap(generator -> generator.getTerminal().getVoltageLevel().getSubstation().map(Substation::getNullableCountry).orElse(null),
-                List::of,
-                (list1, list2) -> {
-                    List<Generator> list3 = new ArrayList<>(list1);
-                    list3.addAll(list2);
-                    return list3;
-                }));
+        Map<Country, List<Generator>> generatorsByCountries = getGeneratorsListByCountry(network);
+        return getScalableZonalData(generatorsByCountries);
+    }
+
+    private static ZonalData<Scalable> getScalableZonalData(Map<Country, List<Generator>> generatorsByCountries) {
         ZonalData<Scalable> zonalData = new ZonalDataImpl<>(new HashMap<>());
-        Set<Country> sweCountries = new HashSet<>(Arrays.asList(Country.FR, Country.PT, Country.ES));
-        for (Map.Entry<Country, List<Generator>> entry : generatorsByCountries.entrySet().stream().filter(entry -> sweCountries.contains(entry.getKey())).collect(Collectors.toSet())) {
+        for (Map.Entry<Country, List<Generator>> entry : generatorsByCountries.entrySet()) {
             List<Scalable> scalables = new ArrayList<>();
             List<Double> percentages = new ArrayList<>();
             Country c = entry.getKey();
@@ -47,7 +50,7 @@ public final class SweCsaZonalData {
             double totalCountryP = generators.stream().mapToDouble(SweCsaZonalData::pseudoTargetP).sum();
             //calculate factor of each generator
             generators.forEach(generator -> {
-                double generatorPercentage =  100 * pseudoTargetP(generator) / totalCountryP;
+                double generatorPercentage = 100 * pseudoTargetP(generator) / totalCountryP;
                 percentages.add(generatorPercentage);
                 scalables.add(Scalable.onGenerator(generator.getId()));
             });
@@ -56,6 +59,18 @@ public final class SweCsaZonalData {
         }
 
         return zonalData;
+    }
+
+    private static Map<Country, List<Generator>> getGeneratorsListByCountry(Network network) {
+        return network.getGeneratorStream()
+            .filter(SweCsaZonalData::isCorrect)
+            .collect(Collectors.toMap(generator -> generator.getTerminal().getVoltageLevel().getSubstation().map(Substation::getNullableCountry).orElse(null),
+                List::of,
+                (list1, list2) -> {
+                    List<Generator> list3 = new ArrayList<>(list1);
+                    list3.addAll(list2);
+                    return list3;
+                }));
     }
 
     private static double pseudoTargetP(Generator generator) {
