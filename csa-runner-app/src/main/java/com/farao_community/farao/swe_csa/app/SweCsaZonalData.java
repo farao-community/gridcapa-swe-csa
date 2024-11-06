@@ -37,7 +37,8 @@ public final class SweCsaZonalData {
                     return list3;
                 }));
         ZonalData<Scalable> zonalData = new ZonalDataImpl<>(new HashMap<>());
-        for (Map.Entry<Country, List<Generator>> entry : generatorsByCountries.entrySet()) {
+        Set<Country> sweCountries = new HashSet<>(Arrays.asList(Country.FR, Country.PT, Country.ES));
+        for (Map.Entry<Country, List<Generator>> entry : generatorsByCountries.entrySet().stream().filter(entry -> sweCountries.contains(entry.getKey())).collect(Collectors.toSet())) {
             List<Scalable> scalables = new ArrayList<>();
             List<Double> percentages = new ArrayList<>();
             Country c = entry.getKey();
