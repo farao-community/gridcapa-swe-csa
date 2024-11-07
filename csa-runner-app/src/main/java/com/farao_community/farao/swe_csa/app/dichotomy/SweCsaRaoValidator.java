@@ -34,6 +34,8 @@ import org.springframework.stereotype.Service;
 
 import java.net.URL;
 import java.time.OffsetDateTime;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -76,7 +78,8 @@ public class SweCsaRaoValidator {
     }
 
     private RaoResult updateRaoResultWithAngleMonitoring(Network network, Crac crac, RaoResult raoResult, RaoParameters raoParameters) {
-        MonitoringInput angleMonitoringInput = MonitoringInput.buildWithAngle(network, crac, raoResult, SweCsaZonalData.getZonalData(network)).build();
+        Set<Country> sweCountries = new HashSet<>(Arrays.asList(Country.FR, Country.PT, Country.ES));
+        MonitoringInput angleMonitoringInput = MonitoringInput.buildWithAngle(network, crac, raoResult, SweCsaZonalData.getZonalData(network, sweCountries)).build();
         return Monitoring.runAngleAndUpdateRaoResult(raoParameters.getLoadFlowAndSensitivityParameters().getLoadFlowProvider(), raoParameters.getLoadFlowAndSensitivityParameters().getSensitivityWithLoadFlowParameters().getLoadFlowParameters(), Runtime.getRuntime().availableProcessors(), angleMonitoringInput);
     }
 
