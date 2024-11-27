@@ -30,6 +30,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +44,10 @@ public class DichotomyRunner {
     private double indexPrecision;
     @Value("${dichotomy-parameters.index.max-iterations-by-border}")
     private double maxDichotomiesByBorder;
+    @Value("${dichotomy-parameters.max-allowed-duration-for-dichotomy-in-minutes}")
+    private long maxAllowedDurationForDichotomyInMinutes;
+    @Value("${dichotomy-parameters.estimated-duration-for-one-rao-run-in-minutes}")
+    private long estimatedDurationForOneRaoRunInMinutes;
     private final SweCsaRaoValidator sweCsaRaoValidator;
     private final FileImporter fileImporter;
     private final FileExporter fileExporter;
@@ -65,6 +71,8 @@ public class DichotomyRunner {
     }
 
     public Pair<RaoResult, Status> runDichotomy(CsaRequest csaRequest) throws GlskLimitationException, ShiftingException {
+        OffsetDateTime startTime = OffsetDateTime.now();
+        OffsetDateTime maxStartTimeForLastDichotomy = startTime.plus(maxAllowedDurationForDichotomyInMinutes, ChronoUnit.MINUTES).minus(estimatedDurationForOneRaoRunInMinutes, ChronoUnit.MINUTES);
         RaoParameters raoParameters = RaoParameters.load();
         String raoParametersUrl = fileImporter.uploadRaoParameters(Instant.parse(csaRequest.getBusinessTimestamp()));
         Network network = fileImporter.importNetwork(csaRequest.getGridModelUri());
@@ -140,28 +148,28 @@ public class DichotomyRunner {
                 fileExporter.saveRaoResultInArtifact(csaRequest.getResultsUri(), maxCtStepResult.getRaoResult(), crac, Unit.AMPERE);
                 return new Pair<>(maxCtStepResult.getRaoResult(), Status.FINISHED_UNSECURE);
             } else {
-                return processDichotomy(csaRequest, raoParameters, raoParametersUrl, network, crac, initialVariant, noCtStepResult, ctPtEsUpperBound, ctFrEsUpperBound, networkShifter, maxCtStepResult);
+                businessLogger.info("Best case in unsecure, worst case is secure, trying to find optimum in between using dichotomy");
+                Index index = new Index(0, 0, indexPrecision, maxDichotomiesByBorder);
+                index.addPtEsDichotomyStepResult(0, noCtStepResult);
+                index.addPtEsDichotomyStepResult(ctPtEsUpperBound, maxCtStepResult);
+                index.addFrEsDichotomyStepResult(0, noCtStepResult);
+                index.addFrEsDichotomyStepResult(ctFrEsUpperBound, maxCtStepResult);
+                return processDichotomy(csaRequest, raoParameters, raoParametersUrl, network, crac, initialVariant, networkShifter, index, maxStartTimeForLastDichotomy);
             }
         }
     }
 
-    private Pair<RaoResult, Status> processDichotomy(CsaRequest csaRequest, RaoParameters raoParameters, String raoParametersUrl, Network network, Crac crac, String initialVariant, DichotomyStepResult noCtStepResult, double ctPtEsUpperBound, double ctFrEsUpperBound, SweCsaNetworkShifter networkShifter, DichotomyStepResult maxCtStepResult) {
-        businessLogger.info("Best case in unsecure, worst case is secure, trying to find optimum in between using dichotomy");
-        Index index = new Index(0, 0, indexPrecision, maxDichotomiesByBorder);
-        index.addPtEsDichotomyStepResult(0, noCtStepResult);
-        index.addPtEsDichotomyStepResult(ctPtEsUpperBound, maxCtStepResult);
-
-        index.addFrEsDichotomyStepResult(0, noCtStepResult);
-        index.addFrEsDichotomyStepResult(ctFrEsUpperBound, maxCtStepResult);
-
+    private Pair<RaoResult, Status> processDichotomy(CsaRequest csaRequest, RaoParameters raoParameters, String raoParametersUrl, Network network, Crac crac, String initialVariant, SweCsaNetworkShifter networkShifter, Index index, OffsetDateTime maxStartTimeForLastDichotomy) {
         while (index.exitConditionIsNotMetForPtEs() || index.exitConditionIsNotMetForFrEs()) {
+            if (maxStartTimeForLastDichotomy.isAfter(OffsetDateTime.now())) {
+                businessLogger.info("There isn't enough time for the next dichotomy iterations, best results at this time will be returned");
+                break;
+            }
             CounterTradingValues counterTradingValues = index.nextValues();
             DichotomyStepResult ctStepResult;
             String newVariantName = getNewVariantName(counterTradingValues);
-
             try {
                 businessLogger.info("Next CT values are '{}' for PT-ES and '{}' for FR-ES", counterTradingValues.getPtEsCt(), counterTradingValues.getFrEsCt());
-
                 setWorkingVariant(network, initialVariant, newVariantName);
                 networkShifter.applyCounterTrading(counterTradingValues, network);
                 ctStepResult = sweCsaRaoValidator.validateNetwork(network, crac, raoParameters, csaRequest, raoParametersUrl, counterTradingValues);
