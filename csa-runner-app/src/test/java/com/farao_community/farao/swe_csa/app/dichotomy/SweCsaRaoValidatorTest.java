@@ -1,8 +1,12 @@
 package com.farao_community.farao.swe_csa.app.dichotomy;
 
+import com.farao_community.farao.rao_runner.api.resource.RaoFailureResponse;
 import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
+import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
+import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.app.FileExporter;
 import com.farao_community.farao.swe_csa.app.FileImporter;
+import com.farao_community.farao.swe_csa.app.s3.S3AdapterUtil;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.data.cracapi.Crac;
@@ -10,6 +14,7 @@ import com.powsybl.openrao.data.cracapi.Instant;
 import com.powsybl.openrao.data.cracapi.State;
 import com.powsybl.openrao.data.cracapi.cnec.FlowCnec;
 import com.powsybl.openrao.data.raoresultapi.RaoResult;
+import com.powsybl.openrao.raoapi.parameters.RaoParameters;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -23,6 +28,8 @@ import java.util.Objects;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
 import static org.mockito.ArgumentMatchers.any;
 
 @SpringBootTest
@@ -85,5 +92,16 @@ class SweCsaRaoValidatorTest {
         Pair<String, Double> flowCnecShortestMargin = sweCsaRaoValidator.getFlowCnecSmallesttMargin(raoResult, flowCnecs);
         assertEquals("id2", flowCnecShortestMargin.getLeft());
         assertEquals(50.0, flowCnecShortestMargin.getRight());
+    }
+
+    @Test
+    void testValidateNetworkRaoFailureResponse() {
+        Network network = Network.read(getClass().getResource("/rao_inputs/network.xiidm").getPath());
+        Crac crac = fileImporter.importCrac(Objects.requireNonNull(getClass().getResource("/rao_inputs/crac.json")).toString(), network);
+
+        SweCsaRaoValidator sweCsaRaoValidator = new SweCsaRaoValidator(fileExporter, raoRunnerClient, LoggerFactory.getLogger(S3AdapterUtil.class));
+        Mockito.when(raoRunnerClient.runRao(any())).thenReturn(new RaoFailureResponse.Builder().withId("id").withErrorMessage("errorMessage").build());
+        assertThrows(CsaInternalException.class, () -> sweCsaRaoValidator.validateNetwork(network, crac, new RaoParameters(),
+            new CsaRequest("id", "2024-12-01T15:30:00Z", "", "", ""), "raoParametersUrl", new CounterTradingValues(0.0, 0.0)));
     }
 }

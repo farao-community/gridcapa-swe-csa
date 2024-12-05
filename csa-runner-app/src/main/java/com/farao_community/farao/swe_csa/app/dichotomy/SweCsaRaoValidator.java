@@ -71,7 +71,7 @@ public class SweCsaRaoValidator {
             }
 
             RaoSuccessResponse raoSuccessResponse = (RaoSuccessResponse) abstractRaoResponse;
-            RaoResult raoResult = raoSuccessResponse == null ? null : RaoResult.read(new URL(raoSuccessResponse.getRaoResultFileUrl()).openStream(), crac);
+            RaoResult raoResult = RaoResult.read(new URL(raoSuccessResponse.getRaoResultFileUrl()).openStream(), crac);
             businessLogger.info("RAO result imported: {}", raoResult);
 
             raoResult = updateRaoResultWithAngleMonitoring(network, crac, raoResult, raoParameters);
