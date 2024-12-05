@@ -11,6 +11,7 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
  * @author Jean-Pierre Arnould {@literal <jean-pierre.arnould at rte-france.com>}
  */
 
+import com.farao_community.farao.rao_runner.api.exceptions.RaoRunnerException;
 import com.farao_community.farao.rao_runner.api.resource.RaoRequest;
 import com.farao_community.farao.rao_runner.api.resource.AbstractRaoResponse;
 import com.farao_community.farao.rao_runner.api.resource.RaoFailureResponse;
@@ -34,7 +35,6 @@ import org.slf4j.Logger;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
-import javax.xml.bind.ValidationException;
 import java.net.URL;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
@@ -67,7 +67,7 @@ public class SweCsaRaoValidator {
 
             if (abstractRaoResponse.isRaoFailed()) {
                 RaoFailureResponse raoFailureResponse = (RaoFailureResponse) abstractRaoResponse;
-                throw new ValidationException(raoFailureResponse.getErrorMessage());
+                throw new RaoRunnerException(raoFailureResponse.getErrorMessage());
             }
 
             RaoSuccessResponse raoSuccessResponse = (RaoSuccessResponse) abstractRaoResponse;
