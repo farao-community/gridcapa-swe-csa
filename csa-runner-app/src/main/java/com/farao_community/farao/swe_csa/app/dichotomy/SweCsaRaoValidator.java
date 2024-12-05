@@ -12,7 +12,9 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
  */
 
 import com.farao_community.farao.rao_runner.api.resource.RaoRequest;
-import com.farao_community.farao.rao_runner.api.resource.RaoResponse;
+import com.farao_community.farao.rao_runner.api.resource.AbstractRaoResponse;
+import com.farao_community.farao.rao_runner.api.resource.RaoFailureResponse;
+import com.farao_community.farao.rao_runner.api.resource.RaoSuccessResponse;
 import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
 import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
@@ -32,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
+import javax.xml.bind.ValidationException;
 import java.net.URL;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
@@ -59,9 +62,16 @@ public class SweCsaRaoValidator {
 
         try {
             businessLogger.info("RAO request sent: {}", raoRequest);
-            RaoResponse raoResponse = raoRunnerClient.runRao(raoRequest);
-            businessLogger.info("RAO response received: {}", raoResponse);
-            RaoResult raoResult = raoResponse == null ? null : RaoResult.read(new URL(raoResponse.getRaoResultFileUrl()).openStream(), crac);
+            AbstractRaoResponse abstractRaoResponse = raoRunnerClient.runRao(raoRequest);
+            businessLogger.info("RAO response received: {}", abstractRaoResponse);
+
+            if (abstractRaoResponse.isRaoFailed()) {
+                RaoFailureResponse raoFailureResponse = (RaoFailureResponse) abstractRaoResponse;
+                throw new ValidationException(raoFailureResponse.getErrorMessage());
+            }
+
+            RaoSuccessResponse raoSuccessResponse = (RaoSuccessResponse) abstractRaoResponse;
+            RaoResult raoResult = raoSuccessResponse == null ? null : RaoResult.read(new URL(raoSuccessResponse.getRaoResultFileUrl()).openStream(), crac);
             businessLogger.info("RAO result imported: {}", raoResult);
 
             raoResult = updateRaoResultWithAngleMonitoring(network, crac, raoResult, raoParameters);
@@ -71,7 +81,7 @@ public class SweCsaRaoValidator {
             Pair<String, Double> flowCnecPtEsShortestMargin = getFlowCnecSmallesttMargin(raoResult, ptEsFlowCnecs);
             Pair<String, Double> flowCnecFrEsShortestMargin = getFlowCnecSmallesttMargin(raoResult, frEsFlowCnecs);
 
-            return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, flowCnecPtEsShortestMargin, flowCnecFrEsShortestMargin, counterTradingValues);
+            return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoSuccessResponse, flowCnecPtEsShortestMargin, flowCnecFrEsShortestMargin, counterTradingValues);
         } catch (Exception e) {
             throw new CsaInternalException(MDC.get("gridcapaTaskId"), "RAO run failed", e);
         }
