@@ -11,8 +11,10 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
  * @author Jean-Pierre Arnould {@literal <jean-pierre.arnould at rte-france.com>}
  */
 
+import com.farao_community.farao.rao_runner.api.resource.AbstractRaoResponse;
+import com.farao_community.farao.rao_runner.api.resource.RaoFailureResponse;
 import com.farao_community.farao.rao_runner.api.resource.RaoRequest;
-import com.farao_community.farao.rao_runner.api.resource.RaoResponse;
+import com.farao_community.farao.rao_runner.api.resource.RaoSuccessResponse;
 import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
 import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
@@ -59,9 +61,16 @@ public class SweCsaRaoValidator {
 
         try {
             businessLogger.info("RAO request sent: {}", raoRequest);
-            RaoResponse raoResponse = raoRunnerClient.runRao(raoRequest);
-            businessLogger.info("RAO response received: {}", raoResponse);
-            RaoResult raoResult = raoResponse == null ? null : RaoResult.read(new URL(raoResponse.getRaoResultFileUrl()).openStream(), crac);
+            AbstractRaoResponse abstractRaoResponse = raoRunnerClient.runRao(raoRequest);
+            businessLogger.info("RAO response received: {}", abstractRaoResponse);
+            if (abstractRaoResponse.isRaoFailed()) {
+                RaoFailureResponse failureResponse = (RaoFailureResponse) abstractRaoResponse;
+                businessLogger.error("RAO computation failed: {}", failureResponse.getErrorMessage());
+                throw new CsaInternalException(raoRequest.getId(), failureResponse.getErrorMessage());
+            }
+            RaoSuccessResponse raoResponse = (RaoSuccessResponse) abstractRaoResponse;
+
+            RaoResult raoResult = RaoResult.read(new URL(raoResponse.getRaoResultFileUrl()).openStream(), crac);
             businessLogger.info("RAO result imported: {}", raoResult);
 
             raoResult = updateRaoResultWithAngleMonitoring(network, crac, raoResult, raoParameters);
