@@ -1,5 +1,6 @@
 package com.farao_community.farao.swe_csa.app;
 
+import com.farao_community.farao.swe_csa.app.shift.SweCsaZonalData;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Injection;

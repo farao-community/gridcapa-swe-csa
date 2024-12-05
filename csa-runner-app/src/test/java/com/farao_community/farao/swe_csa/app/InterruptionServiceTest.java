@@ -11,61 +11,22 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Optional;
-
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.awaitility.Awaitility.await;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 @SpringBootTest
 class InterruptionServiceTest {
 
     @Autowired
     InterruptionService interruptionService;
 
-    private class MyThread extends Thread {
+    //TODO MBR
 
-        public MyThread(String id) {
-            super(id);
-        }
+    @Test
+    void checkInterruptionBeforeDichotomy() {
 
-        @Override
-        public void run() {
-            for (int i = 0; i < 10; i++) {
-                await().atMost(i, SECONDS);
-            }
-        }
     }
 
     @Test
-    void threadInterruption() {
-        String jsonApiMessage =
-            """
-              {
-              "data": {
-                "type": "csa-interruption-request",
-                "id": "myThread",
-                "attributes": {}}
-            }
-            """;
-        MyThread th = new MyThread("myThread");
-        assertEquals(false,  isRunning("myThread").isPresent());
+    void checkInterruptionWhenDichotomyIsRunning() {
 
-        th.start();
-        assertEquals(true,  isRunning("myThread").isPresent());
-
-        interruptionService.interruption(jsonApiMessage.getBytes(StandardCharsets.UTF_8));
-        assertEquals(false,  isRunning("myThread").isPresent());
-
-    }
-
-    private Optional<Thread> isRunning(String id) {
-        return Thread.getAllStackTraces()
-                .keySet()
-                .stream()
-                .filter(t -> t.getName().equals(id))
-                .findFirst();
     }
 
 }

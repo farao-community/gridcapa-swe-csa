@@ -17,7 +17,7 @@ import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
 import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.app.FileExporter;
-import com.farao_community.farao.swe_csa.app.SweCsaZonalData;
+import com.farao_community.farao.swe_csa.app.shift.SweCsaZonalData;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.commons.Unit;

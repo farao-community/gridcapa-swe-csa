@@ -1,12 +1,14 @@
+
+
 {
   "data": {
     "type": "csa-rao-request",
-    "id": "id",
+    "id": "835a5d02-bf54-440a-b0f9-a078d91aaf15",
     "attributes": {
-      "businessTimestamp": "2023-08-08T15:30:00Z",
-      "gridModelUri": "https://cds/gridModelUri.signed.url",
-      "cracFileUri": "https://cds/cracFileUri.signed.url",
-      "resultsUri": "https://cds/resultsUri.signed.url"
+      "businessTimestamp": "2023-09-24T10:30:00Z",
+      "cracFileUri": "http://gridcapa-minio:9000/swe-csa-bucket/inputs/20230924_1030.json?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=gridcapa%2F20241205%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20241205T124131Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=4092b88fa665417ce2620b9ef478b79c3c9e37f8da843b7fa83cd207d14dc1cb",
+      "gridModelUri": "http://gridcapa-minio:9000/swe-csa-bucket/inputs/20230924_1030.xiidm?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=gridcapa%2F20241205%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20241205T124131Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=633951a475c5bd56e619c8f48662541ea2e38154c62c05143027109084f4dca7,",
+      "resultsUri": "artifacts/2023/9/24/10_30/rao-result.json"
     }
   }
 }

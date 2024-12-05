@@ -1,10 +1,13 @@
 package com.farao_community.farao.swe_csa.app;
 
+import com.farao_community.farao.dichotomy.api.exceptions.GlskLimitationException;
+import com.farao_community.farao.dichotomy.api.exceptions.ShiftingException;
 import com.farao_community.farao.swe_csa.api.JsonApiConverter;
-import com.farao_community.farao.swe_csa.api.exception.CsaInvalidDataException;
-import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.api.resource.CsaResponse;
 import com.farao_community.farao.swe_csa.api.resource.Status;
+import com.farao_community.farao.swe_csa.app.dichotomy.DichotomyRunner;
+import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
+import kotlin.Pair;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -12,10 +15,8 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.cloud.stream.function.StreamBridge;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import java.net.URISyntaxException;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -23,48 +24,43 @@ import static org.mockito.Mockito.when;
 class RequestServiceTest {
 
     @MockBean
-    SweCsaRunner sweCsaRunner;
+    DichotomyRunner dichotomyRunner;
+
+    @MockBean
+    S3ArtifactsAdapter s3ArtifactsAdapter;
+
     @MockBean
     StreamBridge streamBridge;
+
     @Autowired
     RequestService requestService;
 
     @Test
-    void testInterruptionRequestService() throws IOException {
-        String id = UUID.randomUUID().toString();
-        Exception except = new RuntimeException(new InterruptedException("interrupted"));
-        String businessTimestamp = "2023-08-08T15:30:00Z";
-        String gridModelUri = "https://example.com/gridModel";
-        String cracFileUri = "https://example.com/crac";
-        String resultsUri = "https://example.com/results";
-
-        CsaRequest csaRequest = new CsaRequest(id, businessTimestamp, gridModelUri, cracFileUri, resultsUri);
+    void checkResultWhenCsaRunIsFinishedSecure() throws IOException, GlskLimitationException, ShiftingException {
         JsonApiConverter jsonApiConverter = new JsonApiConverter();
-        CsaResponse csaResponse = new CsaResponse(csaRequest.getId(), Status.INTERRUPTED.toString(), "");
-        byte[] req = jsonApiConverter.toJsonMessage(csaRequest, CsaRequest.class);
-        byte[] resp = jsonApiConverter.toJsonMessage(csaResponse, CsaResponse.class);
-        when(sweCsaRunner.run(any())).thenThrow(except);
+        byte[] requestBytes = getClass().getResourceAsStream("/csaRequestMessage.json").readAllBytes();
+
         when(streamBridge.send(any(), any())).thenReturn(true);
-        byte[] result = requestService.launchCsaRequest(req);
-        assertArrayEquals(resp, result);
+        when(dichotomyRunner.runDichotomy(any())).thenReturn(new Pair<>(null, Status.FINISHED_SECURE));
+        when(s3ArtifactsAdapter.generatePreSignedUrl("https://cds/resultsUri.signed.url")).thenReturn("https://cds/resultsUri.signed.url");
+
+        CsaResponse csaResponse = jsonApiConverter.fromJsonMessage(requestService.launchCsaRequest(requestBytes), CsaResponse.class);
+        CsaResponse expectedCsaResponse = new CsaResponse("id", Status.FINISHED_SECURE.toString(), "https://cds/resultsUri.signed.url");
+        assertEquals(expectedCsaResponse.getId(), csaResponse.getId());
+        assertEquals(expectedCsaResponse.getStatus(), csaResponse.getStatus());
+        assertEquals(expectedCsaResponse.getRaoResultUri(), csaResponse.getRaoResultUri());
     }
 
     @Test
-    void testRequestServiceOnRaoError() throws IOException {
-        String id = UUID.randomUUID().toString();
-        Exception except = new IOException("Mocked exception");
-        String businessTimestamp = "2023-08-08T15:30:00Z";
-        String gridModelUri = "https://example.com/gridModel";
-        String cracFileUri = "https://example.com/crac";
-        String resultsUri = "https://example.com/results";
+    void checkResultWhenCsaRunIsEncounterAnException() throws IOException, GlskLimitationException, ShiftingException, URISyntaxException {
+        byte[] requestBytes = getClass().getResourceAsStream("/csaRequestMessage.json").readAllBytes();
 
-        CsaRequest csaRequest = new CsaRequest(id, businessTimestamp, gridModelUri, cracFileUri, resultsUri);
-        JsonApiConverter jsonApiConverter = new JsonApiConverter();
-        byte[] req = jsonApiConverter.toJsonMessage(csaRequest, CsaRequest.class);
-        byte[] resp = jsonApiConverter.toJsonMessage(new CsaInvalidDataException(id, "Exception happened", new InvocationTargetException(except)));
-        when(sweCsaRunner.run(any())).thenThrow(except);
         when(streamBridge.send(any(), any())).thenReturn(true);
-        byte[] result = requestService.launchCsaRequest(req);
-        assertArrayEquals(resp, result);
+        when(dichotomyRunner.runDichotomy(any())).thenThrow(new RuntimeException("Invalid data exception"));
+        when(s3ArtifactsAdapter.generatePreSignedUrl("https://cds/resultsUri.signed.url")).thenReturn("https://cds/resultsUri.signed.url");
+
+        assertEquals("{\"errors\":[{\"id\":\"id\",\"links\":null,\"status\":\"400\",\"code\":\"400-InvalidDataException\",\"title\":\"Exception happened\",\"detail\":\"Exception happened; nested exception is java.lang.RuntimeException: Invalid data exception\",\"source\":null,\"meta\":null}]}",
+            new String(requestService.launchCsaRequest(requestBytes)));
     }
+
 }

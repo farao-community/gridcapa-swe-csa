@@ -6,27 +6,31 @@ import com.farao_community.farao.swe_csa.api.exception.CsaInvalidDataException;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.api.resource.CsaResponse;
 import com.farao_community.farao.swe_csa.api.resource.Status;
-import com.farao_community.farao.swe_csa.api.results.ThreadLauncherResult;
 
+import com.farao_community.farao.swe_csa.app.dichotomy.DichotomyRunner;
+import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
+import com.powsybl.openrao.data.raoresultapi.RaoResult;
+import kotlin.Pair;
 import org.slf4j.Logger;
 import org.slf4j.MDC;
 import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
+import java.time.Instant;
 
 @Service
 public class RequestService {
     private static final String ACK_BRIDGE_NAME = "acknowledgement";
-    private static final String STOP_RAO_BINDING = "stop-rao-runner";
     private final JsonApiConverter jsonApiConverter = new JsonApiConverter();
     private final StreamBridge streamBridge;
-    private final SweCsaRunner sweCsaRunner;
+    private final DichotomyRunner dichotomyRunner;
+    private final S3ArtifactsAdapter s3ArtifactsAdapter;
     private final Logger businessLogger;
 
-    public RequestService(StreamBridge streamBridge, SweCsaRunner sweCsaRunner, Logger businessLogger) {
+    public RequestService(StreamBridge streamBridge, DichotomyRunner dichotomyRunner, S3ArtifactsAdapter s3ArtifactsAdapter, Logger businessLogger) {
         this.streamBridge = streamBridge;
-        this.sweCsaRunner = sweCsaRunner;
+        this.dichotomyRunner = dichotomyRunner;
+        this.s3ArtifactsAdapter = s3ArtifactsAdapter;
         this.businessLogger = businessLogger;
     }
 
@@ -38,22 +42,14 @@ public class RequestService {
             String requestId = csaRequest.getId();
             // send ack message
             streamBridge.send(ACK_BRIDGE_NAME, jsonApiConverter.toJsonMessage(new CsaResponse(requestId, Status.ACCEPTED.toString(), ""), CsaResponse.class));
-            GenericThreadLauncher<SweCsaRunner, CsaResponse> launcher = new GenericThreadLauncher<>(sweCsaRunner, csaRequest.getId(), csaRequest);
-            launcher.start();
-            ThreadLauncherResult<CsaResponse> csaResponse = launcher.getResult();
-            if (csaResponse.hasError() && csaResponse.getException() != null) {
-                throw csaResponse.getException();
-            }
-            Optional<CsaResponse> resp = csaResponse.getResult();
 
-            if (resp.isPresent() && !csaResponse.hasError()) {
-                resultBytes  = jsonApiConverter.toJsonMessage(resp.get(), CsaResponse.class);
-                businessLogger.info("Csa response sent: {}", resp.get());
-            } else {
-                businessLogger.info("Csa run is interrupted, stopping RAO runners...");
-                streamBridge.send(STOP_RAO_BINDING, csaRequest.getId());
-                resultBytes = jsonApiConverter.toJsonMessage(new CsaResponse(csaRequest.getId(), Status.INTERRUPTED.toString(), ""), CsaResponse.class);
-            }
+            businessLogger.info("Csa request received : {}", csaRequest);
+            Instant utcInstant = Instant.parse(csaRequest.getBusinessTimestamp());
+            Pair<RaoResult, Status> result = dichotomyRunner.runDichotomy(csaRequest);
+            businessLogger.info("CSA computation finished for TimeStamp: '{}'", utcInstant);
+            CsaResponse csaResponse = new CsaResponse(csaRequest.getId(), result.getSecond().toString(), s3ArtifactsAdapter.generatePreSignedUrl(csaRequest.getResultsUri()));
+            resultBytes = jsonApiConverter.toJsonMessage(csaResponse, CsaResponse.class);
+            businessLogger.info("Csa response sent: {}", csaResponse);
         } catch (Exception e) {
             AbstractCsaException csaException = new CsaInvalidDataException(MDC.get("gridcapaTaskId"), "Exception happened", e);
             businessLogger.error(csaException.getDetails(), csaException);
