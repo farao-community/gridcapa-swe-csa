@@ -1,6 +1,6 @@
 package com.farao_community.farao.swe_csa.app.dichotomy;
 
-import com.farao_community.farao.rao_runner.api.resource.AbstractRaoResponse;
+import com.farao_community.farao.rao_runner.api.resource.RaoSuccessResponse;
 import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.app.FileExporter;
@@ -25,7 +25,7 @@ public class SweCsaRaoValidatorMock extends SweCsaRaoValidator {
 
     @Override
     public DichotomyStepResult validateNetwork(Network network, Crac crac, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
-        AbstractRaoResponse raoResponse = Mockito.mock(AbstractRaoResponse.class);
+        RaoSuccessResponse raoResponse = Mockito.mock(RaoSuccessResponse.class);
         RaoResult raoResult = Mockito.mock(RaoResult.class);
         Pair<String, Double> ptEsMostLimitingCnec = Pair.of("ptEsCnec", counterTradingValues.getPtEsCt() >= 0 ? 100.0 : -100.0);
         Pair<String, Double> frEsMostLimitingCnec = Pair.of("frEsCnec", counterTradingValues.getFrEsCt() >= 600 ? 200.0 : -200.0);

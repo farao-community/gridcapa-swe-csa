@@ -1,7 +1,7 @@
 package com.farao_community.farao.swe_csa.app.dichotomy;
 
 import com.farao_community.farao.dichotomy.api.results.ReasonInvalid;
-import com.farao_community.farao.rao_runner.api.resource.AbstractRaoResponse;
+import com.farao_community.farao.rao_runner.api.resource.RaoSuccessResponse;
 import com.powsybl.openrao.data.raoresultapi.RaoResult;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.tuple.Pair;
@@ -10,7 +10,7 @@ public final class DichotomyStepResult {
     private final Pair<String, Double> ptEsMostLimitingCnec;
     private final Pair<String, Double> frEsMostLimitingCnec;
     private final RaoResult raoResult;
-    private final AbstractRaoResponse abstractRaoResponse;
+    private final RaoSuccessResponse raoSuccessResponse;
     private final ReasonInvalid reasonInvalid;
     private final String failureMessage;
     private final CounterTradingValues counterTradingValues;
@@ -19,15 +19,15 @@ public final class DichotomyStepResult {
         this.ptEsMostLimitingCnec = null;
         this.frEsMostLimitingCnec = null;
         this.raoResult = null;
-        this.abstractRaoResponse = null;
+        this.raoSuccessResponse = null;
         this.counterTradingValues = counterTradingValues;
         this.reasonInvalid = reasonInvalid;
         this.failureMessage = failureMessage;
     }
 
-    private DichotomyStepResult(RaoResult raoResult, AbstractRaoResponse abstractRaoResponse, Pair<String, Double> ptEsMostLimitingCnec, Pair<String, Double> frEsMostLimitingCnec, CounterTradingValues counterTradingValues) {
+    private DichotomyStepResult(RaoResult raoResult, RaoSuccessResponse raoSuccessResponse, Pair<String, Double> ptEsMostLimitingCnec, Pair<String, Double> frEsMostLimitingCnec, CounterTradingValues counterTradingValues) {
         this.raoResult = raoResult;
-        this.abstractRaoResponse = abstractRaoResponse;
+        this.raoSuccessResponse = raoSuccessResponse;
         this.ptEsMostLimitingCnec = ptEsMostLimitingCnec;
         this.frEsMostLimitingCnec = frEsMostLimitingCnec;
         this.reasonInvalid = ptEsMostLimitingCnec.getRight() >= 0 && frEsMostLimitingCnec.getRight() >= 0 ? ReasonInvalid.NONE : ReasonInvalid.UNSECURE_AFTER_VALIDATION;
@@ -39,16 +39,16 @@ public final class DichotomyStepResult {
         return new DichotomyStepResult(reasonInvalid, failureMessage, counterTradingValues);
     }
 
-    public static DichotomyStepResult fromNetworkValidationResult(RaoResult raoResult, AbstractRaoResponse abstractRaoResponse, Pair<String, Double> ptEsMostLimitingCnec, Pair<String, Double> frEsMostLimitingCnec, CounterTradingValues counterTradingValues) {
-        return new DichotomyStepResult(raoResult, abstractRaoResponse, ptEsMostLimitingCnec, frEsMostLimitingCnec, counterTradingValues);
+    public static DichotomyStepResult fromNetworkValidationResult(RaoResult raoResult, RaoSuccessResponse raoResponse, Pair<String, Double> ptEsMostLimitingCnec, Pair<String, Double> frEsMostLimitingCnec, CounterTradingValues counterTradingValues) {
+        return new DichotomyStepResult(raoResult, raoResponse, ptEsMostLimitingCnec, frEsMostLimitingCnec, counterTradingValues);
     }
 
     public RaoResult getRaoResult() {
         return this.raoResult;
     }
 
-    public AbstractRaoResponse getAbstractRaoResponse() {
-        return this.abstractRaoResponse;
+    public RaoSuccessResponse getRaoSuccessResponse() {
+        return this.raoSuccessResponse;
     }
 
     public boolean isFailed() {

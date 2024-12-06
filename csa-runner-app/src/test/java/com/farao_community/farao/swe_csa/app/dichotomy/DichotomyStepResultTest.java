@@ -22,7 +22,7 @@ class DichotomyStepResultTest {
         assertNull(dichotomyStepResult.getFrEsMostLimitingCnec());
         assertNull(dichotomyStepResult.getPtEsMostLimitingCnec());
         assertNull(dichotomyStepResult.getRaoResult());
-        assertNull(dichotomyStepResult.getAbstractRaoResponse());
+        assertNull(dichotomyStepResult.getRaoSuccessResponse());
         assertEquals("failureMessage", dichotomyStepResult.getFailureMessage());
         assertEquals(ReasonInvalid.GLSK_LIMITATION, dichotomyStepResult.getReasonInvalid());
         assertEquals(900.0, dichotomyStepResult.getCounterTradingValues().frEsCt);
@@ -41,7 +41,7 @@ class DichotomyStepResultTest {
         assertNotNull(dichotomyStepResult.getFrEsMostLimitingCnec());
         assertNotNull(dichotomyStepResult.getPtEsMostLimitingCnec());
         assertNotNull(dichotomyStepResult.getRaoResult());
-        assertNotNull(dichotomyStepResult.getAbstractRaoResponse());
+        assertNotNull(dichotomyStepResult.getRaoSuccessResponse());
         assertEquals(ReasonInvalid.UNSECURE_AFTER_VALIDATION, dichotomyStepResult.getReasonInvalid());
         assertEquals(900.0, dichotomyStepResult.getCounterTradingValues().frEsCt);
         assertEquals(1500.0, dichotomyStepResult.getCounterTradingValues().ptEsCt);
