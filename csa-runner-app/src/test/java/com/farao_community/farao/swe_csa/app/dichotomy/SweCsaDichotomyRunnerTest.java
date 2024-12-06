@@ -2,7 +2,7 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
 
 import com.farao_community.farao.dichotomy.api.exceptions.GlskLimitationException;
 import com.farao_community.farao.dichotomy.api.exceptions.ShiftingException;
-import com.farao_community.farao.rao_runner.api.resource.RaoResponse;
+import com.farao_community.farao.rao_runner.api.resource.RaoSuccessResponse;
 import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.api.results.CounterTradeRangeActionResult;
@@ -45,7 +45,7 @@ class SweCsaDichotomyRunnerTest {
         Mockito.when(fileImporter.importNetwork("cgm-url")).thenReturn(network);
         Mockito.when(fileImporter.importCrac("crac-url", network)).thenReturn(crac);
         Mockito.when(fileExporter.saveNetworkInArtifact(Mockito.any(), Mockito.any())).thenReturn("scaled-network-url");
-        RaoResponse raoResponse = Mockito.mock(RaoResponse.class);
+        RaoSuccessResponse raoResponse = Mockito.mock(RaoSuccessResponse.class);
         Mockito.when(raoRunnerClient.runRao(Mockito.any())).thenReturn(raoResponse);
         SweCsaRaoValidator sweCsaRaoValidator = new SweCsaRaoValidatorMock(fileExporter, raoRunnerClient);
 
