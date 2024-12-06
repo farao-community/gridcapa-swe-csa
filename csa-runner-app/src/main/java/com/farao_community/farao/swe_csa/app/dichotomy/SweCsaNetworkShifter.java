@@ -12,7 +12,7 @@ import com.farao_community.farao.dichotomy.api.exceptions.ShiftingException;
 import com.farao_community.farao.gridcapa_swe_commons.shift.CountryBalanceComputation;
 import com.farao_community.farao.gridcapa_swe_commons.shift.GeneratorLimitsHandler;
 import com.farao_community.farao.gridcapa_swe_commons.shift.ScalableGeneratorConnector;
-import com.farao_community.farao.swe_csa.app.ShiftDispatcher;
+import com.farao_community.farao.swe_csa.app.shift.ShiftDispatcher;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;

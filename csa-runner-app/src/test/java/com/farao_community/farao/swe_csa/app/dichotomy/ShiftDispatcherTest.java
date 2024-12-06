@@ -6,7 +6,7 @@
  */
 package com.farao_community.farao.swe_csa.app.dichotomy;
 
-import com.farao_community.farao.swe_csa.app.ShiftDispatcher;
+import com.farao_community.farao.swe_csa.app.shift.ShiftDispatcher;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.openrao.commons.EICode;
 import org.junit.jupiter.api.Test;

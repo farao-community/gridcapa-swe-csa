@@ -12,6 +12,8 @@ import com.farao_community.farao.swe_csa.api.results.CounterTradeRangeActionResu
 import com.farao_community.farao.swe_csa.api.results.CounterTradingResult;
 import com.farao_community.farao.swe_csa.app.*;
 import com.farao_community.farao.swe_csa.app.rao_result.RaoResultWithCounterTradeRangeActions;
+import com.farao_community.farao.swe_csa.app.shift.ShiftDispatcher;
+import com.farao_community.farao.swe_csa.app.shift.SweCsaZonalData;
 import com.powsybl.glsk.commons.CountryEICode;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
@@ -30,6 +32,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,29 +46,34 @@ public class DichotomyRunner {
     private double indexPrecision;
     @Value("${dichotomy-parameters.index.max-iterations-by-border}")
     private double maxDichotomiesByBorder;
+    @Value("${dichotomy-parameters.max-allowed-duration-for-dichotomy-in-minutes}")
+    private long maxAllowedDurationForDichotomyInMinutes;
+    @Value("${dichotomy-parameters.estimated-duration-for-one-rao-run-in-minutes}")
+    private long estimatedDurationForOneRaoRunInMinutes;
     private final SweCsaRaoValidator sweCsaRaoValidator;
     private final FileImporter fileImporter;
     private final FileExporter fileExporter;
+    private final InterruptionService interruptionService;
+    private final Logger businessLogger;
 
     private static final String CT_RA_PTES = "CT_RA_PTES";
     private static final String CT_RA_FRES = "CT_RA_FRES";
     private static final String CT_RA_ESPT = "CT_RA_ESPT";
-
     private static final String CT_RA_ESFR = "CT_RA_ESFR";
-
     private static final String ES_FR = "ES_FR";
     private static final String ES_PT = "ES_PT";
 
-    private final Logger businessLogger;
-
-    public DichotomyRunner(SweCsaRaoValidator sweCsaRaoValidator, FileImporter fileImporter, FileExporter fileExporter, Logger businessLogger) {
+    public DichotomyRunner(SweCsaRaoValidator sweCsaRaoValidator, FileImporter fileImporter, FileExporter fileExporter, InterruptionService interruptionService, Logger businessLogger) {
         this.sweCsaRaoValidator = sweCsaRaoValidator;
         this.fileImporter = fileImporter;
         this.fileExporter = fileExporter;
+        this.interruptionService = interruptionService;
         this.businessLogger = businessLogger;
     }
 
     public Pair<RaoResult, Status> runDichotomy(CsaRequest csaRequest) throws GlskLimitationException, ShiftingException {
+        OffsetDateTime startTime = OffsetDateTime.now();
+        OffsetDateTime maxStartTimeForLastDichotomy = startTime.plus(maxAllowedDurationForDichotomyInMinutes, ChronoUnit.MINUTES).minus(estimatedDurationForOneRaoRunInMinutes, ChronoUnit.MINUTES);
         RaoParameters raoParameters = RaoParameters.load();
         String raoParametersUrl = fileImporter.uploadRaoParameters(Instant.parse(csaRequest.getBusinessTimestamp()));
         Network network = fileImporter.importNetwork(csaRequest.getGridModelUri());
@@ -117,6 +126,11 @@ public class DichotomyRunner {
             fileExporter.saveRaoResultInArtifact(csaRequest.getResultsUri(), noCtStepResult.getRaoResult(), crac, Unit.AMPERE);
             return new Pair<>(noCtStepResult.getRaoResult(), Status.FINISHED_SECURE);
         } else {
+            if (interruptionService.getTasksToInterrupt().remove(csaRequest.getId())) {
+                businessLogger.info("Interruption asked for task {}, best results at current time will be returned", csaRequest.getId());
+                return new Pair<>(null, Status.FINISHED_UNSECURE);
+            }
+
             // initial network not secure, try worst case maximum counter trading
             double ctFrEsMax = getMaxCounterTrading(ctRaFrEs, ctRaEsFr, expFrEs0, "FR-ES");
             double ctPtEsMax = getMaxCounterTrading(ctRaPtEs, ctRaEsPt, expPtEs0, "PT-ES");
@@ -140,28 +154,36 @@ public class DichotomyRunner {
                 fileExporter.saveRaoResultInArtifact(csaRequest.getResultsUri(), maxCtStepResult.getRaoResult(), crac, Unit.AMPERE);
                 return new Pair<>(maxCtStepResult.getRaoResult(), Status.FINISHED_UNSECURE);
             } else {
-                return processDichotomy(csaRequest, raoParameters, raoParametersUrl, network, crac, initialVariant, noCtStepResult, ctPtEsUpperBound, ctFrEsUpperBound, networkShifter, maxCtStepResult);
+                businessLogger.info("Best case in unsecure, worst case is secure, trying to find optimum in between using dichotomy");
+                Index index = new Index(0, 0, indexPrecision, maxDichotomiesByBorder);
+                index.addPtEsDichotomyStepResult(0, noCtStepResult);
+                index.addPtEsDichotomyStepResult(ctPtEsUpperBound, maxCtStepResult);
+                index.addFrEsDichotomyStepResult(0, noCtStepResult);
+                index.addFrEsDichotomyStepResult(ctFrEsUpperBound, maxCtStepResult);
+                return processDichotomy(csaRequest, raoParameters, raoParametersUrl, network, crac, initialVariant, networkShifter, index, maxStartTimeForLastDichotomy);
             }
         }
     }
 
-    private Pair<RaoResult, Status> processDichotomy(CsaRequest csaRequest, RaoParameters raoParameters, String raoParametersUrl, Network network, Crac crac, String initialVariant, DichotomyStepResult noCtStepResult, double ctPtEsUpperBound, double ctFrEsUpperBound, SweCsaNetworkShifter networkShifter, DichotomyStepResult maxCtStepResult) {
-        businessLogger.info("Best case in unsecure, worst case is secure, trying to find optimum in between using dichotomy");
-        Index index = new Index(0, 0, indexPrecision, maxDichotomiesByBorder);
-        index.addPtEsDichotomyStepResult(0, noCtStepResult);
-        index.addPtEsDichotomyStepResult(ctPtEsUpperBound, maxCtStepResult);
-
-        index.addFrEsDichotomyStepResult(0, noCtStepResult);
-        index.addFrEsDichotomyStepResult(ctFrEsUpperBound, maxCtStepResult);
-
+    private Pair<RaoResult, Status> processDichotomy(CsaRequest csaRequest, RaoParameters raoParameters, String raoParametersUrl, Network network, Crac crac, String initialVariant, SweCsaNetworkShifter networkShifter, Index index, OffsetDateTime maxStartTimeForLastDichotomy) {
+        boolean interrupted = false;
+        boolean timeout = false;
         while (index.exitConditionIsNotMetForPtEs() || index.exitConditionIsNotMetForFrEs()) {
+            if (interruptionService.getTasksToInterrupt().remove(csaRequest.getId())) {
+                businessLogger.info("Interruption asked for task {}, best results at current time will be returned", csaRequest.getId());
+                interrupted = true;
+                break;
+            }
+            if (maxStartTimeForLastDichotomy.isAfter(OffsetDateTime.now())) {
+                businessLogger.info("There isn't enough time for the next dichotomy iterations, best results at current time will be returned");
+                timeout = true;
+                break;
+            }
             CounterTradingValues counterTradingValues = index.nextValues();
             DichotomyStepResult ctStepResult;
             String newVariantName = getNewVariantName(counterTradingValues);
-
             try {
                 businessLogger.info("Next CT values are '{}' for PT-ES and '{}' for FR-ES", counterTradingValues.getPtEsCt(), counterTradingValues.getFrEsCt());
-
                 setWorkingVariant(network, initialVariant, newVariantName);
                 networkShifter.applyCounterTrading(counterTradingValues, network);
                 ctStepResult = sweCsaRaoValidator.validateNetwork(network, crac, raoParameters, csaRequest, raoParametersUrl, counterTradingValues);
@@ -182,12 +204,29 @@ public class DichotomyRunner {
             }
         }
         businessLogger.info("Dichotomy stop criterion reached, CT PT-ES: {}, CT FR-ES: {}", Math.round(index.getBestValidDichotomyStepResult().getCounterTradingValues().getPtEsCt()), Math.round(index.getBestValidDichotomyStepResult().getCounterTradingValues().getFrEsCt()));
-        RaoResult raoResult = index.getBestValidDichotomyStepResult().getRaoResult();
+        return getRaoResultStatusPair(csaRequest, raoParameters, network, crac, index, interrupted, timeout);
+    }
 
-        raoResult = updateRaoResultWithVoltageMonitoring(network, crac, raoResult, raoParameters);
-        RaoResultWithCounterTradeRangeActions raoResultWithRangeAction = updateRaoResultWithCounterTradingRAs(network, crac, index, raoResult);
-        fileExporter.saveRaoResultInArtifact(csaRequest.getResultsUri(), raoResultWithRangeAction, crac, Unit.AMPERE);
-        return new Pair<>(raoResultWithRangeAction, Status.FINISHED_SECURE);
+    private Pair<RaoResult, Status> getRaoResultStatusPair(CsaRequest csaRequest, RaoParameters raoParameters, Network network, Crac crac, Index index, boolean interrupted, boolean timeout) {
+        Status status;
+        if (index.getBestValidDichotomyStepResult() == null) {
+            status = Status.FINISHED_UNSECURE;
+            return new Pair<>(null, status);
+        } else {
+            if (interrupted) {
+                status = Status.INTERRUPTED_SECURE;
+            } else if (timeout) {
+                status = Status.TIMEOUT_SECURE;
+            } else {
+                status = Status.FINISHED_SECURE;
+            }
+
+            RaoResult raoResult = index.getBestValidDichotomyStepResult().getRaoResult();
+            raoResult = updateRaoResultWithVoltageMonitoring(network, crac, raoResult, raoParameters);
+            RaoResultWithCounterTradeRangeActions raoResultWithRangeAction = updateRaoResultWithCounterTradingRAs(network, crac, index, raoResult);
+            fileExporter.saveRaoResultInArtifact(csaRequest.getResultsUri(), raoResultWithRangeAction, crac, Unit.AMPERE);
+            return new Pair<>(raoResultWithRangeAction, status);
+        }
     }
 
     double getMaxCounterTrading(CounterTradeRangeAction ctraTowardsES, CounterTradeRangeAction ctraFromES, double initialExchangeTowardsES, String borderName) {

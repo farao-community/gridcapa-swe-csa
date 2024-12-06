@@ -1,4 +1,4 @@
-package com.farao_community.farao.swe_csa.app;
+package com.farao_community.farao.swe_csa.app.shift;
 
 import com.farao_community.farao.swe_csa.app.dichotomy.CounterTradingValues;
 import com.powsybl.iidm.network.Country;
