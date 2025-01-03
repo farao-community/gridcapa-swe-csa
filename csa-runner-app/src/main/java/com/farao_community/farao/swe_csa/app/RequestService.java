@@ -9,7 +9,7 @@ import com.farao_community.farao.swe_csa.api.resource.Status;
 
 import com.farao_community.farao.swe_csa.app.dichotomy.DichotomyRunner;
 import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
-import com.powsybl.openrao.data.raoresultapi.RaoResult;
+import com.powsybl.openrao.data.raoresult.api.RaoResult;
 import kotlin.Pair;
 import org.slf4j.Logger;
 import org.slf4j.MDC;

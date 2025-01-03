@@ -17,11 +17,10 @@ import com.farao_community.farao.swe_csa.app.shift.SweCsaZonalData;
 import com.powsybl.glsk.commons.CountryEICode;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.openrao.commons.Unit;
-import com.powsybl.openrao.data.cracapi.Crac;
-import com.powsybl.openrao.data.cracapi.Identifiable;
-import com.powsybl.openrao.data.cracapi.rangeaction.CounterTradeRangeAction;
-import com.powsybl.openrao.data.raoresultapi.RaoResult;
+import com.powsybl.openrao.data.crac.api.Crac;
+import com.powsybl.openrao.data.crac.api.Identifiable;
+import com.powsybl.openrao.data.crac.api.rangeaction.CounterTradeRangeAction;
+import com.powsybl.openrao.data.raoresult.api.RaoResult;
 import com.powsybl.openrao.monitoring.Monitoring;
 import com.powsybl.openrao.monitoring.MonitoringInput;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
@@ -32,8 +31,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,10 +43,6 @@ public class DichotomyRunner {
     private double indexPrecision;
     @Value("${dichotomy-parameters.index.max-iterations-by-border}")
     private double maxDichotomiesByBorder;
-    @Value("${dichotomy-parameters.max-allowed-duration-for-dichotomy-in-minutes}")
-    private long maxAllowedDurationForDichotomyInMinutes;
-    @Value("${dichotomy-parameters.estimated-duration-for-one-rao-run-in-minutes}")
-    private long estimatedDurationForOneRaoRunInMinutes;
     private final SweCsaRaoValidator sweCsaRaoValidator;
     private final FileImporter fileImporter;
     private final FileExporter fileExporter;
@@ -72,8 +65,6 @@ public class DichotomyRunner {
     }
 
     public Pair<RaoResult, Status> runDichotomy(CsaRequest csaRequest) throws GlskLimitationException, ShiftingException {
-        OffsetDateTime startTime = OffsetDateTime.now();
-        OffsetDateTime maxStartTimeForLastDichotomy = startTime.plus(maxAllowedDurationForDichotomyInMinutes, ChronoUnit.MINUTES).minus(estimatedDurationForOneRaoRunInMinutes, ChronoUnit.MINUTES);
         RaoParameters raoParameters = RaoParameters.load();
         String raoParametersUrl = fileImporter.uploadRaoParameters(Instant.parse(csaRequest.getBusinessTimestamp()));
         Network network = fileImporter.importNetwork(csaRequest.getGridModelUri());
@@ -109,7 +100,7 @@ public class DichotomyRunner {
             businessLogger.warn(e.getMessage());
             businessLogger.warn("No counter trading will be done, only input network will be checked by rao");
             RaoResult raoResult = sweCsaRaoValidator.validateNetwork(network, crac, raoParameters, csaRequest, raoParametersUrl, minCounterTradingValues).getRaoResult();
-            fileExporter.saveRaoResultInArtifact(csaRequest.getResultsUri(), raoResult, crac, Unit.AMPERE);
+            fileExporter.saveRaoResultInArtifact(csaRequest.getResultsUri(), raoResult, crac);
             return raoResult.isSecure() ? new Pair<>(raoResult, Status.FINISHED_SECURE) : new Pair<>(raoResult, Status.FINISHED_UNSECURE);
         }
         // best case no counter trading , no scaling
@@ -123,7 +114,7 @@ public class DichotomyRunner {
 
         if (noCtStepResult.isValid()) {
             businessLogger.info("Input network is secure no need for counter trading");
-            fileExporter.saveRaoResultInArtifact(csaRequest.getResultsUri(), noCtStepResult.getRaoResult(), crac, Unit.AMPERE);
+            fileExporter.saveRaoResultInArtifact(csaRequest.getResultsUri(), noCtStepResult.getRaoResult(), crac);
             return new Pair<>(noCtStepResult.getRaoResult(), Status.FINISHED_SECURE);
         } else {
             if (interruptionService.getTasksToInterrupt().remove(csaRequest.getId())) {
@@ -151,7 +142,7 @@ public class DichotomyRunner {
             logBorderOverload(maxCtStepResult);
             if (!maxCtStepResult.isValid()) {
                 businessLogger.error("Maximum CT value cannot secure this case");
-                fileExporter.saveRaoResultInArtifact(csaRequest.getResultsUri(), maxCtStepResult.getRaoResult(), crac, Unit.AMPERE);
+                fileExporter.saveRaoResultInArtifact(csaRequest.getResultsUri(), maxCtStepResult.getRaoResult(), crac);
                 return new Pair<>(maxCtStepResult.getRaoResult(), Status.FINISHED_UNSECURE);
             } else {
                 businessLogger.info("Best case in unsecure, worst case is secure, trying to find optimum in between using dichotomy");
@@ -160,23 +151,18 @@ public class DichotomyRunner {
                 index.addPtEsDichotomyStepResult(ctPtEsUpperBound, maxCtStepResult);
                 index.addFrEsDichotomyStepResult(0, noCtStepResult);
                 index.addFrEsDichotomyStepResult(ctFrEsUpperBound, maxCtStepResult);
-                return processDichotomy(csaRequest, raoParameters, raoParametersUrl, network, crac, initialVariant, networkShifter, index, maxStartTimeForLastDichotomy);
+                return processDichotomy(csaRequest, raoParameters, raoParametersUrl, network, crac, initialVariant, networkShifter, index);
             }
         }
     }
 
-    private Pair<RaoResult, Status> processDichotomy(CsaRequest csaRequest, RaoParameters raoParameters, String raoParametersUrl, Network network, Crac crac, String initialVariant, SweCsaNetworkShifter networkShifter, Index index, OffsetDateTime maxStartTimeForLastDichotomy) {
+    private Pair<RaoResult, Status> processDichotomy(CsaRequest csaRequest, RaoParameters raoParameters, String raoParametersUrl, Network network, Crac crac, String initialVariant, SweCsaNetworkShifter networkShifter, Index index) {
         boolean interrupted = false;
         boolean timeout = false;
         while (index.exitConditionIsNotMetForPtEs() || index.exitConditionIsNotMetForFrEs()) {
             if (interruptionService.getTasksToInterrupt().remove(csaRequest.getId())) {
                 businessLogger.info("Interruption asked for task {}, best results at current time will be returned", csaRequest.getId());
                 interrupted = true;
-                break;
-            }
-            if (maxStartTimeForLastDichotomy.isAfter(OffsetDateTime.now())) {
-                businessLogger.info("There isn't enough time for the next dichotomy iterations, best results at current time will be returned");
-                timeout = true;
                 break;
             }
             CounterTradingValues counterTradingValues = index.nextValues();
@@ -224,7 +210,7 @@ public class DichotomyRunner {
             RaoResult raoResult = index.getBestValidDichotomyStepResult().getRaoResult();
             raoResult = updateRaoResultWithVoltageMonitoring(network, crac, raoResult, raoParameters);
             RaoResultWithCounterTradeRangeActions raoResultWithRangeAction = updateRaoResultWithCounterTradingRAs(network, crac, index, raoResult);
-            fileExporter.saveRaoResultInArtifact(csaRequest.getResultsUri(), raoResultWithRangeAction, crac, Unit.AMPERE);
+            fileExporter.saveRaoResultInArtifact(csaRequest.getResultsUri(), raoResultWithRangeAction, crac);
             return new Pair<>(raoResultWithRangeAction, status);
         }
     }

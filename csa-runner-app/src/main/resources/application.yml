@@ -60,8 +60,6 @@ csa-runner:
   async-time-out: 4500000 # 1h15min (75*60*1000)
 
 dichotomy-parameters:
-  max-allowed-duration-for-dichotomy-in-minutes: 60
-  estimated-duration-for-one-rao-run-in-minutes: 10
   index:
     precision: 10
     max-iterations-by-border: 10
