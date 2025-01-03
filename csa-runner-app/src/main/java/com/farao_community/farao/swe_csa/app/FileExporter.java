@@ -4,14 +4,12 @@ import com.farao_community.farao.gridcapa_swe_commons.exception.SweInternalExcep
 import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
 import com.powsybl.commons.datasource.MemDataSource;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.openrao.commons.Unit;
-import com.powsybl.openrao.data.cracapi.Crac;
-import com.powsybl.openrao.data.raoresultapi.RaoResult;
+import com.powsybl.openrao.data.crac.api.Crac;
+import com.powsybl.openrao.data.raoresult.api.RaoResult;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
 import java.util.Properties;
-import java.util.Set;
 
 @Service
 public class FileExporter {
@@ -36,9 +34,11 @@ public class FileExporter {
         return s3ArtifactsAdapter.generatePreSignedUrl(networkFilePath);
     }
 
-    public void saveRaoResultInArtifact(String destinationPath, RaoResult raoResult, Crac crac, Unit unit) {
+    public void saveRaoResultInArtifact(String destinationPath, RaoResult raoResult, Crac crac) {
         ByteArrayOutputStream outputStreamRaoResult = new ByteArrayOutputStream();
-        raoResult.write("JSON", crac, Set.of(unit), outputStreamRaoResult);
+        Properties propertiesAmperes = new Properties();
+        propertiesAmperes.setProperty("rao-result.export.json.flows-in-amperes", "true");
+        raoResult.write("JSON", crac, propertiesAmperes, outputStreamRaoResult);
         s3ArtifactsAdapter.uploadFile(destinationPath, new ByteArrayInputStream(outputStreamRaoResult.toByteArray()));
     }
 

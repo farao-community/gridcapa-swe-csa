@@ -1,15 +1,16 @@
 package com.farao_community.farao.swe_csa.app.rao_result;
 
 import com.powsybl.iidm.network.*;
-import com.powsybl.openrao.data.cracapi.Crac;
-import com.powsybl.openrao.data.cracapi.RemedialAction;
-import com.powsybl.openrao.data.cracapi.State;
-import com.powsybl.openrao.data.cracapi.rangeaction.CounterTradeRangeAction;
-import com.powsybl.openrao.data.cracapi.rangeaction.RangeAction;
-import com.powsybl.openrao.data.raoresultapi.ComputationStatus;
-import com.powsybl.openrao.data.raoresultapi.RaoResult;
+import com.powsybl.openrao.data.crac.api.Crac;
+import com.powsybl.openrao.data.crac.api.RemedialAction;
+import com.powsybl.openrao.data.crac.api.State;
+import com.powsybl.openrao.data.crac.api.rangeaction.CounterTradeRangeAction;
+import com.powsybl.openrao.data.crac.api.rangeaction.RangeAction;
+import com.powsybl.openrao.data.raoresult.api.ComputationStatus;
+import com.powsybl.openrao.data.raoresult.api.RaoResult;
 import com.farao_community.farao.swe_csa.api.results.CounterTradeRangeActionResult;
 import com.farao_community.farao.swe_csa.api.results.CounterTradingResult;
+import com.powsybl.openrao.data.raoresult.io.json.RaoResultJsonImporter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -85,10 +86,11 @@ class RaoResultWithCounterTradeRangeActionsTest {
 
     @Test
     void testRaoResultWithCounterTrading() throws IOException {
-        InputStream raoResultFile = getClass().getResourceAsStream("/rao_result/rao-result-v1.6.json");
-        InputStream cracFile = getClass().getResourceAsStream("/rao_result/crac-for-rao-result-v1.6.json");
-        Crac crac = Crac.read("crac-for-rao-result-v1.6.json", cracFile, getMockedNetwork());
-        RaoResult raoResult = RaoResult.read(raoResultFile, crac);
+        InputStream raoResultFile = getClass().getResourceAsStream("/rao_result/rao-result-v1.7.json");
+        InputStream cracFile = getClass().getResourceAsStream("/rao_result/crac-for-rao-result-v1.7.json");
+
+        Crac crac = Crac.read("crac-for-rao-result-v1.7.json", cracFile, getMockedNetwork());
+        RaoResult raoResult = new RaoResultJsonImporter().importData(raoResultFile, crac);
 
         RaoResult raoResultWithCounterTrading = new RaoResultWithCounterTradeRangeActions(raoResult, counterTradingResult);
 

@@ -24,9 +24,10 @@ import com.farao_community.farao.swe_csa.app.shift.SweCsaZonalData;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.commons.Unit;
-import com.powsybl.openrao.data.cracapi.Crac;
-import com.powsybl.openrao.data.cracapi.cnec.FlowCnec;
-import com.powsybl.openrao.data.raoresultapi.RaoResult;
+import com.powsybl.openrao.data.crac.api.Crac;
+import com.powsybl.openrao.data.crac.api.cnec.FlowCnec;
+import com.powsybl.openrao.data.raoresult.api.RaoResult;
+import com.powsybl.openrao.data.raoresult.io.json.RaoResultJsonImporter;
 import com.powsybl.openrao.monitoring.Monitoring;
 import com.powsybl.openrao.monitoring.MonitoringInput;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
@@ -71,7 +72,7 @@ public class SweCsaRaoValidator {
             }
 
             RaoSuccessResponse raoSuccessResponse = (RaoSuccessResponse) abstractRaoResponse;
-            RaoResult raoResult = RaoResult.read(new URL(raoSuccessResponse.getRaoResultFileUrl()).openStream(), crac);
+            RaoResult raoResult = new RaoResultJsonImporter().importData(new URL(raoSuccessResponse.getRaoResultFileUrl()).openStream(), crac);
             businessLogger.info("RAO result imported: {}", raoResult);
 
             raoResult = updateRaoResultWithAngleMonitoring(network, crac, raoResult, raoParameters);
