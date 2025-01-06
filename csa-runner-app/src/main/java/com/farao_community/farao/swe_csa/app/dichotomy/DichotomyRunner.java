@@ -118,7 +118,7 @@ public class DichotomyRunner {
             return new Pair<>(noCtStepResult.getRaoResult(), Status.FINISHED_SECURE);
         } else {
             if (interruptionService.getTasksToInterrupt().remove(csaRequest.getId())) {
-                businessLogger.info("Interruption asked for task {}, best results at current time will be returned", csaRequest.getId());
+                businessLogger.info("Interruption asked for task {}, before any secure situation is found", csaRequest.getId());
                 return new Pair<>(null, Status.FINISHED_UNSECURE);
             }
 
@@ -151,6 +151,7 @@ public class DichotomyRunner {
                 index.addPtEsDichotomyStepResult(ctPtEsUpperBound, maxCtStepResult);
                 index.addFrEsDichotomyStepResult(0, noCtStepResult);
                 index.addFrEsDichotomyStepResult(ctFrEsUpperBound, maxCtStepResult);
+                index.setBestValidDichotomyStepResult(maxCtStepResult);
                 return processDichotomy(csaRequest, raoParameters, raoParametersUrl, network, crac, initialVariant, networkShifter, index);
             }
         }
@@ -161,7 +162,7 @@ public class DichotomyRunner {
         boolean timeout = false;
         while (index.exitConditionIsNotMetForPtEs() || index.exitConditionIsNotMetForFrEs()) {
             if (interruptionService.getTasksToInterrupt().remove(csaRequest.getId())) {
-                businessLogger.info("Interruption asked for task {}, best results at current time will be returned", csaRequest.getId());
+                businessLogger.info("Interruption asked for task {}, best secure situation at current time will be returned", csaRequest.getId());
                 interrupted = true;
                 break;
             }
@@ -208,6 +209,7 @@ public class DichotomyRunner {
             }
 
             RaoResult raoResult = index.getBestValidDichotomyStepResult().getRaoResult();
+            // TODO MBR : check if we need to rerun angle monitoring here
             raoResult = updateRaoResultWithVoltageMonitoring(network, crac, raoResult, raoParameters);
             RaoResultWithCounterTradeRangeActions raoResultWithRangeAction = updateRaoResultWithCounterTradingRAs(network, crac, index, raoResult);
             fileExporter.saveRaoResultInArtifact(csaRequest.getResultsUri(), raoResultWithRangeAction, crac);
