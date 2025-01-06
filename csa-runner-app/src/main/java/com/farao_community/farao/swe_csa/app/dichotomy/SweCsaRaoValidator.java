@@ -79,10 +79,10 @@ public class SweCsaRaoValidator {
 
             Set<FlowCnec> frEsFlowCnecs = getBorderFlowCnecs(crac, network, Country.FR);
             Set<FlowCnec> ptEsFlowCnecs = getBorderFlowCnecs(crac, network, Country.PT);
-            Pair<String, Double> flowCnecPtEsShortestMargin = getFlowCnecSmallesttMargin(raoResult, ptEsFlowCnecs);
-            Pair<String, Double> flowCnecFrEsShortestMargin = getFlowCnecSmallesttMargin(raoResult, frEsFlowCnecs);
+            Pair<String, Double> flowCnecPtEsSmallestMargin = getFlowCnecSmallestMargin(raoResult, ptEsFlowCnecs);
+            Pair<String, Double> flowCnecFrEsSmallestMargin = getFlowCnecSmallestMargin(raoResult, frEsFlowCnecs);
 
-            return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoSuccessResponse, flowCnecPtEsShortestMargin, flowCnecFrEsShortestMargin, counterTradingValues);
+            return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoSuccessResponse, flowCnecPtEsSmallestMargin, flowCnecFrEsSmallestMargin, counterTradingValues);
         } catch (Exception e) {
             throw new CsaInternalException(MDC.get("gridcapaTaskId"), "RAO run failed", e);
         }
@@ -100,7 +100,7 @@ public class SweCsaRaoValidator {
             .collect(Collectors.toSet());
     }
 
-    Pair<String, Double> getFlowCnecSmallesttMargin(RaoResult raoResult, Set<FlowCnec> flowCnecs) {
+    Pair<String, Double> getFlowCnecSmallestMargin(RaoResult raoResult, Set<FlowCnec> flowCnecs) {
         String flowCnecId = "";
         double smallestMargin = Double.MAX_VALUE;
         for (FlowCnec flowCnec : flowCnecs) {
