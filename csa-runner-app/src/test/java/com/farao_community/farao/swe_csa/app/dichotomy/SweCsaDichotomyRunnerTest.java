@@ -10,6 +10,7 @@ import com.farao_community.farao.swe_csa.app.FileExporter;
 import com.farao_community.farao.swe_csa.app.FileImporter;
 import com.farao_community.farao.swe_csa.app.InterruptionService;
 import com.farao_community.farao.swe_csa.app.rao_result.RaoResultWithCounterTradeRangeActions;
+import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.data.crac.api.Crac;
 import com.powsybl.openrao.data.crac.api.CracFactory;
@@ -20,6 +21,7 @@ import org.mockito.Mockito;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.cloud.stream.function.StreamBridge;
 
 import java.time.Instant;
 import java.util.*;
@@ -39,6 +41,12 @@ class SweCsaDichotomyRunnerTest {
     RaoRunnerClient raoRunnerClient;
 
     @MockBean
+    StreamBridge streamBridge;
+
+    @MockBean
+    S3ArtifactsAdapter s3ArtifactsAdapter;
+
+    @MockBean
     InterruptionService interruptionService;
 
     @Test
@@ -54,7 +62,7 @@ class SweCsaDichotomyRunnerTest {
         Mockito.when(raoRunnerClient.runRao(Mockito.any())).thenReturn(raoResponse);
         SweCsaRaoValidator sweCsaRaoValidator = new SweCsaRaoValidatorMock(fileExporter, raoRunnerClient);
 
-        DichotomyRunner sweCsaDichotomyRunner = new DichotomyRunner(sweCsaRaoValidator, fileImporter, fileExporter, interruptionService, LoggerFactory.getLogger(SweCsaDichotomyRunnerTest.class));
+        DichotomyRunner sweCsaDichotomyRunner = new DichotomyRunner(sweCsaRaoValidator, fileImporter, fileExporter, interruptionService, streamBridge, s3ArtifactsAdapter, LoggerFactory.getLogger(SweCsaDichotomyRunnerTest.class));
         sweCsaDichotomyRunner.setIndexPrecision(50);
         sweCsaDichotomyRunner.setMaxDichotomiesByBorder(10);
         CsaRequest csaRequest = new CsaRequest("id", "2023-09-13T09:30:00Z", "cgm-url", "crac-url", "rao-result-url");
@@ -82,7 +90,7 @@ class SweCsaDichotomyRunnerTest {
     @Test
     void getMaxCounterTradingTestMaximumReached() {
         SweCsaRaoValidator sweCsaRaoValidatorMock = Mockito.mock(SweCsaRaoValidator.class);
-        DichotomyRunner dichotomyRunner = new DichotomyRunner(sweCsaRaoValidatorMock, fileImporter, fileExporter, interruptionService, LoggerFactory.getLogger(SweCsaDichotomyRunnerTest.class));
+        DichotomyRunner dichotomyRunner = new DichotomyRunner(sweCsaRaoValidatorMock, fileImporter, fileExporter, interruptionService, streamBridge, s3ArtifactsAdapter, LoggerFactory.getLogger(SweCsaDichotomyRunnerTest.class));
         CounterTradeRangeActionImpl ctraMock1 = Mockito.mock(CounterTradeRangeActionImpl.class);
         Mockito.when(ctraMock1.getMinAdmissibleSetpoint(anyDouble())).thenReturn(-1000.0);
         Mockito.when(ctraMock1.getMaxAdmissibleSetpoint(anyDouble())).thenReturn(1000.0);
@@ -103,7 +111,7 @@ class SweCsaDichotomyRunnerTest {
     @Test
     void getMaxCounterTradingTestMaximumUnreached() {
         SweCsaRaoValidator sweCsaRaoValidatorMock = Mockito.mock(SweCsaRaoValidator.class);
-        DichotomyRunner dichotomyRunner = new DichotomyRunner(sweCsaRaoValidatorMock, fileImporter, fileExporter, interruptionService, LoggerFactory.getLogger(SweCsaDichotomyRunnerTest.class));
+        DichotomyRunner dichotomyRunner = new DichotomyRunner(sweCsaRaoValidatorMock, fileImporter, fileExporter, interruptionService, streamBridge, s3ArtifactsAdapter, LoggerFactory.getLogger(SweCsaDichotomyRunnerTest.class));
         CounterTradeRangeActionImpl ctraMock1 = Mockito.mock(CounterTradeRangeActionImpl.class);
         Mockito.when(ctraMock1.getMinAdmissibleSetpoint(anyDouble())).thenReturn(-350.0);
         Mockito.when(ctraMock1.getMaxAdmissibleSetpoint(anyDouble())).thenReturn(300.0);
