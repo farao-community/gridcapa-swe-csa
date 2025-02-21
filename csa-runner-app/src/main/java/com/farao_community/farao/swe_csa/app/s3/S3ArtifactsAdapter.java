@@ -14,10 +14,12 @@ public class S3ArtifactsAdapter {
 
     private final MinioClient minioClient;
     private final String bucket;
+    private final String basePath;
 
     public S3ArtifactsAdapter(@Qualifier("getArtifactsClient") MinioClient minioClient, S3ClientsConfigurations s3ClientsConfigurations) {
         this.minioClient = minioClient;
         this.bucket = s3ClientsConfigurations.getArtifactsBucket();
+        this.basePath = s3ClientsConfigurations.getArtifactsBasePath();
     }
 
     public void createBucketIfDoesNotExist() {
@@ -26,11 +28,11 @@ public class S3ArtifactsAdapter {
 
     public void uploadFile(String pathDestination, InputStream sourceInputStream) {
         createBucketIfDoesNotExist();
-        S3AdapterUtil.uploadFile(minioClient, pathDestination, sourceInputStream, bucket);
+        S3AdapterUtil.uploadFile(minioClient, basePath + "/" + pathDestination, sourceInputStream, bucket);
     }
 
     public String generatePreSignedUrl(String minioPath) {
-        return S3AdapterUtil.generatePreSignedUrl(minioClient, minioPath, bucket);
+        return S3AdapterUtil.generatePreSignedUrl(minioClient, basePath + "/" + minioPath, bucket);
     }
 
 }

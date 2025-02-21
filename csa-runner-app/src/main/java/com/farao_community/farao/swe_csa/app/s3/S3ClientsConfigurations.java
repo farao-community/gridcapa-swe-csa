@@ -18,6 +18,8 @@ public class S3ClientsConfigurations {
     private String inputsS3Url;
     @Value("${s3.inputs.bucket}")
     private String inputsBucket;
+    @Value("${s3.inputs.base-path}")
+    private String inputsBasePath;
 
     @Value("${s3.artifacts.user}")
     private String artifactsAccessKey;
@@ -27,6 +29,8 @@ public class S3ClientsConfigurations {
     private String artifactsS3Url;
     @Value("${s3.artifacts.bucket}")
     private String artifactsBucket;
+    @Value("${s3.artifacts.base-path}")
+    private String artifactsBasePath;
 
     @Value("${s3.outputs.user}")
     private String outputsAccessKey;
@@ -36,6 +40,9 @@ public class S3ClientsConfigurations {
     private String outputsS3Url;
     @Value("${s3.outputs.bucket}")
     private String outputsBucket;
+    @Value("${s3.outputs.base-path}")
+    private String outputsBasePath;
+
     private final String minioClientException = "Exception in MinIO client";
     private final String gridcapaTaskId = "gridcapaTaskId";
 
@@ -70,12 +77,24 @@ public class S3ClientsConfigurations {
         return inputsBucket;
     }
 
+    public String getInputsBasePath() {
+        return inputsBasePath;
+    }
+
     public String getOutputsBucket() {
         return outputsBucket;
     }
 
+    public String getArtifactsBasePath() {
+        return artifactsBasePath;
+    }
+
     public String getArtifactsBucket() {
         return artifactsBucket;
+    }
+
+    public String getOutputsBasePath() {
+        return outputsBasePath;
     }
 
 }

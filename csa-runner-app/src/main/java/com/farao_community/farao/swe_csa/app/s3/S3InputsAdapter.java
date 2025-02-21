@@ -5,17 +5,18 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.io.InputStream;
-import java.nio.file.Path;
 
 @Component
 public class S3InputsAdapter {
 
     private final MinioClient minioClient;
     private final String bucket;
+    private final String basePath;
 
     public S3InputsAdapter(@Qualifier("getInputsClient") MinioClient minioClient, S3ClientsConfigurations s3ClientsConfigurations) {
         this.minioClient = minioClient;
         this.bucket = s3ClientsConfigurations.getInputsBucket();
+        this.basePath = s3ClientsConfigurations.getInputsBasePath();
     }
 
     public void createBucketIfDoesNotExist() {
@@ -24,15 +25,11 @@ public class S3InputsAdapter {
 
     public void uploadFile(String pathDestination, InputStream sourceInputStream) {
         createBucketIfDoesNotExist();
-        S3AdapterUtil.uploadFile(minioClient, pathDestination, sourceInputStream, bucket);
+        S3AdapterUtil.uploadFile(minioClient, basePath + "/" + pathDestination, sourceInputStream, bucket);
     }
 
     public String generatePreSignedUrl(String minioPath) {
-        return S3AdapterUtil.generatePreSignedUrl(minioClient, minioPath, bucket);
-    }
-
-    public Path copyFileInTargetSystemPath(String minioObjectName, Path targetTempPath) {
-        return S3AdapterUtil.copyFileInTargetSystemPath(minioClient, minioObjectName, targetTempPath, bucket);
+        return S3AdapterUtil.generatePreSignedUrl(minioClient, basePath + "/" + minioPath, bucket);
     }
 
 }

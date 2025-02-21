@@ -5,13 +5,16 @@ import com.farao_community.farao.dichotomy.api.exceptions.ShiftingException;
 import com.farao_community.farao.dichotomy.api.results.ReasonInvalid;
 import com.farao_community.farao.gridcapa_swe_commons.shift.CountryBalanceComputation;
 import com.farao_community.farao.rao_runner.api.exceptions.RaoRunnerException;
+import com.farao_community.farao.swe_csa.api.JsonApiConverter;
 import com.farao_community.farao.swe_csa.api.exception.CsaInvalidDataException;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
+import com.farao_community.farao.swe_csa.api.resource.CsaResponse;
 import com.farao_community.farao.swe_csa.api.resource.Status;
 import com.farao_community.farao.swe_csa.api.results.CounterTradeRangeActionResult;
 import com.farao_community.farao.swe_csa.api.results.CounterTradingResult;
 import com.farao_community.farao.swe_csa.app.*;
 import com.farao_community.farao.swe_csa.app.rao_result.RaoResultWithCounterTradeRangeActions;
+import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
 import com.farao_community.farao.swe_csa.app.shift.ShiftDispatcher;
 import com.farao_community.farao.swe_csa.app.shift.SweCsaZonalData;
 import com.powsybl.glsk.commons.CountryEICode;
@@ -28,6 +31,7 @@ import kotlin.Pair;
 import org.slf4j.Logger;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -39,6 +43,7 @@ import java.util.stream.Collectors;
 @Service
 public class DichotomyRunner {
 
+    public static final String RESPONSE_BRIDGE_NAME = "csa-response";
     @Value("${dichotomy-parameters.index.precision}")
     private double indexPrecision;
     @Value("${dichotomy-parameters.index.max-iterations-by-border}")
@@ -47,6 +52,9 @@ public class DichotomyRunner {
     private final FileImporter fileImporter;
     private final FileExporter fileExporter;
     private final InterruptionService interruptionService;
+    private final StreamBridge streamBridge;
+    private final S3ArtifactsAdapter s3ArtifactsAdapter;
+    private final JsonApiConverter jsonApiConverter = new JsonApiConverter();
     private final Logger businessLogger;
 
     private static final String CT_RA_PTES = "CT_RA_PTES";
@@ -56,11 +64,13 @@ public class DichotomyRunner {
     private static final String ES_FR = "ES_FR";
     private static final String ES_PT = "ES_PT";
 
-    public DichotomyRunner(SweCsaRaoValidator sweCsaRaoValidator, FileImporter fileImporter, FileExporter fileExporter, InterruptionService interruptionService, Logger businessLogger) {
+    public DichotomyRunner(SweCsaRaoValidator sweCsaRaoValidator, FileImporter fileImporter, FileExporter fileExporter, InterruptionService interruptionService, StreamBridge streamBridge, S3ArtifactsAdapter s3ArtifactsAdapter, Logger businessLogger) {
         this.sweCsaRaoValidator = sweCsaRaoValidator;
         this.fileImporter = fileImporter;
         this.fileExporter = fileExporter;
         this.interruptionService = interruptionService;
+        this.streamBridge = streamBridge;
+        this.s3ArtifactsAdapter = s3ArtifactsAdapter;
         this.businessLogger = businessLogger;
     }
 
@@ -118,7 +128,7 @@ public class DichotomyRunner {
             return new Pair<>(noCtStepResult.getRaoResult(), Status.FINISHED_SECURE);
         } else {
             if (interruptionService.getTasksToInterrupt().remove(csaRequest.getId())) {
-                businessLogger.info("Interruption asked for task {}, best results at current time will be returned", csaRequest.getId());
+                businessLogger.info("Interruption asked for task {}, before any secure situation is found", csaRequest.getId());
                 return new Pair<>(null, Status.FINISHED_UNSECURE);
             }
 
@@ -151,6 +161,7 @@ public class DichotomyRunner {
                 index.addPtEsDichotomyStepResult(ctPtEsUpperBound, maxCtStepResult);
                 index.addFrEsDichotomyStepResult(0, noCtStepResult);
                 index.addFrEsDichotomyStepResult(ctFrEsUpperBound, maxCtStepResult);
+                index.setBestValidDichotomyStepResult(maxCtStepResult);
                 return processDichotomy(csaRequest, raoParameters, raoParametersUrl, network, crac, initialVariant, networkShifter, index);
             }
         }
@@ -158,10 +169,9 @@ public class DichotomyRunner {
 
     private Pair<RaoResult, Status> processDichotomy(CsaRequest csaRequest, RaoParameters raoParameters, String raoParametersUrl, Network network, Crac crac, String initialVariant, SweCsaNetworkShifter networkShifter, Index index) {
         boolean interrupted = false;
-        boolean timeout = false;
         while (index.exitConditionIsNotMetForPtEs() || index.exitConditionIsNotMetForFrEs()) {
             if (interruptionService.getTasksToInterrupt().remove(csaRequest.getId())) {
-                businessLogger.info("Interruption asked for task {}, best results at current time will be returned", csaRequest.getId());
+                businessLogger.info("Interruption asked for task {}, best secure situation at current time will be returned", csaRequest.getId());
                 interrupted = true;
                 break;
             }
@@ -187,13 +197,17 @@ public class DichotomyRunner {
             boolean frEsCtSecure = index.addFrEsDichotomyStepResult(counterTradingValues.getFrEsCt(), ctStepResult);
             if (ptEsCtSecure && frEsCtSecure) {
                 index.setBestValidDichotomyStepResult(ctStepResult);
+                // enhance rao result with monitoring result + CT values and send notification
+                Pair<RaoResult, Status> intermediateSuccessfulStep = getRaoResultStatusPair(csaRequest, raoParameters, network, crac, index, false, true);
+                streamBridge.send(RESPONSE_BRIDGE_NAME, jsonApiConverter.toJsonMessage(new CsaResponse(csaRequest.getId(), intermediateSuccessfulStep.getSecond().toString(), s3ArtifactsAdapter.generatePreSignedUrl(csaRequest.getResultsUri())), CsaResponse.class));
+
             }
         }
         businessLogger.info("Dichotomy stop criterion reached, CT PT-ES: {}, CT FR-ES: {}", Math.round(index.getBestValidDichotomyStepResult().getCounterTradingValues().getPtEsCt()), Math.round(index.getBestValidDichotomyStepResult().getCounterTradingValues().getFrEsCt()));
-        return getRaoResultStatusPair(csaRequest, raoParameters, network, crac, index, interrupted, timeout);
+        return getRaoResultStatusPair(csaRequest, raoParameters, network, crac, index, interrupted, false);
     }
 
-    private Pair<RaoResult, Status> getRaoResultStatusPair(CsaRequest csaRequest, RaoParameters raoParameters, Network network, Crac crac, Index index, boolean interrupted, boolean timeout) {
+    private Pair<RaoResult, Status> getRaoResultStatusPair(CsaRequest csaRequest, RaoParameters raoParameters, Network network, Crac crac, Index index, boolean interrupted, boolean stillRunningAndSecure) {
         Status status;
         if (index.getBestValidDichotomyStepResult() == null) {
             status = Status.FINISHED_UNSECURE;
@@ -201,13 +215,14 @@ public class DichotomyRunner {
         } else {
             if (interrupted) {
                 status = Status.INTERRUPTED_SECURE;
-            } else if (timeout) {
-                status = Status.TIMEOUT_SECURE;
+            } else if (stillRunningAndSecure) {
+                status = Status.STILL_RUNNING_SECURE;
             } else {
                 status = Status.FINISHED_SECURE;
             }
 
             RaoResult raoResult = index.getBestValidDichotomyStepResult().getRaoResult();
+            // TODO MBR : check if we need to rerun angle monitoring here
             raoResult = updateRaoResultWithVoltageMonitoring(network, crac, raoResult, raoParameters);
             RaoResultWithCounterTradeRangeActions raoResultWithRangeAction = updateRaoResultWithCounterTradingRAs(network, crac, index, raoResult);
             fileExporter.saveRaoResultInArtifact(csaRequest.getResultsUri(), raoResultWithRangeAction, crac);
