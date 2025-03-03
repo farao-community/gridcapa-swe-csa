@@ -101,6 +101,6 @@ class SweCsaRaoValidatorTest {
         SweCsaRaoValidator sweCsaRaoValidator = new SweCsaRaoValidator(fileExporter, raoRunnerClient, LoggerFactory.getLogger(S3AdapterUtil.class));
         Mockito.when(raoRunnerClient.runRao(any())).thenReturn(new RaoFailureResponse.Builder().withId("id").withErrorMessage("errorMessage").build());
         assertThrows(CsaInternalException.class, () -> sweCsaRaoValidator.validateNetwork(network, crac, new RaoParameters(),
-            new CsaRequest("id", "2024-12-01T15:30:00Z", "", "", ""), "raoParametersUrl", new CounterTradingValues(0.0, 0.0)));
+            new CsaRequest("id", "2024-12-01T15:30:00Z", "", ""), "raoParametersUrl", new CounterTradingValues(0.0, 0.0)));
     }
 }

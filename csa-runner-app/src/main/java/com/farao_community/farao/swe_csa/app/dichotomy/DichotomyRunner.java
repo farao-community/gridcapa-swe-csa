@@ -74,7 +74,7 @@ public class DichotomyRunner {
         this.businessLogger = businessLogger;
     }
 
-    public Pair<RaoResult, Status> runDichotomy(CsaRequest csaRequest) throws GlskLimitationException, ShiftingException {
+    public Pair<RaoResult, Status> runDichotomy(CsaRequest csaRequest, String raoResultDestinationPath) throws GlskLimitationException, ShiftingException {
         RaoParameters raoParameters = RaoParameters.load();
         String raoParametersUrl = fileImporter.uploadRaoParameters(Instant.parse(csaRequest.getBusinessTimestamp()));
         Network network = fileImporter.importNetwork(csaRequest.getGridModelUri());
@@ -110,7 +110,7 @@ public class DichotomyRunner {
             businessLogger.warn(e.getMessage());
             businessLogger.warn("No counter trading will be done, only input network will be checked by rao");
             RaoResult raoResult = sweCsaRaoValidator.validateNetwork(network, crac, raoParameters, csaRequest, raoParametersUrl, minCounterTradingValues).getRaoResult();
-            fileExporter.saveRaoResultInArtifact(csaRequest.getResultsUri(), raoResult, crac);
+            fileExporter.saveRaoResultInArtifact(raoResultDestinationPath, raoResult, crac);
             return raoResult.isSecure() ? new Pair<>(raoResult, Status.FINISHED_SECURE) : new Pair<>(raoResult, Status.FINISHED_UNSECURE);
         }
         // best case no counter trading , no scaling
@@ -124,7 +124,7 @@ public class DichotomyRunner {
 
         if (noCtStepResult.isValid()) {
             businessLogger.info("Input network is secure no need for counter trading");
-            fileExporter.saveRaoResultInArtifact(csaRequest.getResultsUri(), noCtStepResult.getRaoResult(), crac);
+            fileExporter.saveRaoResultInArtifact(raoResultDestinationPath, noCtStepResult.getRaoResult(), crac);
             return new Pair<>(noCtStepResult.getRaoResult(), Status.FINISHED_SECURE);
         } else {
             if (interruptionService.getTasksToInterrupt().remove(csaRequest.getId())) {
@@ -152,7 +152,7 @@ public class DichotomyRunner {
             logBorderOverload(maxCtStepResult);
             if (!maxCtStepResult.isValid()) {
                 businessLogger.error("Maximum CT value cannot secure this case");
-                fileExporter.saveRaoResultInArtifact(csaRequest.getResultsUri(), maxCtStepResult.getRaoResult(), crac);
+                fileExporter.saveRaoResultInArtifact(raoResultDestinationPath, maxCtStepResult.getRaoResult(), crac);
                 return new Pair<>(maxCtStepResult.getRaoResult(), Status.FINISHED_UNSECURE);
             } else {
                 businessLogger.info("Best case in unsecure, worst case is secure, trying to find optimum in between using dichotomy");
@@ -162,12 +162,12 @@ public class DichotomyRunner {
                 index.addFrEsDichotomyStepResult(0, noCtStepResult);
                 index.addFrEsDichotomyStepResult(ctFrEsUpperBound, maxCtStepResult);
                 index.setBestValidDichotomyStepResult(maxCtStepResult);
-                return processDichotomy(csaRequest, raoParameters, raoParametersUrl, network, crac, initialVariant, networkShifter, index);
+                return processDichotomy(csaRequest, raoResultDestinationPath, raoParameters, raoParametersUrl, network, crac, initialVariant, networkShifter, index);
             }
         }
     }
 
-    private Pair<RaoResult, Status> processDichotomy(CsaRequest csaRequest, RaoParameters raoParameters, String raoParametersUrl, Network network, Crac crac, String initialVariant, SweCsaNetworkShifter networkShifter, Index index) {
+    private Pair<RaoResult, Status> processDichotomy(CsaRequest csaRequest, String raoResultDestinationPath, RaoParameters raoParameters, String raoParametersUrl, Network network, Crac crac, String initialVariant, SweCsaNetworkShifter networkShifter, Index index) {
         boolean interrupted = false;
         while (index.exitConditionIsNotMetForPtEs() || index.exitConditionIsNotMetForFrEs()) {
             if (interruptionService.getTasksToInterrupt().remove(csaRequest.getId())) {
@@ -198,16 +198,16 @@ public class DichotomyRunner {
             if (ptEsCtSecure && frEsCtSecure) {
                 index.setBestValidDichotomyStepResult(ctStepResult);
                 // enhance rao result with monitoring result + CT values and send notification
-                Pair<RaoResult, Status> intermediateSuccessfulStep = getRaoResultStatusPair(csaRequest, raoParameters, network, crac, index, false, true);
-                streamBridge.send(RESPONSE_BRIDGE_NAME, jsonApiConverter.toJsonMessage(new CsaResponse(csaRequest.getId(), intermediateSuccessfulStep.getSecond().toString(), s3ArtifactsAdapter.generatePreSignedUrl(csaRequest.getResultsUri())), CsaResponse.class));
+                Pair<RaoResult, Status> intermediateSuccessfulStep = getRaoResultStatusPair(raoResultDestinationPath, raoParameters, network, crac, index, false, true);
+                streamBridge.send(RESPONSE_BRIDGE_NAME, jsonApiConverter.toJsonMessage(new CsaResponse(csaRequest.getId(), intermediateSuccessfulStep.getSecond().toString(), s3ArtifactsAdapter.generatePreSignedUrl(raoResultDestinationPath)), CsaResponse.class));
 
             }
         }
         businessLogger.info("Dichotomy stop criterion reached, CT PT-ES: {}, CT FR-ES: {}", Math.round(index.getBestValidDichotomyStepResult().getCounterTradingValues().getPtEsCt()), Math.round(index.getBestValidDichotomyStepResult().getCounterTradingValues().getFrEsCt()));
-        return getRaoResultStatusPair(csaRequest, raoParameters, network, crac, index, interrupted, false);
+        return getRaoResultStatusPair(raoResultDestinationPath, raoParameters, network, crac, index, interrupted, false);
     }
 
-    private Pair<RaoResult, Status> getRaoResultStatusPair(CsaRequest csaRequest, RaoParameters raoParameters, Network network, Crac crac, Index index, boolean interrupted, boolean stillRunningAndSecure) {
+    private Pair<RaoResult, Status> getRaoResultStatusPair(String raoResultDestinationPath, RaoParameters raoParameters, Network network, Crac crac, Index index, boolean interrupted, boolean stillRunningAndSecure) {
         Status status;
         if (index.getBestValidDichotomyStepResult() == null) {
             status = Status.FINISHED_UNSECURE;
@@ -225,7 +225,7 @@ public class DichotomyRunner {
             // TODO MBR : check if we need to rerun angle monitoring here
             raoResult = updateRaoResultWithVoltageMonitoring(network, crac, raoResult, raoParameters);
             RaoResultWithCounterTradeRangeActions raoResultWithRangeAction = updateRaoResultWithCounterTradingRAs(network, crac, index, raoResult);
-            fileExporter.saveRaoResultInArtifact(csaRequest.getResultsUri(), raoResultWithRangeAction, crac);
+            fileExporter.saveRaoResultInArtifact(raoResultDestinationPath, raoResultWithRangeAction, crac);
             return new Pair<>(raoResultWithRangeAction, status);
         }
     }

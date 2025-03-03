@@ -17,6 +17,8 @@ import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 
 @Service
 public class RequestService {
@@ -45,9 +47,10 @@ public class RequestService {
 
             businessLogger.info("Csa request received : {}", csaRequest);
             Instant utcInstant = Instant.parse(csaRequest.getBusinessTimestamp());
-            Pair<RaoResult, Status> result = dichotomyRunner.runDichotomy(csaRequest);
+            String raoResultDestinationPath = s3ArtifactsAdapter.createRaoResultDestination(OffsetDateTime.ofInstant(utcInstant, ZoneId.of("UTC")).toString());
+            Pair<RaoResult, Status> result = dichotomyRunner.runDichotomy(csaRequest, raoResultDestinationPath);
             businessLogger.info("CSA computation finished for TimeStamp: '{}'", utcInstant);
-            CsaResponse csaResponse = new CsaResponse(csaRequest.getId(), result.getSecond().toString(), s3ArtifactsAdapter.generatePreSignedUrl(csaRequest.getResultsUri()));
+            CsaResponse csaResponse = new CsaResponse(csaRequest.getId(), result.getSecond().toString(), s3ArtifactsAdapter.generatePreSignedUrl(raoResultDestinationPath));
             resultBytes = jsonApiConverter.toJsonMessage(csaResponse, CsaResponse.class);
             businessLogger.info("Csa response sent: {}", csaResponse);
         } catch (Exception e) {

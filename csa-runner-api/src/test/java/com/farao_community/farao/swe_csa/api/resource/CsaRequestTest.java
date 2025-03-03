@@ -21,13 +21,11 @@ class CsaRequestTest {
         String businessTimestamp = "2023-08-08T15:30:00Z";
         String gridModelUri = "https://example.com/gridModel";
         String cracFileUri = "https://example.com/crac";
-        String resultsUri = "https://example.com/results";
 
-        CsaRequest request = new CsaRequest(id, businessTimestamp, gridModelUri, cracFileUri, resultsUri);
+        CsaRequest request = new CsaRequest(id, businessTimestamp, gridModelUri, cracFileUri);
         assertEquals(id, request.getId());
         assertEquals(businessTimestamp, request.getBusinessTimestamp());
         assertEquals(gridModelUri, request.getGridModelUri());
         assertEquals(cracFileUri, request.getCracFileUri());
-        assertEquals(resultsUri, request.getResultsUri());
     }
 }
