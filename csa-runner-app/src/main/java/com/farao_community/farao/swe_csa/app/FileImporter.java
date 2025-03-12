@@ -14,7 +14,6 @@ import com.powsybl.openrao.commons.OpenRaoException;
 import com.powsybl.openrao.data.crac.api.Crac;
 import com.powsybl.openrao.raoapi.json.JsonRaoParameters;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
-import com.powsybl.sensitivity.SensitivityVariableSet;
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.springframework.stereotype.Service;
@@ -24,7 +23,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
@@ -62,21 +60,6 @@ public class FileImporter {
         }
     }
 
-    ZonalData<SensitivityVariableSet> importGlsk(String taskId, String instant, String glskUrl, Network network) throws CsaInvalidDataException {
-        try {
-            final InputStream glskFileInputStream = openUrlStream(taskId, glskUrl);
-            final GlskDocument ucteGlskProvider = GlskDocumentImporters.importGlsk(glskFileInputStream);
-            final OffsetDateTime offsetDateTime = OffsetDateTime.parse(instant);
-            return ucteGlskProvider.getZonalGlsks(network, offsetDateTime.toInstant());
-        } catch (Exception e) {
-            final String message = String.format("Error occurred during GLSK Provider creation for timestamp %s, using GLSK file %s, and CGM network file %s",
-                instant,
-                FilenameUtils.getName(glskUrl),
-                network.getNameOrId());
-            throw new CsaInvalidDataException(taskId, message, e);
-        }
-    }
-
     public String uploadRaoParameters(Instant utcInstant) {
         String raoParametersFilePath = String.format("configurations/rao-parameters-%s", HOURLY_NAME_FORMATTER.format(utcInstant).concat(".json"));
         RaoParameters raoParameters = RaoParameters.load();
@@ -105,14 +88,15 @@ public class FileImporter {
         }
     }
 
-    public ZonalData<Scalable> getZonalData(String taskId, String glskUri, Network network, boolean filteredForSweCountries) {
+    public ZonalData<Scalable> getZonalData(String taskId, Instant instant, String glskUri, Network network, boolean filteredForSweCountries) {
         try {
             GlskDocumentImporter glskDocumentImporter = GlskDocumentImporters.findImporter(openUrlStream(taskId, glskUri));
+
             GlskDocument glskDocument = glskDocumentImporter.importGlsk(openUrlStream(taskId, glskUri));
             businessLogger.info("Glsk document imported");
             // TODO MBR check if we need to do the same workaround here for angle monitoring by filtering for swe countries only
-            return glskDocument.getZonalScalable(network);
-        } catch (OpenRaoException e) {
+            return glskDocument.getZonalScalable(network, instant);
+        } catch (Exception e) {
             businessLogger.error("Glsk document couldn't be imported, as a backup solution Scalable proportional to network generators will be used");
             if (filteredForSweCountries) {
                 Set<Country> sweCountries = new HashSet<>(Arrays.asList(Country.FR, Country.PT, Country.ES));

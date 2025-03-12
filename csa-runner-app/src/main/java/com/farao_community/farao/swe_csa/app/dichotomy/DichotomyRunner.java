@@ -77,12 +77,13 @@ public class DichotomyRunner {
 
     public Pair<RaoResult, Status> runDichotomy(CsaRequest csaRequest, String raoResultDestinationPath) throws GlskLimitationException, ShiftingException {
         RaoParameters raoParameters = RaoParameters.load();
-        String raoParametersUrl = fileImporter.uploadRaoParameters(Instant.parse(csaRequest.getBusinessTimestamp()));
+        Instant instant = Instant.parse(csaRequest.getBusinessTimestamp());
+        String raoParametersUrl = fileImporter.uploadRaoParameters(instant);
         Network network = fileImporter.importNetwork(csaRequest.getId(), csaRequest.getGridModelUri());
         // FIXME MBR temporary workaround to test integration before crac separated feature is finished
         Crac crac = fileImporter.importCrac(csaRequest.getId(), csaRequest.getPtEsCracFileUri(), network);
-        ZonalData<Scalable> scalableZonalData = fileImporter.getZonalData(csaRequest.getId(), csaRequest.getGlskUri(), network, false);
-        ZonalData<Scalable> scalableZonalDataFilteredForSweCountries = fileImporter.getZonalData(csaRequest.getId(), csaRequest.getGlskUri(), network, true);
+        ZonalData<Scalable> scalableZonalData = fileImporter.getZonalData(csaRequest.getId(), instant, csaRequest.getGlskUri(), network, false);
+        ZonalData<Scalable> scalableZonalDataFilteredForSweCountries = fileImporter.getZonalData(csaRequest.getId(), instant, csaRequest.getGlskUri(), network, true);
         updateCracWithCounterTrageRangeActions(crac);
 
         String initialVariant = network.getVariantManager().getWorkingVariantId();

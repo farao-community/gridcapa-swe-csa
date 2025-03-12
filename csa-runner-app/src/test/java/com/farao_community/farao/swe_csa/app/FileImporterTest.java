@@ -2,7 +2,6 @@ package com.farao_community.farao.swe_csa.app;
 
 import com.farao_community.farao.swe_csa.api.exception.CsaInvalidDataException;
 import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
-import com.powsybl.glsk.cim.CimGlskDocument;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Network;
@@ -69,14 +68,31 @@ class FileImporterTest {
     @Test
     void checkCimGlskIsImportedCorrectly() {
         Network testNetwork = Network.read("testCase.xiidm", getClass().getResourceAsStream("/glsk/testCase.xiidm"));
-        CimGlskDocument cimGlskDocument = CimGlskDocument.importGlsk(getClass().getResourceAsStream("/glsk/glsk-document-cim.xml"));
-        assertEquals(1, cimGlskDocument.getZones().size());
-        Instant instant1 = Instant.parse("2017-04-13T07:00:00Z");
-        ZonalData<Scalable> zonalScalables = cimGlskDocument.getZonalScalable(testNetwork, instant1);
-        assertEquals(1, zonalScalables.getDataPerZone().size());
-        Scalable scalableFR = zonalScalables.getData("10YFR-RTE------C");
+        ZonalData<Scalable> zonalScalable = fileImporter.getZonalData("taskId", Instant.parse("2017-04-13T07:00:00Z"), Objects.requireNonNull(getClass().getResource("/glsk/glsk-document-cim.xml")).toString(), testNetwork, false);
+        assertEquals(1, zonalScalable.getDataPerZone().size());
+        Scalable scalableFR = zonalScalable.getData("10YFR-RTE------C");
         assertEquals(1, scalableFR.filterInjections(testNetwork).size());
         assertEquals("FFR3AA1 _generator", scalableFR.filterInjections(testNetwork).getFirst().getId());
+    }
+
+    @Test
+    void checkGlskImportedBackupWithoutFilteringOnCountries() {
+        Network testNetwork = Network.read("testCase.xiidm", getClass().getResourceAsStream("/glsk/testCase.xiidm"));
+        ZonalData<Scalable> zonalScalable = fileImporter.getZonalData("taskId", Instant.parse("2017-04-13T07:00:00Z"), "/mock.xml", testNetwork, false);
+        assertEquals(4, zonalScalable.getDataPerZone().size());
+        Scalable scalableFR = zonalScalable.getData("10YFR-RTE------C");
+        assertEquals(3, scalableFR.filterInjections(testNetwork).size());
+        assertEquals("FFR1AA1 _generator", scalableFR.filterInjections(testNetwork).getFirst().getId());
+    }
+
+    @Test
+    void checkGlskImportedBackupWithFilteringOnCountries() {
+        Network testNetwork = Network.read("testCase.xiidm", getClass().getResourceAsStream("/glsk/testCase.xiidm"));
+        ZonalData<Scalable> zonalScalable = fileImporter.getZonalData("taskId", Instant.parse("2017-04-13T07:00:00Z"), "/mock.xml", testNetwork, true);
+        assertEquals(1, zonalScalable.getDataPerZone().size());
+        Scalable scalableFR = zonalScalable.getData("10YFR-RTE------C");
+        assertEquals(3, scalableFR.filterInjections(testNetwork).size());
+        assertEquals("FFR1AA1 _generator", scalableFR.filterInjections(testNetwork).getFirst().getId());
     }
 
     @Test
