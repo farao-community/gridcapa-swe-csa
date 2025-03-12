@@ -118,6 +118,15 @@
             <groupId>com.powsybl</groupId>
             <artifactId>open-rao-crac-api</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.powsybl</groupId>
+            <artifactId>powsybl-glsk-document-io-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.powsybl</groupId>
+            <artifactId>powsybl-glsk-document-cim</artifactId>
+            <scope>runtime</scope>
+        </dependency>
         <!-- TECHNICAL DEPENDENCIES -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

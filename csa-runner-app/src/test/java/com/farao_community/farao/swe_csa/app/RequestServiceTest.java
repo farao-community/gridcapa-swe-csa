@@ -49,7 +49,7 @@ class RequestServiceTest {
 
         when(s3ArtifactsAdapter.createRaoResultDestination(OffsetDateTime.ofInstant(Instant.parse("2023-08-08T15:30:00Z"), ZoneId.of("UTC")).toString())).thenReturn("resultsPath");
         when(s3ArtifactsAdapter.generatePreSignedUrl("resultsPath")).thenReturn("https://cds/resultsUri.signed.url");
-        when(dichotomyRunner.runDichotomy(new CsaRequest("id", "2023-08-08T15:30:00Z", "https://cds/gridModelUri.signed.url", "https://cds/cracFileUri.signed.url"), "resultsPath")).thenReturn(new Pair<>(null, Status.FINISHED_SECURE));
+        when(dichotomyRunner.runDichotomy(new CsaRequest("id", "2023-08-08T15:30:00Z", "https://cds/gridModelUri.signed.url", "https://cds/glskUri.signed.url", "https://cds/ptEsCracFileUri.signed.url", "https://cds/frEsCracFileUri.signed.url"), "resultsPath")).thenReturn(new Pair<>(null, Status.FINISHED_SECURE));
 
         byte[] resultBytes = requestService.launchCsaRequest(requestBytes);
         CsaResponse csaResponse = jsonApiConverter.fromJsonMessage(resultBytes, CsaResponse.class);

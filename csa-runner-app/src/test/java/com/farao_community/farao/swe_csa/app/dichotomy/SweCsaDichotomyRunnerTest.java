@@ -11,6 +11,9 @@ import com.farao_community.farao.swe_csa.app.FileImporter;
 import com.farao_community.farao.swe_csa.app.InterruptionService;
 import com.farao_community.farao.swe_csa.app.rao_result.RaoResultWithCounterTradeRangeActions;
 import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
+import com.farao_community.farao.swe_csa.app.shift.SweCsaZonalData;
+import com.powsybl.glsk.commons.ZonalData;
+import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.data.crac.api.Crac;
 import com.powsybl.openrao.data.crac.api.CracFactory;
@@ -53,11 +56,14 @@ class SweCsaDichotomyRunnerTest {
     void runCounterTradingTest() throws GlskLimitationException, ShiftingException {
         Instant utcInstant = Instant.parse("2023-09-13T09:30:00Z");
         Network network = Network.read("/dichotomy/TestCase_with_swe_countries.xiidm", getClass().getResourceAsStream("/dichotomy/TestCase_with_swe_countries.xiidm"));
+        ZonalData<Scalable> scalableZonalData = SweCsaZonalData.getZonalData(network);
         Crac crac = CracFactory.findDefault().create("id");
         Mockito.when(fileImporter.uploadRaoParameters(utcInstant)).thenReturn("rao-parameters-url");
-        Mockito.when(fileImporter.importNetwork("cgm-url")).thenReturn(network);
-        Mockito.when(fileImporter.importCrac("crac-url", network)).thenReturn(crac);
-        Mockito.when(fileExporter.saveNetworkInArtifact(Mockito.any(), Mockito.any())).thenReturn("scaled-network-url");
+        Mockito.when(fileImporter.importNetwork("id", "cgm-url")).thenReturn(network);
+        Mockito.when(fileImporter.importCrac("id", "ptEs-crac-url", network)).thenReturn(crac);
+        Mockito.when(fileImporter.getZonalData("id", "glsk-url", network, false)).thenReturn(scalableZonalData);
+        Mockito.when(fileImporter.getZonalData("id", "glsk-url", network, true)).thenReturn(scalableZonalData);
+        Mockito.when(fileExporter.saveNetworkInArtifact(Mockito.anyString(), Mockito.any(), Mockito.any())).thenReturn("scaled-network-url");
         AbstractRaoResponse raoResponse = Mockito.mock(AbstractRaoResponse.class);
         Mockito.when(raoRunnerClient.runRao(Mockito.any())).thenReturn(raoResponse);
         SweCsaRaoValidator sweCsaRaoValidator = new SweCsaRaoValidatorMock(fileExporter, raoRunnerClient);
@@ -65,7 +71,7 @@ class SweCsaDichotomyRunnerTest {
         DichotomyRunner sweCsaDichotomyRunner = new DichotomyRunner(sweCsaRaoValidator, fileImporter, fileExporter, interruptionService, streamBridge, s3ArtifactsAdapter, LoggerFactory.getLogger(SweCsaDichotomyRunnerTest.class));
         sweCsaDichotomyRunner.setIndexPrecision(50);
         sweCsaDichotomyRunner.setMaxDichotomiesByBorder(10);
-        CsaRequest csaRequest = new CsaRequest("id", "2023-09-13T09:30:00Z", "cgm-url", "crac-url");
+        CsaRequest csaRequest = new CsaRequest("id", "2023-09-13T09:30:00Z", "cgm-url", "glsk-url", "ptEs-crac-url", "frEs-crac-url");
         RaoResultWithCounterTradeRangeActions raoResult = (RaoResultWithCounterTradeRangeActions) sweCsaDichotomyRunner.runDichotomy(csaRequest, "rao-result-url").getFirst();
 
         Iterator<CounterTradeRangeActionResult> ctRaResultIt  = raoResult.getCounterTradingResult().getCounterTradeRangeActionResults().values().stream().sorted(Comparator.comparing(CounterTradeRangeActionResult::getCtRangeActionId)).collect(Collectors.toCollection(LinkedHashSet::new)).iterator();

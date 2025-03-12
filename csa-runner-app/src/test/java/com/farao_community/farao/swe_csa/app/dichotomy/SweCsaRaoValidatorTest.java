@@ -46,7 +46,7 @@ class SweCsaRaoValidatorTest {
     @Test
     void testGetBorderFlowCnecs() {
         Network network = Network.read(getClass().getResource("/rao_inputs/network.xiidm").getPath());
-        Crac crac = fileImporter.importCrac(Objects.requireNonNull(getClass().getResource("/rao_inputs/crac.json")).toString(), network);
+        Crac crac = fileImporter.importCrac("taskId", Objects.requireNonNull(getClass().getResource("/rao_inputs/crac.json")).toString(), network);
 
         Set<FlowCnec> cnecsFr = SweCsaRaoValidator.getBorderFlowCnecs(crac, network, Country.FR);
         Set<FlowCnec> cnecsDe = SweCsaRaoValidator.getBorderFlowCnecs(crac, network, Country.DE);
@@ -96,11 +96,11 @@ class SweCsaRaoValidatorTest {
     @Test
     void testValidateNetworkRaoFailureResponse() {
         Network network = Network.read(getClass().getResource("/rao_inputs/network.xiidm").getPath());
-        Crac crac = fileImporter.importCrac(Objects.requireNonNull(getClass().getResource("/rao_inputs/crac.json")).toString(), network);
+        Crac crac = fileImporter.importCrac("taskId", Objects.requireNonNull(getClass().getResource("/rao_inputs/crac.json")).toString(), network);
 
         SweCsaRaoValidator sweCsaRaoValidator = new SweCsaRaoValidator(fileExporter, raoRunnerClient, LoggerFactory.getLogger(S3AdapterUtil.class));
         Mockito.when(raoRunnerClient.runRao(any())).thenReturn(new RaoFailureResponse.Builder().withId("id").withErrorMessage("errorMessage").build());
-        assertThrows(CsaInternalException.class, () -> sweCsaRaoValidator.validateNetwork(network, crac, new RaoParameters(),
-            new CsaRequest("id", "2024-12-01T15:30:00Z", "", ""), "raoParametersUrl", new CounterTradingValues(0.0, 0.0)));
+        assertThrows(CsaInternalException.class, () -> sweCsaRaoValidator.validateNetwork(network, crac, null, new RaoParameters(),
+            new CsaRequest("id", "2024-12-01T15:30:00Z", "", "", "", ""), "raoParametersUrl", new CounterTradingValues(0.0, 0.0)));
     }
 }

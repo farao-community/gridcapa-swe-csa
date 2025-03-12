@@ -35,7 +35,8 @@ class JsonApiConverterTest {
         assertEquals("id", request.getId());
         assertEquals("2023-08-08T15:30:00Z", request.getBusinessTimestamp());
         assertEquals("https://cds/gridModelUri.signed.url", request.getGridModelUri());
-        assertEquals("https://cds/cracFileUri.signed.url", request.getCracFileUri());
+        assertEquals("https://cds/ptEsCracFileUri.signed.url", request.getPtEsCracFileUri());
+        assertEquals("https://cds/frEsCracFileUri.signed.url", request.getFrEsCracFileUri());
     }
 
     @Test
