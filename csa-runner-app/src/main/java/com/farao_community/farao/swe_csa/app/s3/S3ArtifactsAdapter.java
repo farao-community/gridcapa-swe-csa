@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.io.InputStream;
+import java.time.OffsetDateTime;
 
 @Component
 public class S3ArtifactsAdapter {
@@ -33,6 +34,11 @@ public class S3ArtifactsAdapter {
 
     public String generatePreSignedUrl(String minioPath) {
         return S3AdapterUtil.generatePreSignedUrl(minioClient, basePath + "/" + minioPath, bucket);
+    }
+
+    public String createRaoResultDestination(String timestamp) {
+        OffsetDateTime offsetDateTime = OffsetDateTime.parse(timestamp);
+        return "artifacts" + "/" + offsetDateTime.getYear() + "/" + offsetDateTime.getMonthValue() + "/" + offsetDateTime.getDayOfMonth() + "/" + offsetDateTime.getHour() + "_" + offsetDateTime.getMinute() + "/"  + "rao-result.json";
     }
 
 }

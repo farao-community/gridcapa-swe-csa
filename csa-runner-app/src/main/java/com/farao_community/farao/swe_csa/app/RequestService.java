@@ -17,6 +17,9 @@ import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.util.Optional;
 
 @Service
 public class RequestService {
@@ -44,10 +47,13 @@ public class RequestService {
             streamBridge.send(ACK_BRIDGE_NAME, jsonApiConverter.toJsonMessage(new CsaResponse(requestId, Status.ACCEPTED.toString(), ""), CsaResponse.class));
 
             businessLogger.info("Csa request received : {}", csaRequest);
+            // Implementation-Version from META-INF/MANIFEST.MF isn’t available in unit tests because tests run from the target/classes directory, not the actual packaged JAR
+            businessLogger.info("Current CSA runner version is: {}", Optional.ofNullable(this.getClass().getPackage().getImplementationVersion()).orElse("unknown"));
             Instant utcInstant = Instant.parse(csaRequest.getBusinessTimestamp());
-            Pair<RaoResult, Status> result = dichotomyRunner.runDichotomy(csaRequest);
+            String raoResultDestinationPath = s3ArtifactsAdapter.createRaoResultDestination(OffsetDateTime.ofInstant(utcInstant, ZoneId.of("UTC")).toString());
+            Pair<RaoResult, Status> result = dichotomyRunner.runDichotomy(csaRequest, raoResultDestinationPath);
             businessLogger.info("CSA computation finished for TimeStamp: '{}'", utcInstant);
-            CsaResponse csaResponse = new CsaResponse(csaRequest.getId(), result.getSecond().toString(), s3ArtifactsAdapter.generatePreSignedUrl(csaRequest.getResultsUri()));
+            CsaResponse csaResponse = new CsaResponse(csaRequest.getId(), result.getSecond().toString(), s3ArtifactsAdapter.generatePreSignedUrl(raoResultDestinationPath));
             resultBytes = jsonApiConverter.toJsonMessage(csaResponse, CsaResponse.class);
             businessLogger.info("Csa response sent: {}", csaResponse);
         } catch (Exception e) {

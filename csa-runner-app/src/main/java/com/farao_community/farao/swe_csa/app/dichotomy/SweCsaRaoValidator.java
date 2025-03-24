@@ -20,7 +20,8 @@ import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
 import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.app.FileExporter;
-import com.farao_community.farao.swe_csa.app.shift.SweCsaZonalData;
+import com.powsybl.glsk.commons.ZonalData;
+import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.commons.Unit;
@@ -38,8 +39,6 @@ import org.springframework.stereotype.Service;
 
 import java.net.URL;
 import java.time.OffsetDateTime;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -58,8 +57,9 @@ public class SweCsaRaoValidator {
         this.businessLogger = businessLogger;
     }
 
-    public DichotomyStepResult validateNetwork(Network network, Crac crac, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
-        RaoRequest raoRequest = buildRaoRequest(counterTradingValues.print(), csaRequest.getBusinessTimestamp(), csaRequest.getId(), network, csaRequest.getCracFileUri(), raoParametersUrl);
+    public DichotomyStepResult validateNetwork(Network network, Crac crac, ZonalData<Scalable> scalableZonalDataFilteredForSweCountries, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
+        // FIXME MBR temporary workaround to test integration before crac separated feature is finished
+        RaoRequest raoRequest = buildRaoRequest(counterTradingValues.print(), csaRequest.getBusinessTimestamp(), csaRequest.getId(), network, csaRequest.getPtEsCracFileUri(), raoParametersUrl);
 
         try {
             businessLogger.info("RAO request sent: {}", raoRequest);
@@ -75,7 +75,7 @@ public class SweCsaRaoValidator {
             RaoResult raoResult = new RaoResultJsonImporter().importData(new URL(raoSuccessResponse.getRaoResultFileUrl()).openStream(), crac);
             businessLogger.info("RAO result imported: {}", raoResult);
 
-            raoResult = updateRaoResultWithAngleMonitoring(network, crac, raoResult, raoParameters);
+            raoResult = updateRaoResultWithAngleMonitoring(network, crac, scalableZonalDataFilteredForSweCountries, raoResult, raoParameters);
 
             Set<FlowCnec> frEsFlowCnecs = getBorderFlowCnecs(crac, network, Country.FR);
             Set<FlowCnec> ptEsFlowCnecs = getBorderFlowCnecs(crac, network, Country.PT);
@@ -88,9 +88,8 @@ public class SweCsaRaoValidator {
         }
     }
 
-    private RaoResult updateRaoResultWithAngleMonitoring(Network network, Crac crac, RaoResult raoResult, RaoParameters raoParameters) {
-        Set<Country> sweCountries = new HashSet<>(Arrays.asList(Country.FR, Country.PT, Country.ES));
-        MonitoringInput angleMonitoringInput = MonitoringInput.buildWithAngle(network, crac, raoResult, SweCsaZonalData.getZonalData(network, sweCountries)).build();
+    private RaoResult updateRaoResultWithAngleMonitoring(Network network, Crac crac, ZonalData<Scalable> scalableZonalDataFilteredForSweCountries, RaoResult raoResult, RaoParameters raoParameters) {
+        MonitoringInput angleMonitoringInput = MonitoringInput.buildWithAngle(network, crac, raoResult, scalableZonalDataFilteredForSweCountries).build();
         return Monitoring.runAngleAndUpdateRaoResult(raoParameters.getLoadFlowAndSensitivityParameters().getLoadFlowProvider(), raoParameters.getLoadFlowAndSensitivityParameters().getSensitivityWithLoadFlowParameters().getLoadFlowParameters(), Runtime.getRuntime().availableProcessors(), angleMonitoringInput);
     }
 
@@ -115,7 +114,7 @@ public class SweCsaRaoValidator {
 
     private RaoRequest buildRaoRequest(String stepFolder, String timestamp, String taskId, Network network, String cracUrl, String raoParametersUrl) {
         String scaledNetworkPath = generateScaledNetworkPath(network, timestamp, stepFolder);
-        String scaledNetworkPreSignedUrl = fileExporter.saveNetworkInArtifact(network, scaledNetworkPath);
+        String scaledNetworkPreSignedUrl = fileExporter.saveNetworkInArtifact(taskId, network, scaledNetworkPath);
         String raoResultDestination = generateArtifactsFolder(timestamp, stepFolder);
         return new RaoRequest.RaoRequestBuilder()
             .withId(taskId)

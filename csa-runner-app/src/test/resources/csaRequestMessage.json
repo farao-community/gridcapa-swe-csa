@@ -5,8 +5,9 @@
     "attributes": {
       "businessTimestamp": "2023-08-08T15:30:00Z",
       "gridModelUri": "https://cds/gridModelUri.signed.url",
-      "cracFileUri": "https://cds/cracFileUri.signed.url",
-      "resultsUri": "https://cds/resultsUri.signed.url"
+      "glskUri": "https://cds/glskUri.signed.url",
+      "ptEsCracFileUri": "https://cds/ptEsCracFileUri.signed.url",
+      "frEsCracFileUri": "https://cds/frEsCracFileUri.signed.url"
     }
   }
 }

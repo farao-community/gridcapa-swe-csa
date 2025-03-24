@@ -23,7 +23,7 @@ class SweCsaZonalDataTest {
 
     @Test
     void zonalDataCreationTest() {
-        Network network = fileImporter.importNetwork(Objects.requireNonNull(getClass().getResource("/rao_inputs/network.xiidm")).toString());
+        Network network = fileImporter.importNetwork("taskId", Objects.requireNonNull(getClass().getResource("/rao_inputs/network.xiidm")).toString());
         ZonalData<Scalable> zonalData = SweCsaZonalData.getZonalData(network);
         assertNotNull(zonalData);
         assertEquals("[10YBE----------2, 10YCB-GERMANY--8, 10YFR-RTE------C, 10YNL----------L]", zonalData.getDataPerZone().keySet().stream().sorted().toList().toString());

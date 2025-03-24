@@ -1,6 +1,6 @@
 package com.farao_community.farao.swe_csa.app;
 
-import com.farao_community.farao.gridcapa_swe_commons.exception.SweInternalException;
+import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
 import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
 import com.powsybl.commons.datasource.MemDataSource;
 import com.powsybl.iidm.network.Network;
@@ -23,13 +23,13 @@ public class FileExporter {
         this.s3ArtifactsAdapter = s3ArtifactsAdapter;
     }
 
-    public String saveNetworkInArtifact(Network network, String networkFilePath) {
+    public String saveNetworkInArtifact(String taskId, Network network, String networkFilePath) {
         MemDataSource memDataSource = new MemDataSource();
         network.write(IIDM_EXPORT_FORMAT, new Properties(), memDataSource);
         try (InputStream is = memDataSource.newInputStream("", IIDM_EXTENSION)) {
             s3ArtifactsAdapter.uploadFile(networkFilePath, is);
         } catch (IOException e) {
-            throw new SweInternalException("Error while trying to save network to artifacts", e);
+            throw new CsaInternalException(taskId, "Error while trying to save network to artifacts", e);
         }
         return s3ArtifactsAdapter.generatePreSignedUrl(networkFilePath);
     }
