@@ -32,6 +32,7 @@ import com.powsybl.openrao.data.raoresult.io.json.RaoResultJsonImporter;
 import com.powsybl.openrao.monitoring.Monitoring;
 import com.powsybl.openrao.monitoring.MonitoringInput;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
+import com.powsybl.openrao.raoapi.parameters.extensions.LoadFlowAndSensitivityParameters;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.MDC;
@@ -90,7 +91,7 @@ public class SweCsaRaoValidator {
 
     private RaoResult updateRaoResultWithAngleMonitoring(Network network, Crac crac, ZonalData<Scalable> scalableZonalDataFilteredForSweCountries, RaoResult raoResult, RaoParameters raoParameters) {
         MonitoringInput angleMonitoringInput = MonitoringInput.buildWithAngle(network, crac, raoResult, scalableZonalDataFilteredForSweCountries).build();
-        return Monitoring.runAngleAndUpdateRaoResult(raoParameters.getLoadFlowAndSensitivityParameters().getLoadFlowProvider(), raoParameters.getLoadFlowAndSensitivityParameters().getSensitivityWithLoadFlowParameters().getLoadFlowParameters(), Runtime.getRuntime().availableProcessors(), angleMonitoringInput);
+        return Monitoring.runAngleAndUpdateRaoResult(LoadFlowAndSensitivityParameters.getLoadFlowProvider(raoParameters), LoadFlowAndSensitivityParameters.getSensitivityWithLoadFlowParameters(raoParameters).getLoadFlowParameters(), Runtime.getRuntime().availableProcessors(), angleMonitoringInput);
     }
 
     static Set<FlowCnec> getBorderFlowCnecs(Crac crac, Network network, Country country) {
