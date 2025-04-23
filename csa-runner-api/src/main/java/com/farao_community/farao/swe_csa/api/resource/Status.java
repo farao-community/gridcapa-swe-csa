@@ -12,6 +12,7 @@ package com.farao_community.farao.swe_csa.api.resource;
 public enum Status {
     ACCEPTED,
     INTERRUPTED_SECURE,
+    INTERRUPTED_UNSECURE,
     STILL_RUNNING_SECURE,
     FINISHED_SECURE,
     FINISHED_UNSECURE

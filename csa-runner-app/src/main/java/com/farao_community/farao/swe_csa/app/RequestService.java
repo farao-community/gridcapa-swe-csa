@@ -7,10 +7,9 @@ import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.api.resource.CsaResponse;
 import com.farao_community.farao.swe_csa.api.resource.Status;
 
+import com.farao_community.farao.swe_csa.app.dichotomy.ParallelDichotomyResult;
 import com.farao_community.farao.swe_csa.app.dichotomy.DichotomyRunner;
 import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
-import com.powsybl.openrao.data.raoresult.api.RaoResult;
-import kotlin.Pair;
 import org.slf4j.Logger;
 import org.slf4j.MDC;
 import org.springframework.cloud.stream.function.StreamBridge;
@@ -44,16 +43,19 @@ public class RequestService {
         try {
             String requestId = csaRequest.getId();
             // send ack message
-            streamBridge.send(ACK_BRIDGE_NAME, jsonApiConverter.toJsonMessage(new CsaResponse(requestId, Status.ACCEPTED.toString(), ""), CsaResponse.class));
-
+            streamBridge.send(ACK_BRIDGE_NAME, jsonApiConverter.toJsonMessage(new CsaResponse(requestId, Status.ACCEPTED.toString(),  "",  Status.ACCEPTED.toString(), ""), CsaResponse.class));
             businessLogger.info("Csa request received : {}", csaRequest);
-            // Implementation-Version from META-INF/MANIFEST.MF isn’t available in unit tests because tests run from the target/classes directory, not the actual packaged JAR
+
+            //Log current version: implementation-Version from META-INF/MANIFEST.MF isn’t available in unit tests because tests run from the target/classes directory, not the actual packaged JAR
             businessLogger.info("Current CSA runner version is: {}", Optional.ofNullable(this.getClass().getPackage().getImplementationVersion()).orElse("unknown"));
+
             Instant utcInstant = Instant.parse(csaRequest.getBusinessTimestamp());
-            String raoResultDestinationPath = s3ArtifactsAdapter.createRaoResultDestination(OffsetDateTime.ofInstant(utcInstant, ZoneId.of("UTC")).toString());
-            Pair<RaoResult, Status> result = dichotomyRunner.runDichotomy(csaRequest, raoResultDestinationPath);
+            String ptEsRaoResultDestinationPath = s3ArtifactsAdapter.createRaoResultDestination(OffsetDateTime.ofInstant(utcInstant, ZoneId.of("UTC")).toString(), "PT-ES");
+            String frEsRaoResultDestinationPath = s3ArtifactsAdapter.createRaoResultDestination(OffsetDateTime.ofInstant(utcInstant, ZoneId.of("UTC")).toString(), "FR-ES");
+
+            ParallelDichotomyResult result = dichotomyRunner.runDichotomy(csaRequest, ptEsRaoResultDestinationPath, frEsRaoResultDestinationPath);
             businessLogger.info("CSA computation finished for TimeStamp: '{}'", utcInstant);
-            CsaResponse csaResponse = new CsaResponse(csaRequest.getId(), result.getSecond().toString(), s3ArtifactsAdapter.generatePreSignedUrl(raoResultDestinationPath));
+            CsaResponse csaResponse = new CsaResponse(csaRequest.getId(), result.getPtEsResult().getSecond().toString(), s3ArtifactsAdapter.generatePreSignedUrl(ptEsRaoResultDestinationPath), result.getFrEsResult().getSecond().toString(), s3ArtifactsAdapter.generatePreSignedUrl(frEsRaoResultDestinationPath));
             resultBytes = jsonApiConverter.toJsonMessage(csaResponse, CsaResponse.class);
             businessLogger.info("Csa response sent: {}", csaResponse);
         } catch (Exception e) {

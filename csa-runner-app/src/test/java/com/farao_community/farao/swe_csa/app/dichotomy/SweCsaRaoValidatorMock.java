@@ -26,11 +26,18 @@ public class SweCsaRaoValidatorMock extends SweCsaRaoValidator {
     }
 
     @Override
-    public DichotomyStepResult validateNetwork(Network network, Crac crac, ZonalData<Scalable> scalableZonalData, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
+    public DichotomyStepResult validateNetworkForFrenchBorder(Network network, Crac crac, String cracUri, ZonalData<Scalable> scalableZonalData, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
+        RaoSuccessResponse raoResponse = Mockito.mock(RaoSuccessResponse.class);
+        RaoResult raoResult = Mockito.mock(RaoResult.class);
+        Pair<String, Double> ptEsMostLimitingCnec = Pair.of("frEsCnec", counterTradingValues.getFrEsCt() >= 600 ? 200.0 : -200.0);
+        return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, ptEsMostLimitingCnec, counterTradingValues);
+    }
+
+    @Override
+    public DichotomyStepResult validateNetworkForPortugueseBorder(Network network, Crac crac, String cracUri, ZonalData<Scalable> scalableZonalData, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
         RaoSuccessResponse raoResponse = Mockito.mock(RaoSuccessResponse.class);
         RaoResult raoResult = Mockito.mock(RaoResult.class);
         Pair<String, Double> ptEsMostLimitingCnec = Pair.of("ptEsCnec", counterTradingValues.getPtEsCt() >= 0 ? 100.0 : -100.0);
-        Pair<String, Double> frEsMostLimitingCnec = Pair.of("frEsCnec", counterTradingValues.getFrEsCt() >= 600 ? 200.0 : -200.0);
-        return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, ptEsMostLimitingCnec, frEsMostLimitingCnec, counterTradingValues);
+        return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, ptEsMostLimitingCnec, counterTradingValues);
     }
 }

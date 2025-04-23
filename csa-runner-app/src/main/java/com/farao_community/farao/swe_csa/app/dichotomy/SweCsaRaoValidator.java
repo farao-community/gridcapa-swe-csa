@@ -58,9 +58,16 @@ public class SweCsaRaoValidator {
         this.businessLogger = businessLogger;
     }
 
-    public DichotomyStepResult validateNetwork(Network network, Crac crac, ZonalData<Scalable> scalableZonalDataFilteredForSweCountries, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
-        // FIXME MBR temporary workaround to test integration before crac separated feature is finished
-        RaoRequest raoRequest = buildRaoRequest(counterTradingValues.print(), csaRequest.getBusinessTimestamp(), csaRequest.getId(), network, csaRequest.getPtEsCracFileUri(), raoParametersUrl);
+    public DichotomyStepResult validateNetworkForFrenchBorder(Network network, Crac crac, String cracUri, ZonalData<Scalable> scalableZonalDataFilteredForSweCountries, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
+        return validateNetworkForBorder(Country.FR, network, crac, cracUri, scalableZonalDataFilteredForSweCountries, raoParameters, csaRequest, raoParametersUrl, counterTradingValues);
+    }
+
+    public DichotomyStepResult validateNetworkForPortugueseBorder(Network network, Crac crac, String cracUri, ZonalData<Scalable> scalableZonalDataFilteredForSweCountries, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
+        return validateNetworkForBorder(Country.PT, network, crac, cracUri, scalableZonalDataFilteredForSweCountries, raoParameters, csaRequest, raoParametersUrl, counterTradingValues);
+    }
+
+    private DichotomyStepResult validateNetworkForBorder(Country country, Network network, Crac crac, String cracUri, ZonalData<Scalable> scalableZonalDataFilteredForSweCountries, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
+        RaoRequest raoRequest = buildRaoRequest(counterTradingValues.print(), csaRequest.getBusinessTimestamp(), csaRequest.getId(), network, cracUri, raoParametersUrl);
 
         try {
             businessLogger.info("RAO request sent: {}", raoRequest);
@@ -78,12 +85,10 @@ public class SweCsaRaoValidator {
 
             raoResult = updateRaoResultWithAngleMonitoring(network, crac, scalableZonalDataFilteredForSweCountries, raoResult, raoParameters);
 
-            Set<FlowCnec> frEsFlowCnecs = getBorderFlowCnecs(crac, network, Country.FR);
-            Set<FlowCnec> ptEsFlowCnecs = getBorderFlowCnecs(crac, network, Country.PT);
-            Pair<String, Double> flowCnecPtEsSmallestMargin = getFlowCnecSmallestMargin(raoResult, ptEsFlowCnecs);
-            Pair<String, Double> flowCnecFrEsSmallestMargin = getFlowCnecSmallestMargin(raoResult, frEsFlowCnecs);
+            Set<FlowCnec> flowCnecs = getBorderFlowCnecs(crac, network, country);
+            Pair<String, Double> flowCnecSmallestMargin = getFlowCnecSmallestMargin(raoResult, flowCnecs);
 
-            return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoSuccessResponse, flowCnecPtEsSmallestMargin, flowCnecFrEsSmallestMargin, counterTradingValues);
+            return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoSuccessResponse, flowCnecSmallestMargin, counterTradingValues);
         } catch (Exception e) {
             throw new CsaInternalException(MDC.get("gridcapaTaskId"), "RAO run failed", e);
         }
@@ -135,4 +140,5 @@ public class SweCsaRaoValidator {
     private String generateScaledNetworkPath(Network network, String timestamp, String stepFolder) {
         return generateArtifactsFolder(timestamp, stepFolder) + "/" + "network-" + network.getVariantManager().getWorkingVariantId() + ".xiidm";
     }
+
 }

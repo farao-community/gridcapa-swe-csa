@@ -46,7 +46,10 @@ class JsonApiConverterTest {
         CsaResponse response = jsonApiConverter.fromJsonMessage(responseBytes, CsaResponse.class);
 
         assertEquals("id", response.getId());
-        Assertions.assertEquals(Status.ACCEPTED, response.getStatus());
+        Assertions.assertEquals(Status.FINISHED_SECURE, response.getPtEsStatus());
+        Assertions.assertEquals("pt-es-uri", response.getPtEsRaoResultUri());
+        Assertions.assertEquals(Status.FINISHED_SECURE, response.getFrEsStatus());
+        Assertions.assertEquals("fr-es-uri", response.getFrEsRaoResultUri());
     }
 
     @Test

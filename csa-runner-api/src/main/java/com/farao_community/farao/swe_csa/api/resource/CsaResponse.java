@@ -19,26 +19,38 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 public class CsaResponse {
     @Id
     private final String id;
-    private final Status status;
-    private final String raoResultUri;
+    private final Status ptEsStatus;
+    private final String ptEsRaoResultUri;
+    private final Status frEsStatus;
+    private final String frEsRaoResultUri;
 
     @JsonCreator
-    public CsaResponse(@JsonProperty("id") String id, @JsonProperty("status") String status, @JsonProperty("rao-result-uri") String raoResultUri) {
+    public CsaResponse(@JsonProperty("id") String id, @JsonProperty("ptEsStatus") String ptEsStatus, @JsonProperty("ptEsRaoResultUri") String ptEsRaoResultUri, @JsonProperty("frEsStatus") String frEsStatus, @JsonProperty("frEsRaoResultUri") String frEsRaoResultUri) {
         this.id = id;
-        this.status = Status.valueOf(status);
-        this.raoResultUri = raoResultUri;
+        this.ptEsStatus = Status.valueOf(ptEsStatus);
+        this.ptEsRaoResultUri = ptEsRaoResultUri;
+        this.frEsStatus = Status.valueOf(frEsStatus);
+        this.frEsRaoResultUri = frEsRaoResultUri;
     }
 
     public String getId() {
         return id;
     }
 
-    public Status getStatus() {
-        return status;
+    public Status getPtEsStatus() {
+        return ptEsStatus;
     }
 
-    public String getRaoResultUri() {
-        return raoResultUri;
+    public String getPtEsRaoResultUri() {
+        return ptEsRaoResultUri;
+    }
+
+    public Status getFrEsStatus() {
+        return frEsStatus;
+    }
+
+    public String getFrEsRaoResultUri() {
+        return frEsRaoResultUri;
     }
 
     @Override

@@ -61,6 +61,7 @@ class SweCsaDichotomyRunnerTest {
         Mockito.when(fileImporter.uploadRaoParameters(utcInstant)).thenReturn("rao-parameters-url");
         Mockito.when(fileImporter.importNetwork("id", "cgm-url")).thenReturn(network);
         Mockito.when(fileImporter.importCrac("id", "ptEs-crac-url", network)).thenReturn(crac);
+        Mockito.when(fileImporter.importCrac("id", "frEs-crac-url", network)).thenReturn(crac);
         Mockito.when(fileImporter.getZonalData("id", utcInstant, "glsk-url", network, false)).thenReturn(scalableZonalData);
         Mockito.when(fileImporter.getZonalData("id", utcInstant, "glsk-url", network, true)).thenReturn(scalableZonalData);
         Mockito.when(fileExporter.saveNetworkInArtifact(Mockito.anyString(), Mockito.any(), Mockito.any())).thenReturn("scaled-network-url");
@@ -72,25 +73,30 @@ class SweCsaDichotomyRunnerTest {
         sweCsaDichotomyRunner.setIndexPrecision(50);
         sweCsaDichotomyRunner.setMaxDichotomiesByBorder(10);
         CsaRequest csaRequest = new CsaRequest("id", "2023-09-13T09:30:00Z", "cgm-url", "glsk-url", "ptEs-crac-url", "frEs-crac-url");
-        RaoResultWithCounterTradeRangeActions raoResult = (RaoResultWithCounterTradeRangeActions) sweCsaDichotomyRunner.runDichotomy(csaRequest, "rao-result-url").getFirst();
+        ParallelDichotomyResult parallelDichotomyResult = sweCsaDichotomyRunner.runDichotomy(csaRequest, "rao-result-url", "rao-result-url");
 
-        Iterator<CounterTradeRangeActionResult> ctRaResultIt  = raoResult.getCounterTradingResult().getCounterTradeRangeActionResults().values().stream().sorted(Comparator.comparing(CounterTradeRangeActionResult::getCtRangeActionId)).collect(Collectors.toCollection(LinkedHashSet::new)).iterator();
+        RaoResultWithCounterTradeRangeActions ptEsRaoResultWithCounterTradeRangeActions = (RaoResultWithCounterTradeRangeActions) parallelDichotomyResult.getPtEsResult().getFirst();
+        RaoResultWithCounterTradeRangeActions frEsRaoResultWithCounterTradeRangeActions = (RaoResultWithCounterTradeRangeActions) parallelDichotomyResult.getFrEsResult().getFirst();
 
-        CounterTradeRangeActionResult esFrCtRaResult = ctRaResultIt.next();
+        Iterator<CounterTradeRangeActionResult> ptEsCtRaResultIt  = ptEsRaoResultWithCounterTradeRangeActions.getCounterTradingResult().counterTradeRangeActionResults().values().stream().sorted(Comparator.comparing(CounterTradeRangeActionResult::getCtRangeActionId)).collect(Collectors.toCollection(LinkedHashSet::new)).iterator();
+        Iterator<CounterTradeRangeActionResult> frEsCtRaResultIt  = frEsRaoResultWithCounterTradeRangeActions.getCounterTradingResult().counterTradeRangeActionResults().values().stream().sorted(Comparator.comparing(CounterTradeRangeActionResult::getCtRangeActionId)).collect(Collectors.toCollection(LinkedHashSet::new)).iterator();
+
+        CounterTradeRangeActionResult esFrCtRaResult = frEsCtRaResultIt.next();
         assertEquals("CT_RA_ESFR", esFrCtRaResult.getCtRangeActionId());
         assertEquals(629., esFrCtRaResult.getSetPoint(), 1);
 
-        CounterTradeRangeActionResult esPtCtRaResult = ctRaResultIt.next();
-        assertEquals("CT_RA_ESPT", esPtCtRaResult.getCtRangeActionId());
-        assertEquals(0., esPtCtRaResult.getSetPoint());
-
-        CounterTradeRangeActionResult frEsCtRaResult = ctRaResultIt.next();
+        CounterTradeRangeActionResult frEsCtRaResult = frEsCtRaResultIt.next();
         assertEquals("CT_RA_FRES", frEsCtRaResult.getCtRangeActionId());
         assertEquals(629., frEsCtRaResult.getSetPoint(), 1);
 
-        CounterTradeRangeActionResult ptEsCtRaResult = ctRaResultIt.next();
+        CounterTradeRangeActionResult esPtCtRaResult = ptEsCtRaResultIt.next();
+        assertEquals("CT_RA_ESPT", esPtCtRaResult.getCtRangeActionId());
+        assertEquals(0., esPtCtRaResult.getSetPoint());
+
+        CounterTradeRangeActionResult ptEsCtRaResult = ptEsCtRaResultIt.next();
         assertEquals("CT_RA_PTES", ptEsCtRaResult.getCtRangeActionId());
         assertEquals(0., ptEsCtRaResult.getSetPoint());
+
     }
 
     @Test

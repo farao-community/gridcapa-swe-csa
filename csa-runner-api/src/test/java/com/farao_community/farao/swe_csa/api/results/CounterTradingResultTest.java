@@ -63,7 +63,7 @@ class CounterTradingResultTest {
 
     @Test
     void testGetCounterTradeRangeActionResults() {
-        Map<CounterTradeRangeAction, CounterTradeRangeActionResult> result = counterTradingResult.getCounterTradeRangeActionResults();
+        Map<CounterTradeRangeAction, CounterTradeRangeActionResult> result = counterTradingResult.counterTradeRangeActionResults();
         assertEquals(4, result.size());
     }
 

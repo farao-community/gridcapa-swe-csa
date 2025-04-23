@@ -3,9 +3,9 @@ package com.farao_community.farao.swe_csa.api.results;
 import java.util.List;
 
 public class CounterTradeRangeActionResult {
-    private String ctRangeActionId;
-    private double setPoint;
-    private List<String> concernedCnecs;
+    private final String ctRangeActionId;
+    private final double setPoint;
+    private final List<String> concernedCnecs;
 
     public CounterTradeRangeActionResult(String ctRangeActionId, double setPoint, List<String> concernedCnecs) {
         this.ctRangeActionId = ctRangeActionId;

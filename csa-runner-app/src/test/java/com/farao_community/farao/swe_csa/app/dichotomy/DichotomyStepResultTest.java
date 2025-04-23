@@ -19,8 +19,7 @@ class DichotomyStepResultTest {
     void creationFromFailureTest() {
         DichotomyStepResult dichotomyStepResult = DichotomyStepResult.fromFailure(ReasonInvalid.GLSK_LIMITATION, "failureMessage", new CounterTradingValues(1500.0, 900.0));
 
-        assertNull(dichotomyStepResult.getFrEsMostLimitingCnec());
-        assertNull(dichotomyStepResult.getPtEsMostLimitingCnec());
+        assertNull(dichotomyStepResult.getMostLimitingCnec());
         assertNull(dichotomyStepResult.getRaoResult());
         assertNull(dichotomyStepResult.getRaoSuccessResponse());
         assertEquals("failureMessage", dichotomyStepResult.getFailureMessage());
@@ -28,26 +27,21 @@ class DichotomyStepResultTest {
         assertEquals(900.0, dichotomyStepResult.getCounterTradingValues().frEsCt);
         assertEquals(1500.0, dichotomyStepResult.getCounterTradingValues().ptEsCt);
         assertTrue(dichotomyStepResult.isFailed());
-        assertFalse(dichotomyStepResult.isValid());
-        assertFalse(dichotomyStepResult.isFrEsCnecsSecure());
-        assertFalse(dichotomyStepResult.isPtEsCnecsSecure());
+        assertFalse(dichotomyStepResult.isSecure());
     }
 
     @Test
     void creationFromNetworkValidationResultTest() {
         DichotomyStepResult dichotomyStepResult = DichotomyStepResult.fromNetworkValidationResult(Mockito.mock(RaoResult.class),
-            Mockito.mock(RaoSuccessResponse.class), Pair.of("idPtEsCnec", 200.0), Pair.of("idFrEsCnec", -50.0), new CounterTradingValues(1500.0, 900.0));
+            Mockito.mock(RaoSuccessResponse.class), Pair.of("idPtEsCnec", -200.0), new CounterTradingValues(1500.0, 900.0));
 
-        assertNotNull(dichotomyStepResult.getFrEsMostLimitingCnec());
-        assertNotNull(dichotomyStepResult.getPtEsMostLimitingCnec());
+        assertNotNull(dichotomyStepResult.getMostLimitingCnec());
         assertNotNull(dichotomyStepResult.getRaoResult());
         assertNotNull(dichotomyStepResult.getRaoSuccessResponse());
         assertEquals(ReasonInvalid.UNSECURE_AFTER_VALIDATION, dichotomyStepResult.getReasonInvalid());
         assertEquals(900.0, dichotomyStepResult.getCounterTradingValues().frEsCt);
         assertEquals(1500.0, dichotomyStepResult.getCounterTradingValues().ptEsCt);
         assertFalse(dichotomyStepResult.isFailed());
-        assertFalse(dichotomyStepResult.isValid());
-        assertFalse(dichotomyStepResult.isFrEsCnecsSecure());
-        assertTrue(dichotomyStepResult.isPtEsCnecsSecure());
+        assertFalse(dichotomyStepResult.isSecure());
     }
 }

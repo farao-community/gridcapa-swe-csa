@@ -12,7 +12,7 @@ public class Index {
     private Pair<Double, DichotomyStepResult> ptEsLowestSecureStep;
     private Pair<Double, DichotomyStepResult> frEsHighestUnsecureStep;
     private Pair<Double, DichotomyStepResult> frEsLowestSecureStep;
-    private DichotomyStepResult bestValidDichotomyStepResult;
+    private ParallelDichotomyResult bestValidDichotomyStepResult;
     private int frEsDichotomyCount = 0;
     private int ptEsDichotomyCount = 0;
 
@@ -33,24 +33,24 @@ public class Index {
 
     public boolean addPtEsDichotomyStepResult(double ptEsCtStepValue, DichotomyStepResult stepResult) {
         ptEsDichotomyCount++;
-        if (stepResult.isPtEsCnecsSecure()) {
+        if (stepResult.isSecure()) {
             ptEsLowestSecureStep = Pair.of(ptEsCtStepValue, stepResult);
             return true;
         } else {
             ptEsHighestUnsecureStep = Pair.of(ptEsCtStepValue, stepResult);
+            return false;
         }
-        return false;
     }
 
     public boolean addFrEsDichotomyStepResult(double frEsCtStepValue, DichotomyStepResult stepResult) {
         frEsDichotomyCount++;
-        if (stepResult.isFrEsCnecsSecure()) {
+        if (stepResult.isSecure()) {
             frEsLowestSecureStep = Pair.of(frEsCtStepValue, stepResult);
             return true;
         } else {
             frEsHighestUnsecureStep = Pair.of(frEsCtStepValue, stepResult);
+            return false;
         }
-        return false;
     }
 
     public boolean exitConditionIsNotMetForPtEs() {
@@ -71,11 +71,11 @@ public class Index {
         }
     }
 
-    public void setBestValidDichotomyStepResult(DichotomyStepResult bestValidDichotomyStepResult) {
+    public void setBestValidDichotomyStepResult(ParallelDichotomyResult bestValidDichotomyStepResult) {
         this.bestValidDichotomyStepResult = bestValidDichotomyStepResult;
     }
 
-    public DichotomyStepResult getBestValidDichotomyStepResult() {
+    public ParallelDichotomyResult getBestValidDichotomyStepResult() {
         return bestValidDichotomyStepResult;
     }
 }
