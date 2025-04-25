@@ -11,7 +11,3 @@ services:
       - "9000:9000"
     command: server /data
 
-  rao-runner:
-    image: farao/gridcapa-rao-runner:v1.16.1
-    volumes:
-      - ./config/rao-runner-application.yml:/config/application.yml

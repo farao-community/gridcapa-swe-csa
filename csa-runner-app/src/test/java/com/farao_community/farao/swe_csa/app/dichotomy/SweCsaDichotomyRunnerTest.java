@@ -40,6 +40,7 @@ class SweCsaDichotomyRunnerTest {
     FileImporter fileImporter;
     @Mock
     FileExporter fileExporter;
+
     @Mock
     RaoRunnerClient raoRunnerClient;
 
@@ -73,10 +74,10 @@ class SweCsaDichotomyRunnerTest {
         sweCsaDichotomyRunner.setIndexPrecision(50);
         sweCsaDichotomyRunner.setMaxDichotomiesByBorder(10);
         CsaRequest csaRequest = new CsaRequest("id", "2023-09-13T09:30:00Z", "cgm-url", "glsk-url", "ptEs-crac-url", "frEs-crac-url");
-        ParallelDichotomyResult parallelDichotomyResult = sweCsaDichotomyRunner.runDichotomy(csaRequest, "rao-result-url", "rao-result-url");
+        FinalResult finalResult = sweCsaDichotomyRunner.runDichotomy(csaRequest, "rao-result-url", "rao-result-url");
 
-        RaoResultWithCounterTradeRangeActions ptEsRaoResultWithCounterTradeRangeActions = (RaoResultWithCounterTradeRangeActions) parallelDichotomyResult.getPtEsResult().getFirst();
-        RaoResultWithCounterTradeRangeActions frEsRaoResultWithCounterTradeRangeActions = (RaoResultWithCounterTradeRangeActions) parallelDichotomyResult.getFrEsResult().getFirst();
+        RaoResultWithCounterTradeRangeActions ptEsRaoResultWithCounterTradeRangeActions = (RaoResultWithCounterTradeRangeActions) finalResult.getPtEsResult().getLeft();
+        RaoResultWithCounterTradeRangeActions frEsRaoResultWithCounterTradeRangeActions = (RaoResultWithCounterTradeRangeActions) finalResult.getFrEsResult().getLeft();
 
         Iterator<CounterTradeRangeActionResult> ptEsCtRaResultIt  = ptEsRaoResultWithCounterTradeRangeActions.getCounterTradingResult().counterTradeRangeActionResults().values().stream().sorted(Comparator.comparing(CounterTradeRangeActionResult::getCtRangeActionId)).collect(Collectors.toCollection(LinkedHashSet::new)).iterator();
         Iterator<CounterTradeRangeActionResult> frEsCtRaResultIt  = frEsRaoResultWithCounterTradeRangeActions.getCounterTradingResult().counterTradeRangeActionResults().values().stream().sorted(Comparator.comparing(CounterTradeRangeActionResult::getCtRangeActionId)).collect(Collectors.toCollection(LinkedHashSet::new)).iterator();

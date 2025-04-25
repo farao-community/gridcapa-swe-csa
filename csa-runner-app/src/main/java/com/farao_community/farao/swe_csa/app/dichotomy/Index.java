@@ -12,7 +12,7 @@ public class Index {
     private Pair<Double, DichotomyStepResult> ptEsLowestSecureStep;
     private Pair<Double, DichotomyStepResult> frEsHighestUnsecureStep;
     private Pair<Double, DichotomyStepResult> frEsLowestSecureStep;
-    private ParallelDichotomyResult bestValidDichotomyStepResult;
+    private ParallelDichotomiesResult bestValidDichotomyStepResult;
     private int frEsDichotomyCount = 0;
     private int ptEsDichotomyCount = 0;
 
@@ -71,11 +71,11 @@ public class Index {
         }
     }
 
-    public void setBestValidDichotomyStepResult(ParallelDichotomyResult bestValidDichotomyStepResult) {
+    public void setBestValidDichotomyStepResult(ParallelDichotomiesResult bestValidDichotomyStepResult) {
         this.bestValidDichotomyStepResult = bestValidDichotomyStepResult;
     }
 
-    public ParallelDichotomyResult getBestValidDichotomyStepResult() {
+    public ParallelDichotomiesResult getBestValidDichotomyStepResult() {
         return bestValidDichotomyStepResult;
     }
 }

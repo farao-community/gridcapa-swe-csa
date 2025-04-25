@@ -7,7 +7,7 @@ import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.api.resource.CsaResponse;
 import com.farao_community.farao.swe_csa.api.resource.Status;
 
-import com.farao_community.farao.swe_csa.app.dichotomy.ParallelDichotomyResult;
+import com.farao_community.farao.swe_csa.app.dichotomy.FinalResult;
 import com.farao_community.farao.swe_csa.app.dichotomy.DichotomyRunner;
 import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
 import org.slf4j.Logger;
@@ -53,9 +53,9 @@ public class RequestService {
             String ptEsRaoResultDestinationPath = s3ArtifactsAdapter.createRaoResultDestination(OffsetDateTime.ofInstant(utcInstant, ZoneId.of("UTC")).toString(), "PT-ES");
             String frEsRaoResultDestinationPath = s3ArtifactsAdapter.createRaoResultDestination(OffsetDateTime.ofInstant(utcInstant, ZoneId.of("UTC")).toString(), "FR-ES");
 
-            ParallelDichotomyResult result = dichotomyRunner.runDichotomy(csaRequest, ptEsRaoResultDestinationPath, frEsRaoResultDestinationPath);
+            FinalResult result = dichotomyRunner.runDichotomy(csaRequest, ptEsRaoResultDestinationPath, frEsRaoResultDestinationPath);
             businessLogger.info("CSA computation finished for TimeStamp: '{}'", utcInstant);
-            CsaResponse csaResponse = new CsaResponse(csaRequest.getId(), result.getPtEsResult().getSecond().toString(), s3ArtifactsAdapter.generatePreSignedUrl(ptEsRaoResultDestinationPath), result.getFrEsResult().getSecond().toString(), s3ArtifactsAdapter.generatePreSignedUrl(frEsRaoResultDestinationPath));
+            CsaResponse csaResponse = new CsaResponse(csaRequest.getId(), result.getPtEsResult().getRight().toString(), s3ArtifactsAdapter.generatePreSignedUrl(ptEsRaoResultDestinationPath), result.getFrEsResult().getRight().toString(), s3ArtifactsAdapter.generatePreSignedUrl(frEsRaoResultDestinationPath));
             resultBytes = jsonApiConverter.toJsonMessage(csaResponse, CsaResponse.class);
             businessLogger.info("Csa response sent: {}", csaResponse);
         } catch (Exception e) {

@@ -1,34 +1,30 @@
 package com.farao_community.farao.swe_csa.app.dichotomy;
 
-import com.farao_community.farao.swe_csa.api.resource.Status;
-import com.powsybl.openrao.data.raoresult.api.RaoResult;
-import kotlin.Pair;
+public class ParallelDichotomiesResult {
 
-public class ParallelDichotomyResult {
-
-    private Pair<RaoResult, Status> ptEsResult;
-    private Pair<RaoResult, Status> frEsResult;
+    private DichotomyStepResult ptEsResult;
+    private DichotomyStepResult frEsResult;
     private CounterTradingValues counterTradingValues;
 
-    public ParallelDichotomyResult(Pair<RaoResult, Status> ptEsResult, Pair<RaoResult, Status> frEsResult, CounterTradingValues counterTradingValues) {
+    public ParallelDichotomiesResult(DichotomyStepResult ptEsResult, DichotomyStepResult frEsResult, CounterTradingValues counterTradingValues) {
         this.ptEsResult = ptEsResult;
         this.frEsResult = frEsResult;
         this.counterTradingValues = counterTradingValues;
     }
 
-    public Pair<RaoResult, Status> getPtEsResult() {
+    public DichotomyStepResult getPtEsResult() {
         return ptEsResult;
     }
 
-    public void setPtEsResult(Pair<RaoResult, Status> ptEsResult) {
+    public void setPtEsResult(DichotomyStepResult ptEsResult) {
         this.ptEsResult = ptEsResult;
     }
 
-    public Pair<RaoResult, Status> getFrEsResult() {
+    public DichotomyStepResult getFrEsResult() {
         return frEsResult;
     }
 
-    public void setFrEsResult(Pair<RaoResult, Status> frEsResult) {
+    public void setFrEsResult(DichotomyStepResult frEsResult) {
         this.frEsResult = frEsResult;
     }
 
