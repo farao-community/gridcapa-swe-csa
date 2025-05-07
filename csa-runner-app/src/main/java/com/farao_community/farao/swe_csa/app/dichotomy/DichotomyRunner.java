@@ -53,11 +53,12 @@ public class DichotomyRunner {
     private final S3ArtifactsAdapter s3ArtifactsAdapter;
     private final JsonApiConverter jsonApiConverter = new JsonApiConverter();
     private final Logger businessLogger;
+    private final ParallelDichotomiesRunner parallelDichotomiesRunner;
 
     private static final String ES_FR = "ES_FR";
     private static final String ES_PT = "ES_PT";
 
-    public DichotomyRunner(SweCsaRaoValidator sweCsaRaoValidator, FileImporter fileImporter, FileExporter fileExporter, InterruptionService interruptionService, StreamBridge streamBridge, S3ArtifactsAdapter s3ArtifactsAdapter, Logger businessLogger) {
+    public DichotomyRunner(SweCsaRaoValidator sweCsaRaoValidator, FileImporter fileImporter, FileExporter fileExporter, InterruptionService interruptionService, StreamBridge streamBridge, S3ArtifactsAdapter s3ArtifactsAdapter, Logger businessLogger, ParallelDichotomiesRunner parallelDichotomiesRunner) {
         this.sweCsaRaoValidator = sweCsaRaoValidator;
         this.resultHelper = new ResultHelper(fileExporter);
         this.fileImporter = fileImporter;
@@ -66,6 +67,7 @@ public class DichotomyRunner {
         this.streamBridge = streamBridge;
         this.s3ArtifactsAdapter = s3ArtifactsAdapter;
         this.businessLogger = businessLogger;
+        this.parallelDichotomiesRunner = parallelDichotomiesRunner;
     }
 
     public FinalResult runDichotomy(CsaRequest csaRequest, String ptEsRaoResultDestinationPath, String frEsRaoResultDestinationPath) throws GlskLimitationException, ShiftingException {
@@ -115,7 +117,7 @@ public class DichotomyRunner {
             businessLogger.warn("No counter trading will be done, only input network will be checked by rao");
             Supplier<DichotomyStepResult> ptEsraoResultPSupplier = () -> sweCsaRaoValidator.validateNetworkForPortugueseBorder(network, cracPtEs, csaRequest.getPtEsCracFileUri(), scalableZonalDataFilteredForSweCountries, raoParameters, csaRequest, raoParametersUrl, minCounterTradingValues);
             Supplier<DichotomyStepResult> frEsraoResultPSupplier = () -> sweCsaRaoValidator.validateNetworkForFrenchBorder(network, cracFrEs, csaRequest.getFrEsCracFileUri(), scalableZonalDataFilteredForSweCountries, raoParameters, csaRequest, raoParametersUrl, minCounterTradingValues);
-            ParallelDichotomiesResult parallelDichotomiesResult = ParallelDichotomies.runParallel(csaRequest.getId(), minCounterTradingValues, ptEsraoResultPSupplier, frEsraoResultPSupplier);
+            ParallelDichotomiesResult parallelDichotomiesResult = parallelDichotomiesRunner.run(csaRequest.getId(), minCounterTradingValues, ptEsraoResultPSupplier, frEsraoResultPSupplier);
 
             fileExporter.saveRaoResultInArtifact(ptEsRaoResultDestinationPath, parallelDichotomiesResult.getPtEsResult().getRaoResult(), cracPtEs);
             fileExporter.saveRaoResultInArtifact(frEsRaoResultDestinationPath, parallelDichotomiesResult.getFrEsResult().getRaoResult(), cracFrEs);
@@ -129,9 +131,9 @@ public class DichotomyRunner {
 
         Supplier<DichotomyStepResult> noCtStepResultPtEsSupplier = () -> sweCsaRaoValidator.validateNetworkForPortugueseBorder(network, cracPtEs, csaRequest.getPtEsCracFileUri(), scalableZonalDataFilteredForSweCountries, raoParameters, csaRequest, raoParametersUrl, minCounterTradingValues);
         Supplier<DichotomyStepResult> noCtStepResultFrEsSupplier = () -> sweCsaRaoValidator.validateNetworkForFrenchBorder(network, cracFrEs, csaRequest.getFrEsCracFileUri(), scalableZonalDataFilteredForSweCountries, raoParameters, csaRequest, raoParametersUrl, minCounterTradingValues);
-        ParallelDichotomiesResult noCtParallelDichotomiesResult = ParallelDichotomies.runParallel(csaRequest.getId(), minCounterTradingValues, noCtStepResultPtEsSupplier, noCtStepResultFrEsSupplier);
-        logBorderOverload(noCtParallelDichotomiesResult.getPtEsResult(), "PT-ES");
-        logBorderOverload(noCtParallelDichotomiesResult.getFrEsResult(), "FR-ES");
+        ParallelDichotomiesResult noCtParallelDichotomiesResult = parallelDichotomiesRunner.run(csaRequest.getId(), minCounterTradingValues, noCtStepResultPtEsSupplier, noCtStepResultFrEsSupplier);
+        logBorderOverload(noCtParallelDichotomiesResult.getPtEsResult(), DichotomyDirection.PT_ES.toString());
+        logBorderOverload(noCtParallelDichotomiesResult.getFrEsResult(), DichotomyDirection.FR_ES.toString());
 
         resetToInitialVariant(network, initialVariant, noCtVariantName);
 
@@ -147,8 +149,8 @@ public class DichotomyRunner {
             }
 
             // initial network not secure, try worst case maximum counter trading
-            double ctPtEsMax = getMaxCounterTrading(ctRaPtEs, ctRaEsPt, expPtEs0, "PT-ES");
-            double ctFrEsMax = getMaxCounterTrading(ctRaFrEs, ctRaEsFr, expFrEs0, "FR-ES");
+            double ctPtEsMax = getMaxCounterTrading(ctRaPtEs, ctRaEsPt, expPtEs0, DichotomyDirection.PT_ES.toString());
+            double ctFrEsMax = getMaxCounterTrading(ctRaFrEs, ctRaEsFr, expFrEs0, DichotomyDirection.FR_ES.toString());
 
             double ctPtEsUpperBound = noCtParallelDichotomiesResult.getPtEsResult().isSecure() ? 0 : ctPtEsMax;
             double ctFrEsUpperBound = noCtParallelDichotomiesResult.getFrEsResult().isSecure() ? 0 : ctFrEsMax;
@@ -164,9 +166,9 @@ public class DichotomyRunner {
             Supplier<DichotomyStepResult> maxCtStepResultPtEsSupplier = () -> sweCsaRaoValidator.validateNetworkForPortugueseBorder(network, cracPtEs, csaRequest.getPtEsCracFileUri(), scalableZonalDataFilteredForSweCountries, raoParameters, csaRequest, raoParametersUrl, maxCounterTradingValues);
             Supplier<DichotomyStepResult> maxCtStepResultFrEsSupplier = () -> sweCsaRaoValidator.validateNetworkForFrenchBorder(network, cracFrEs, csaRequest.getFrEsCracFileUri(), scalableZonalDataFilteredForSweCountries, raoParameters, csaRequest, raoParametersUrl, maxCounterTradingValues);
 
-            ParallelDichotomiesResult maxCtParallelDichotomiesResult = ParallelDichotomies.runParallel(csaRequest.getId(), maxCounterTradingValues, maxCtStepResultPtEsSupplier, maxCtStepResultFrEsSupplier);
-            logBorderOverload(maxCtParallelDichotomiesResult.getPtEsResult(), "PT-ES");
-            logBorderOverload(maxCtParallelDichotomiesResult.getFrEsResult(), "FR-ES");
+            ParallelDichotomiesResult maxCtParallelDichotomiesResult = parallelDichotomiesRunner.run(csaRequest.getId(), maxCounterTradingValues, maxCtStepResultPtEsSupplier, maxCtStepResultFrEsSupplier);
+            logBorderOverload(maxCtParallelDichotomiesResult.getPtEsResult(), DichotomyDirection.PT_ES.toString());
+            logBorderOverload(maxCtParallelDichotomiesResult.getFrEsResult(), DichotomyDirection.FR_ES.toString());
 
             resetToInitialVariant(network, initialVariant, maxCtVariantName);
 
@@ -211,10 +213,10 @@ public class DichotomyRunner {
 
                 Supplier<DichotomyStepResult> ptEsStepResultSupplier = () -> sweCsaRaoValidator.validateNetworkForPortugueseBorder(network, cracPtEs, csaRequest.getPtEsCracFileUri(), scalableZonalDataFilteredForSweCountries, raoParameters, csaRequest, raoParametersUrl, counterTradingValues);
                 Supplier<DichotomyStepResult> frEsStepResultSupplier = () -> sweCsaRaoValidator.validateNetworkForFrenchBorder(network, cracFrEs, csaRequest.getFrEsCracFileUri(), scalableZonalDataFilteredForSweCountries, raoParameters, csaRequest, raoParametersUrl, counterTradingValues);
-                ParallelDichotomiesResult parallelDichotomiesResult = ParallelDichotomies.runParallel(csaRequest.getId(), counterTradingValues, ptEsStepResultSupplier, frEsStepResultSupplier);
+                ParallelDichotomiesResult parallelDichotomiesResult = parallelDichotomiesRunner.run(csaRequest.getId(), counterTradingValues, ptEsStepResultSupplier, frEsStepResultSupplier);
 
-                logBorderOverload(parallelDichotomiesResult.getPtEsResult(), "PT-ES");
-                logBorderOverload(parallelDichotomiesResult.getFrEsResult(), "FR-ES");
+                logBorderOverload(parallelDichotomiesResult.getPtEsResult(), DichotomyDirection.PT_ES.toString());
+                logBorderOverload(parallelDichotomiesResult.getFrEsResult(), DichotomyDirection.FR_ES.toString());
 
                 ptEsCtStepResult = parallelDichotomiesResult.getPtEsResult();
                 frEsCtStepResult = parallelDichotomiesResult.getFrEsResult();

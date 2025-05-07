@@ -9,8 +9,9 @@ package com.farao_community.farao.swe_csa.api.resource;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * @author Jean-Pierre Arnould {@literal <jean-pierre.arnould at rte-france.com>}
@@ -28,6 +29,6 @@ class RaoRunnerLogsModelTest {
         assertEquals("timestamp", raoRunnerLogsModel.getTimestamp());
         assertEquals("message", raoRunnerLogsModel.getMessage());
         assertEquals("serviceName", raoRunnerLogsModel.getServiceName());
-        assertNull(raoRunnerLogsModel.getEventPrefix());
+        assertEquals(Optional.empty(), raoRunnerLogsModel.getEventPrefix());
     }
 }

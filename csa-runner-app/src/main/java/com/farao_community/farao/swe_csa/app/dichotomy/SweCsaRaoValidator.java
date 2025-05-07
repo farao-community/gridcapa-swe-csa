@@ -58,16 +58,16 @@ public class SweCsaRaoValidator {
         this.businessLogger = businessLogger;
     }
 
-    public DichotomyStepResult validateNetworkForFrenchBorder(Network network, Crac crac, String cracUri, ZonalData<Scalable> scalableZonalDataFilteredForSweCountries, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
-        return validateNetworkForBorder(Country.FR, network, crac, cracUri, scalableZonalDataFilteredForSweCountries, raoParameters, csaRequest, raoParametersUrl, counterTradingValues);
-    }
-
     public DichotomyStepResult validateNetworkForPortugueseBorder(Network network, Crac crac, String cracUri, ZonalData<Scalable> scalableZonalDataFilteredForSweCountries, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
-        return validateNetworkForBorder(Country.PT, network, crac, cracUri, scalableZonalDataFilteredForSweCountries, raoParameters, csaRequest, raoParametersUrl, counterTradingValues);
+        return validateNetworkForBorder(network, crac, cracUri, scalableZonalDataFilteredForSweCountries, raoParameters, csaRequest, raoParametersUrl, counterTradingValues, DichotomyDirection.PT_ES);
     }
 
-    private DichotomyStepResult validateNetworkForBorder(Country country, Network network, Crac crac, String cracUri, ZonalData<Scalable> scalableZonalDataFilteredForSweCountries, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
-        RaoRequest raoRequest = buildRaoRequest(counterTradingValues.print(), csaRequest.getBusinessTimestamp(), csaRequest.getId(), network, cracUri, raoParametersUrl);
+    public DichotomyStepResult validateNetworkForFrenchBorder(Network network, Crac crac, String cracUri, ZonalData<Scalable> scalableZonalDataFilteredForSweCountries, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
+        return validateNetworkForBorder(network, crac, cracUri, scalableZonalDataFilteredForSweCountries, raoParameters, csaRequest, raoParametersUrl, counterTradingValues, DichotomyDirection.FR_ES);
+    }
+
+    private DichotomyStepResult validateNetworkForBorder(Network network, Crac crac, String cracUri, ZonalData<Scalable> scalableZonalDataFilteredForSweCountries, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues, DichotomyDirection direction) {
+        RaoRequest raoRequest = buildRaoRequest(counterTradingValues.print(), csaRequest.getBusinessTimestamp(), csaRequest.getId(), network, cracUri, raoParametersUrl, direction);
 
         try {
             businessLogger.info("RAO request sent: {}", raoRequest);
@@ -85,7 +85,7 @@ public class SweCsaRaoValidator {
 
             raoResult = updateRaoResultWithAngleMonitoring(network, crac, scalableZonalDataFilteredForSweCountries, raoResult, raoParameters);
 
-            Set<FlowCnec> flowCnecs = getBorderFlowCnecs(crac, network, country);
+            Set<FlowCnec> flowCnecs = getBorderFlowCnecs(crac, network, direction.equals(DichotomyDirection.PT_ES) ? Country.PT : Country.FR);
             Pair<String, Double> flowCnecSmallestMargin = getFlowCnecSmallestMargin(raoResult, flowCnecs);
 
             return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoSuccessResponse, flowCnecSmallestMargin, counterTradingValues);
@@ -118,7 +118,7 @@ public class SweCsaRaoValidator {
         return Pair.of(flowCnecId, smallestMargin);
     }
 
-    private RaoRequest buildRaoRequest(String stepFolder, String timestamp, String taskId, Network network, String cracUrl, String raoParametersUrl) {
+    private RaoRequest buildRaoRequest(String stepFolder, String timestamp, String taskId, Network network, String cracUrl, String raoParametersUrl, DichotomyDirection direction) {
         String scaledNetworkPath = generateScaledNetworkPath(network, timestamp, stepFolder);
         String scaledNetworkPreSignedUrl = fileExporter.saveNetworkInArtifact(taskId, network, scaledNetworkPath);
         String raoResultDestination = generateArtifactsFolder(timestamp, stepFolder);
@@ -129,6 +129,7 @@ public class SweCsaRaoValidator {
             .withCracFileUrl(cracUrl)
             .withRaoParametersFileUrl(raoParametersUrl)
             .withResultsDestination(raoResultDestination)
+            .withEventPrefix(direction.toString())
             .build();
     }
 

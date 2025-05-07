@@ -7,6 +7,7 @@ import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.api.resource.CsaResponse;
 import com.farao_community.farao.swe_csa.api.resource.Status;
 
+import com.farao_community.farao.swe_csa.app.dichotomy.DichotomyDirection;
 import com.farao_community.farao.swe_csa.app.dichotomy.FinalResult;
 import com.farao_community.farao.swe_csa.app.dichotomy.DichotomyRunner;
 import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
@@ -50,8 +51,8 @@ public class RequestService {
             businessLogger.info("Current CSA runner version is: {}", Optional.ofNullable(this.getClass().getPackage().getImplementationVersion()).orElse("unknown"));
 
             Instant utcInstant = Instant.parse(csaRequest.getBusinessTimestamp());
-            String ptEsRaoResultDestinationPath = s3ArtifactsAdapter.createRaoResultDestination(OffsetDateTime.ofInstant(utcInstant, ZoneId.of("UTC")).toString(), "PT-ES");
-            String frEsRaoResultDestinationPath = s3ArtifactsAdapter.createRaoResultDestination(OffsetDateTime.ofInstant(utcInstant, ZoneId.of("UTC")).toString(), "FR-ES");
+            String ptEsRaoResultDestinationPath = s3ArtifactsAdapter.createRaoResultDestination(OffsetDateTime.ofInstant(utcInstant, ZoneId.of("UTC")).toString(), DichotomyDirection.PT_ES.toString());
+            String frEsRaoResultDestinationPath = s3ArtifactsAdapter.createRaoResultDestination(OffsetDateTime.ofInstant(utcInstant, ZoneId.of("UTC")).toString(), DichotomyDirection.FR_ES.toString());
 
             FinalResult result = dichotomyRunner.runDichotomy(csaRequest, ptEsRaoResultDestinationPath, frEsRaoResultDestinationPath);
             businessLogger.info("CSA computation finished for TimeStamp: '{}'", utcInstant);
