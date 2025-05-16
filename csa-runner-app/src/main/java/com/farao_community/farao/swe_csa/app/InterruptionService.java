@@ -27,8 +27,8 @@ public class InterruptionService {
 
     public void interruption(byte[] interruptionRequestBytes) {
         InterruptionRequest interruptionRequest = jsonApiConverter.fromJsonMessage(interruptionRequestBytes, InterruptionRequest.class);
-        String taskId = interruptionRequest.id();
-        businessLogger.info("Csa run interruption asked, finding RAO runners for stopping...");
+        String taskId = interruptionRequest.getId();
+        businessLogger.info("Csa run interruption asked for task {}, finding RAO runners for stopping...", taskId);
         streamBridge.send(STOP_RAO_BINDING, taskId);
         tasksToInterrupt.add(taskId);
     }

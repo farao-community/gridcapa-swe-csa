@@ -9,6 +9,6 @@ class InterruptionRequestTest {
     void testCsaRequestConstruction() {
         String id = "randomId";
         InterruptionRequest request = new InterruptionRequest(id);
-        assertEquals(id, request.id());
+        assertEquals(id, request.getId());
     }
 }

@@ -2,8 +2,8 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
 
 import com.farao_community.farao.dichotomy.api.results.ReasonInvalid;
 import com.farao_community.farao.rao_runner.api.resource.RaoSuccessResponse;
+import com.powsybl.openrao.commons.PhysicalParameter;
 import com.powsybl.openrao.data.raoresult.api.RaoResult;
-import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -19,7 +19,6 @@ class DichotomyStepResultTest {
     void creationFromFailureTest() {
         DichotomyStepResult dichotomyStepResult = DichotomyStepResult.fromFailure(ReasonInvalid.GLSK_LIMITATION, "failureMessage", new CounterTradingValues(1500.0, 900.0));
 
-        assertNull(dichotomyStepResult.getMostLimitingCnec());
         assertNull(dichotomyStepResult.getRaoResult());
         assertNull(dichotomyStepResult.getRaoSuccessResponse());
         assertEquals("failureMessage", dichotomyStepResult.getFailureMessage());
@@ -27,21 +26,19 @@ class DichotomyStepResultTest {
         assertEquals(900.0, dichotomyStepResult.getCounterTradingValues().frEsCt);
         assertEquals(1500.0, dichotomyStepResult.getCounterTradingValues().ptEsCt);
         assertTrue(dichotomyStepResult.isFailed());
-        assertFalse(dichotomyStepResult.isSecure());
     }
 
     @Test
     void creationFromNetworkValidationResultTest() {
         DichotomyStepResult dichotomyStepResult = DichotomyStepResult.fromNetworkValidationResult(Mockito.mock(RaoResult.class),
-            Mockito.mock(RaoSuccessResponse.class), Pair.of("idPtEsCnec", -200.0), new CounterTradingValues(1500.0, 900.0));
+            Mockito.mock(RaoSuccessResponse.class), new CounterTradingValues(1500.0, 900.0));
 
-        assertNotNull(dichotomyStepResult.getMostLimitingCnec());
         assertNotNull(dichotomyStepResult.getRaoResult());
         assertNotNull(dichotomyStepResult.getRaoSuccessResponse());
         assertEquals(ReasonInvalid.UNSECURE_AFTER_VALIDATION, dichotomyStepResult.getReasonInvalid());
         assertEquals(900.0, dichotomyStepResult.getCounterTradingValues().frEsCt);
         assertEquals(1500.0, dichotomyStepResult.getCounterTradingValues().ptEsCt);
         assertFalse(dichotomyStepResult.isFailed());
-        assertFalse(dichotomyStepResult.isSecure());
+        assertFalse(dichotomyStepResult.getRaoResult().isSecure(PhysicalParameter.FLOW));
     }
 }

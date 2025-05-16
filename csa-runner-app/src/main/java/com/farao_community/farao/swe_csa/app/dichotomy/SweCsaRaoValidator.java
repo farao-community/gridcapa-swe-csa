@@ -18,29 +18,26 @@ import com.farao_community.farao.rao_runner.api.resource.RaoFailureResponse;
 import com.farao_community.farao.rao_runner.api.resource.RaoSuccessResponse;
 import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
 import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
+import com.farao_community.farao.swe_csa.api.exception.RaoInterruptionException;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.app.FileExporter;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
-import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.openrao.commons.PhysicalParameter;
 import com.powsybl.openrao.commons.Unit;
 import com.powsybl.openrao.data.crac.api.Crac;
 import com.powsybl.openrao.data.crac.api.cnec.FlowCnec;
 import com.powsybl.openrao.data.raoresult.api.RaoResult;
 import com.powsybl.openrao.data.raoresult.io.json.RaoResultJsonImporter;
-import com.powsybl.openrao.monitoring.Monitoring;
-import com.powsybl.openrao.monitoring.MonitoringInput;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
-import com.powsybl.openrao.raoapi.parameters.extensions.LoadFlowAndSensitivityParameters;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
-import java.net.URL;
+import java.net.URI;
 import java.time.OffsetDateTime;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -49,6 +46,7 @@ public class SweCsaRaoValidator {
 
     private final FileExporter fileExporter;
     private final RaoRunnerClient raoRunnerClient;
+    private final ResultHelper resultHelper = new ResultHelper();
 
     private final Logger businessLogger;
 
@@ -59,49 +57,61 @@ public class SweCsaRaoValidator {
     }
 
     public DichotomyStepResult validateNetworkForPortugueseBorder(Network network, Crac crac, String cracUri, ZonalData<Scalable> scalableZonalDataFilteredForSweCountries, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
-        return validateNetworkForBorder(network, crac, cracUri, scalableZonalDataFilteredForSweCountries, raoParameters, csaRequest, raoParametersUrl, counterTradingValues, DichotomyDirection.PT_ES);
+        return validateNetworkForBorder(network, crac, cracUri, csaRequest, raoParametersUrl, counterTradingValues, "PT-ES", scalableZonalDataFilteredForSweCountries, raoParameters);
     }
 
     public DichotomyStepResult validateNetworkForFrenchBorder(Network network, Crac crac, String cracUri, ZonalData<Scalable> scalableZonalDataFilteredForSweCountries, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
-        return validateNetworkForBorder(network, crac, cracUri, scalableZonalDataFilteredForSweCountries, raoParameters, csaRequest, raoParametersUrl, counterTradingValues, DichotomyDirection.FR_ES);
+        return validateNetworkForBorder(network, crac, cracUri, csaRequest, raoParametersUrl, counterTradingValues, "FR-ES", scalableZonalDataFilteredForSweCountries, raoParameters);
     }
 
-    private DichotomyStepResult validateNetworkForBorder(Network network, Crac crac, String cracUri, ZonalData<Scalable> scalableZonalDataFilteredForSweCountries, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues, DichotomyDirection direction) {
-        RaoRequest raoRequest = buildRaoRequest(counterTradingValues.print(), csaRequest.getBusinessTimestamp(), csaRequest.getId(), network, cracUri, raoParametersUrl, direction);
+    private DichotomyStepResult validateNetworkForBorder(Network network, Crac crac, String cracUri, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues, String border, ZonalData<Scalable> scalableZonalDataFilteredForSweCountries, RaoParameters raoParameters) {
+        RaoRequest raoRequest = buildRaoRequest(counterTradingValues.print(), csaRequest.getBusinessTimestamp(), csaRequest.getId(), network, cracUri, raoParametersUrl, border);
 
         try {
-            businessLogger.info("RAO request sent: {}", raoRequest);
+            businessLogger.info("[{}] : RAO request sent: {}", border, raoRequest);
             AbstractRaoResponse abstractRaoResponse = raoRunnerClient.runRao(raoRequest);
-            businessLogger.info("RAO response received: {}", abstractRaoResponse);
+            businessLogger.info("[{}] : RAO response received: {}", border, abstractRaoResponse);
 
             if (abstractRaoResponse.isRaoFailed()) {
                 RaoFailureResponse raoFailureResponse = (RaoFailureResponse) abstractRaoResponse;
+                businessLogger.error("[{}] : RAO computation failed: {}", border, raoFailureResponse.getErrorMessage());
                 throw new RaoRunnerException(raoFailureResponse.getErrorMessage());
             }
 
             RaoSuccessResponse raoSuccessResponse = (RaoSuccessResponse) abstractRaoResponse;
-            RaoResult raoResult = new RaoResultJsonImporter().importData(new URL(raoSuccessResponse.getRaoResultFileUrl()).openStream(), crac);
+            if (raoSuccessResponse.isInterrupted()) {
+                throw new RaoInterruptionException(String.format("[%s] : RAO computation related to CSA task: [%s], stopped due to interruption request", raoRequest.getId(), border));
+            }
+            RaoResult raoResult = new RaoResultJsonImporter().importData(new URI(raoSuccessResponse.getRaoResultFileUrl()).toURL().openStream(), crac);
             businessLogger.info("RAO result imported: {}", raoResult);
-
-            raoResult = updateRaoResultWithAngleMonitoring(network, crac, scalableZonalDataFilteredForSweCountries, raoResult, raoParameters);
-
-            Set<FlowCnec> flowCnecs = getBorderFlowCnecs(crac, network, direction.equals(DichotomyDirection.PT_ES) ? Country.PT : Country.FR);
-            Pair<String, Double> flowCnecSmallestMargin = getFlowCnecSmallestMargin(raoResult, flowCnecs);
-
-            return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoSuccessResponse, flowCnecSmallestMargin, counterTradingValues);
+            logBorderOverload(raoResult, crac, border);
+            if (raoResult.isSecure(PhysicalParameter.FLOW) && !crac.getAngleCnecs().isEmpty()) {
+                raoResult = resultHelper.updateRaoResultWithAngleMonitoring(network, crac, scalableZonalDataFilteredForSweCountries, raoResult, raoParameters);
+            }
+            if (raoResult.isSecure(PhysicalParameter.FLOW, PhysicalParameter.ANGLE) && !crac.getVoltageCnecs().isEmpty()) {
+                raoResult = resultHelper.updateRaoResultWithVoltageMonitoring(network, crac, raoResult, raoParameters);
+            }
+            return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoSuccessResponse, counterTradingValues);
         } catch (Exception e) {
             throw new CsaInternalException(MDC.get("gridcapaTaskId"), "RAO run failed", e);
         }
     }
 
-    private RaoResult updateRaoResultWithAngleMonitoring(Network network, Crac crac, ZonalData<Scalable> scalableZonalDataFilteredForSweCountries, RaoResult raoResult, RaoParameters raoParameters) {
-        MonitoringInput angleMonitoringInput = MonitoringInput.buildWithAngle(network, crac, raoResult, scalableZonalDataFilteredForSweCountries).build();
-        return Monitoring.runAngleAndUpdateRaoResult(LoadFlowAndSensitivityParameters.getLoadFlowProvider(raoParameters), LoadFlowAndSensitivityParameters.getSensitivityWithLoadFlowParameters(raoParameters).getLoadFlowParameters(), Runtime.getRuntime().availableProcessors(), angleMonitoringInput);
+    private void logBorderOverload(RaoResult raoResult, Crac crac, String borderName) {
+        if (raoResult.isSecure(PhysicalParameter.FLOW)) {
+            businessLogger.info("There is no overload on '{}' border", borderName);
+        } else {
+            businessLogger.info("There is overloads on '{}' border, network is not secure", borderName);
+            Set<FlowCnec> flowCnecs = getBorderFlowCnecs(crac, borderName);
+            Pair<String, Double> flowCnecSmallestMargin = getFlowCnecSmallestMargin(raoResult, flowCnecs);
+            businessLogger.info("On the '{}' border, the most limiting CNEC is {}", borderName, flowCnecSmallestMargin.getLeft());
+
+        }
     }
 
-    static Set<FlowCnec> getBorderFlowCnecs(Crac crac, Network network, Country country) {
+    static Set<FlowCnec> getBorderFlowCnecs(Crac crac, String border) {
         return crac.getFlowCnecs().stream()
-            .filter(flowCnec -> flowCnec.isOptimized() && flowCnec.getLocation(network).contains(Optional.of(country)))
+            .filter(flowCnec -> flowCnec.isOptimized() && flowCnec.getBorder().equals(border))
             .collect(Collectors.toSet());
     }
 
@@ -118,7 +128,7 @@ public class SweCsaRaoValidator {
         return Pair.of(flowCnecId, smallestMargin);
     }
 
-    private RaoRequest buildRaoRequest(String stepFolder, String timestamp, String taskId, Network network, String cracUrl, String raoParametersUrl, DichotomyDirection direction) {
+    private RaoRequest buildRaoRequest(String stepFolder, String timestamp, String taskId, Network network, String cracUrl, String raoParametersUrl, String border) {
         String scaledNetworkPath = generateScaledNetworkPath(network, timestamp, stepFolder);
         String scaledNetworkPreSignedUrl = fileExporter.saveNetworkInArtifact(taskId, network, scaledNetworkPath);
         String raoResultDestination = generateArtifactsFolder(timestamp, stepFolder);
@@ -129,7 +139,7 @@ public class SweCsaRaoValidator {
             .withCracFileUrl(cracUrl)
             .withRaoParametersFileUrl(raoParametersUrl)
             .withResultsDestination(raoResultDestination)
-            .withEventPrefix(direction.toString())
+            .withEventPrefix(border)
             .build();
     }
 

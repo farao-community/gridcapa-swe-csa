@@ -2,9 +2,9 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
 
 import com.farao_community.farao.swe_csa.api.results.CounterTradeRangeActionResult;
 import com.farao_community.farao.swe_csa.api.results.CounterTradingResult;
-import com.farao_community.farao.swe_csa.app.FileExporter;
 import com.farao_community.farao.swe_csa.app.rao_result.RaoResultWithCounterTradeRangeActions;
-import com.powsybl.iidm.network.Country;
+import com.powsybl.glsk.commons.ZonalData;
+import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.data.crac.api.Crac;
 import com.powsybl.openrao.data.crac.api.Identifiable;
@@ -20,28 +20,13 @@ import java.util.List;
 import java.util.Map;
 
 public class ResultHelper {
-    private final FileExporter fileExporter;
 
-    public ResultHelper(FileExporter fileExporter) {
-        this.fileExporter = fileExporter;
+    public RaoResult updateRaoResultWithAngleMonitoring(Network network, Crac crac, ZonalData<Scalable> scalableZonalDataFilteredForSweCountries, RaoResult raoResult, RaoParameters raoParameters) {
+        MonitoringInput angleMonitoringInput = MonitoringInput.buildWithAngle(network, crac, raoResult, scalableZonalDataFilteredForSweCountries).build();
+        return Monitoring.runAngleAndUpdateRaoResult(LoadFlowAndSensitivityParameters.getLoadFlowProvider(raoParameters), LoadFlowAndSensitivityParameters.getSensitivityWithLoadFlowParameters(raoParameters).getLoadFlowParameters(), Runtime.getRuntime().availableProcessors(), angleMonitoringInput);
     }
 
-    RaoResultWithCounterTradeRangeActions uploadRaoResultWithCounterTradeRangeActions(
-        String raoResultDestinationPath,
-        RaoParameters raoParameters,
-        Network network,
-        Crac crac,
-        RaoResult raoResult,
-        Index index,
-        Country country) {
-
-        RaoResult raoResultWithVoltage = applyVoltageMonitoring(network, crac, raoResult, raoParameters);
-        RaoResultWithCounterTradeRangeActions raoResultWithRangeActions = addCounterTradingRangeActions(network, crac, index, raoResultWithVoltage, country);
-        fileExporter.saveRaoResultInArtifact(raoResultDestinationPath, raoResultWithRangeActions, crac);
-        return raoResultWithRangeActions;
-    }
-
-    private RaoResult applyVoltageMonitoring(Network network, Crac crac, RaoResult raoResult, RaoParameters raoParameters) {
+    public RaoResult updateRaoResultWithVoltageMonitoring(Network network, Crac crac, RaoResult raoResult, RaoParameters raoParameters) {
         MonitoringInput input = MonitoringInput.buildWithVoltage(network, crac, raoResult).build();
         return Monitoring.runVoltageAndUpdateRaoResult(
             LoadFlowAndSensitivityParameters.getLoadFlowProvider(raoParameters),
@@ -51,31 +36,32 @@ public class ResultHelper {
         );
     }
 
-    private RaoResultWithCounterTradeRangeActions addCounterTradingRangeActions(
+    // TODO Review me
+    public RaoResultWithCounterTradeRangeActions updateRaoResultWithCounterTradingRangeActions(
         Network network,
         Crac crac,
         Index index,
         RaoResult raoResult,
-        Country country) {
+        String border) {
 
         Map<CounterTradeRangeAction, CounterTradeRangeActionResult> resultMap = new HashMap<>();
-        List<String> flowCnecs = SweCsaRaoValidator.getBorderFlowCnecs(crac, network, country)
+        List<String> flowCnecs = SweCsaRaoValidator.getBorderFlowCnecs(crac, border)
             .stream()
             .map(Identifiable::getId)
             .toList();
 
-        switch (country) {
-            case PT -> {
+        switch (border) {
+            case "PT-ES" -> {
                 double value = Math.abs(index.getPtEsLowestSecureStep().getLeft());
                 resultMap.put(crac.getCounterTradeRangeAction("CT_RA_PTES"), new CounterTradeRangeActionResult("CT_RA_PTES", value, flowCnecs));
                 resultMap.put(crac.getCounterTradeRangeAction("CT_RA_ESPT"), new CounterTradeRangeActionResult("CT_RA_ESPT", value, flowCnecs));
             }
-            case FR -> {
+            case "FR-ES" -> {
                 double value = Math.abs(index.getFrEsLowestSecureStep().getLeft());
                 resultMap.put(crac.getCounterTradeRangeAction("CT_RA_FRES"), new CounterTradeRangeActionResult("CT_RA_FRES", value, flowCnecs));
                 resultMap.put(crac.getCounterTradeRangeAction("CT_RA_ESFR"), new CounterTradeRangeActionResult("CT_RA_ESFR", value, flowCnecs));
             }
-            default -> throw new IllegalArgumentException("Unsupported country: " + country);
+            default -> throw new IllegalArgumentException("Unsupported border: " + border);
         }
 
         return new RaoResultWithCounterTradeRangeActions(raoResult, new CounterTradingResult(resultMap));

@@ -7,7 +7,6 @@ import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.app.FileExporter;
 import com.farao_community.farao.swe_csa.app.FileImporter;
 import com.farao_community.farao.swe_csa.app.s3.S3AdapterUtil;
-import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.data.crac.api.Crac;
 import com.powsybl.openrao.data.crac.api.Instant;
@@ -48,13 +47,11 @@ class SweCsaRaoValidatorTest {
         Network network = Network.read(getClass().getResource("/rao_inputs/network.xiidm").getPath());
         Crac crac = fileImporter.importCrac("taskId", Objects.requireNonNull(getClass().getResource("/rao_inputs/crac.json")).toString(), network);
 
-        Set<FlowCnec> cnecsFr = SweCsaRaoValidator.getBorderFlowCnecs(crac, network, Country.FR);
-        Set<FlowCnec> cnecsDe = SweCsaRaoValidator.getBorderFlowCnecs(crac, network, Country.DE);
-        Set<FlowCnec> cnecsNl = SweCsaRaoValidator.getBorderFlowCnecs(crac, network, Country.NL);
+        Set<FlowCnec> cnecsPtEs = SweCsaRaoValidator.getBorderFlowCnecs(crac, "PT-ES");
+        Set<FlowCnec> cnecsFrEs = SweCsaRaoValidator.getBorderFlowCnecs(crac, "FR-ES");
 
-        assertEquals(9, cnecsFr.size());
-        assertEquals(4, cnecsDe.size());
-        assertEquals(2, cnecsNl.size());
+        assertEquals(0, cnecsPtEs.size());
+        assertEquals(0, cnecsFrEs.size());
     }
 
     @Test

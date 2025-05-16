@@ -6,10 +6,17 @@ import com.github.jasminb.jsonapi.annotations.Id;
 import com.github.jasminb.jsonapi.annotations.Type;
 
 @Type("csa-interruption-request")
-public record InterruptionRequest(@Id String id) {
+public class InterruptionRequest {
+
+    @Id
+    private final String id;
 
     @JsonCreator
     public InterruptionRequest(@JsonProperty("id") String id) {
         this.id = id;
+    }
+
+    public String getId() {
+        return id;
     }
 }

@@ -10,7 +10,6 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.data.crac.api.Crac;
 import com.powsybl.openrao.data.raoresult.api.RaoResult;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
-import org.apache.commons.lang3.tuple.Pair;
 import org.mockito.Mockito;
 import org.slf4j.LoggerFactory;
 
@@ -29,15 +28,13 @@ public class SweCsaRaoValidatorMock extends SweCsaRaoValidator {
     public DichotomyStepResult validateNetworkForFrenchBorder(Network network, Crac crac, String cracUri, ZonalData<Scalable> scalableZonalData, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
         RaoSuccessResponse raoResponse = Mockito.mock(RaoSuccessResponse.class);
         RaoResult raoResult = Mockito.mock(RaoResult.class);
-        Pair<String, Double> ptEsMostLimitingCnec = Pair.of("frEsCnec", counterTradingValues.getFrEsCt() >= 600 ? 200.0 : -200.0);
-        return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, ptEsMostLimitingCnec, counterTradingValues);
+        return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, counterTradingValues);
     }
 
     @Override
     public DichotomyStepResult validateNetworkForPortugueseBorder(Network network, Crac crac, String cracUri, ZonalData<Scalable> scalableZonalData, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
         RaoSuccessResponse raoResponse = Mockito.mock(RaoSuccessResponse.class);
         RaoResult raoResult = Mockito.mock(RaoResult.class);
-        Pair<String, Double> ptEsMostLimitingCnec = Pair.of("ptEsCnec", counterTradingValues.getPtEsCt() >= 0 ? 100.0 : -100.0);
-        return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, ptEsMostLimitingCnec, counterTradingValues);
+        return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, counterTradingValues);
     }
 }
