@@ -8,12 +8,14 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 
 public final class DichotomyStepResult {
     private final RaoResult raoResult;
+    private final boolean isSecure;
     private final RaoSuccessResponse raoSuccessResponse;
     private final ReasonInvalid reasonInvalid;
     private final String failureMessage;
     private final CounterTradingValues counterTradingValues;
 
-    private DichotomyStepResult(ReasonInvalid reasonInvalid, String failureMessage, CounterTradingValues counterTradingValues) {
+    private DichotomyStepResult(boolean isSecure, ReasonInvalid reasonInvalid, String failureMessage, CounterTradingValues counterTradingValues) {
+        this.isSecure = isSecure;
         this.raoResult = null;
         this.raoSuccessResponse = null;
         this.counterTradingValues = counterTradingValues;
@@ -21,8 +23,9 @@ public final class DichotomyStepResult {
         this.failureMessage = failureMessage;
     }
 
-    private DichotomyStepResult(RaoResult raoResult, RaoSuccessResponse raoSuccessResponse, CounterTradingValues counterTradingValues) {
+    private DichotomyStepResult(RaoResult raoResult, boolean isSecure, RaoSuccessResponse raoSuccessResponse, CounterTradingValues counterTradingValues) {
         this.raoResult = raoResult;
+        this.isSecure = isSecure;
         this.raoSuccessResponse = raoSuccessResponse;
         this.reasonInvalid = raoResult.isSecure(PhysicalParameter.FLOW) ? ReasonInvalid.NONE : ReasonInvalid.UNSECURE_AFTER_VALIDATION;
         this.counterTradingValues = counterTradingValues;
@@ -30,11 +33,11 @@ public final class DichotomyStepResult {
     }
 
     public static DichotomyStepResult fromFailure(ReasonInvalid reasonInvalid, String failureMessage, CounterTradingValues counterTradingValues) {
-        return new DichotomyStepResult(reasonInvalid, failureMessage, counterTradingValues);
+        return new DichotomyStepResult(false, reasonInvalid, failureMessage, counterTradingValues);
     }
 
-    public static DichotomyStepResult fromNetworkValidationResult(RaoResult raoResult, RaoSuccessResponse raoResponse, CounterTradingValues counterTradingValues) {
-        return new DichotomyStepResult(raoResult, raoResponse, counterTradingValues);
+    public static DichotomyStepResult fromNetworkValidationResult(RaoResult raoResult, boolean isSecure, RaoSuccessResponse raoResponse, CounterTradingValues counterTradingValues) {
+        return new DichotomyStepResult(raoResult, isSecure, raoResponse, counterTradingValues);
     }
 
     public RaoResult getRaoResult() {
@@ -65,5 +68,8 @@ public final class DichotomyStepResult {
         return counterTradingValues;
     }
 
+    public boolean isSecure() {
+        return isSecure;
+    }
 }
 

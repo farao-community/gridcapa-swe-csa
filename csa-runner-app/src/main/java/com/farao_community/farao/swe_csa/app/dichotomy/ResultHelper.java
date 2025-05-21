@@ -18,6 +18,7 @@ import com.powsybl.openrao.raoapi.parameters.extensions.LoadFlowAndSensitivityPa
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class ResultHelper {
 
@@ -36,7 +37,6 @@ public class ResultHelper {
         );
     }
 
-    // TODO Review me
     public RaoResultWithCounterTradeRangeActions updateRaoResultWithCounterTradingRangeActions(
         Network network,
         Crac crac,
@@ -53,13 +53,26 @@ public class ResultHelper {
         switch (border) {
             case "PT-ES" -> {
                 double value = Math.abs(index.getPtEsLowestSecureStep().getLeft());
-                resultMap.put(crac.getCounterTradeRangeAction("CT_RA_PTES"), new CounterTradeRangeActionResult("CT_RA_PTES", value, flowCnecs));
-                resultMap.put(crac.getCounterTradeRangeAction("CT_RA_ESPT"), new CounterTradeRangeActionResult("CT_RA_ESPT", value, flowCnecs));
+                CounterTradeRangeAction ctRaPtes = Objects.requireNonNull(
+                    crac.getCounterTradeRangeAction("CT_RA_PTES"),
+                    "CRAC is missing CT_RA_PTES CT range action");
+                resultMap.put(ctRaPtes, new CounterTradeRangeActionResult(ctRaPtes.getId(), value, flowCnecs));
+
+                CounterTradeRangeAction ctRaEsPt = Objects.requireNonNull(
+                    crac.getCounterTradeRangeAction("CT_RA_ESPT"),
+                    "CRAC is missing CT_RA_ESPT CT range action");
+                resultMap.put(ctRaEsPt, new CounterTradeRangeActionResult(ctRaPtes.getId(), value, flowCnecs));
             }
             case "FR-ES" -> {
                 double value = Math.abs(index.getFrEsLowestSecureStep().getLeft());
-                resultMap.put(crac.getCounterTradeRangeAction("CT_RA_FRES"), new CounterTradeRangeActionResult("CT_RA_FRES", value, flowCnecs));
-                resultMap.put(crac.getCounterTradeRangeAction("CT_RA_ESFR"), new CounterTradeRangeActionResult("CT_RA_ESFR", value, flowCnecs));
+                CounterTradeRangeAction ctRaFrEs = Objects.requireNonNull(
+                    crac.getCounterTradeRangeAction("CT_RA_FRES"),
+                    "CRAC is missing CT_RA_FRES CT range action");
+                resultMap.put(ctRaFrEs, new CounterTradeRangeActionResult(ctRaFrEs.getId(), value, flowCnecs));
+                CounterTradeRangeAction ctRaEsFr = Objects.requireNonNull(
+                    crac.getCounterTradeRangeAction("CT_RA_ESFR"),
+                    "CRAC is missing CT_RA_ESFR CT range action");
+                resultMap.put(ctRaEsFr, new CounterTradeRangeActionResult(ctRaEsFr.getId(), value, flowCnecs));
             }
             default -> throw new IllegalArgumentException("Unsupported border: " + border);
         }

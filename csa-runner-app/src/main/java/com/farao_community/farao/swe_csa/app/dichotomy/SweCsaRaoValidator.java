@@ -56,6 +56,7 @@ public class SweCsaRaoValidator {
         this.businessLogger = businessLogger;
     }
 
+    // TODO review me: scalableZonalDataFilteredForSweCountries : should be replaced with filtered zonal data for the matching border?
     public DichotomyStepResult validateNetworkForPortugueseBorder(Network network, Crac crac, String cracUri, ZonalData<Scalable> scalableZonalDataFilteredForSweCountries, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
         return validateNetworkForBorder(network, crac, cracUri, csaRequest, raoParametersUrl, counterTradingValues, "PT-ES", scalableZonalDataFilteredForSweCountries, raoParameters);
     }
@@ -85,13 +86,12 @@ public class SweCsaRaoValidator {
             RaoResult raoResult = new RaoResultJsonImporter().importData(new URI(raoSuccessResponse.getRaoResultFileUrl()).toURL().openStream(), crac);
             businessLogger.info("RAO result imported: {}", raoResult);
             logBorderOverload(raoResult, crac, border);
-            if (raoResult.isSecure(PhysicalParameter.FLOW) && !crac.getAngleCnecs().isEmpty()) {
+            boolean isSecure = raoResult.isSecure(PhysicalParameter.FLOW);
+            if (isSecure && !crac.getAngleCnecs().isEmpty()) {
                 raoResult = resultHelper.updateRaoResultWithAngleMonitoring(network, crac, scalableZonalDataFilteredForSweCountries, raoResult, raoParameters);
+                isSecure = raoResult.isSecure(PhysicalParameter.FLOW, PhysicalParameter.ANGLE);
             }
-            if (raoResult.isSecure(PhysicalParameter.FLOW, PhysicalParameter.ANGLE) && !crac.getVoltageCnecs().isEmpty()) {
-                raoResult = resultHelper.updateRaoResultWithVoltageMonitoring(network, crac, raoResult, raoParameters);
-            }
-            return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoSuccessResponse, counterTradingValues);
+            return DichotomyStepResult.fromNetworkValidationResult(raoResult, isSecure, raoSuccessResponse, counterTradingValues);
         } catch (Exception e) {
             throw new CsaInternalException(MDC.get("gridcapaTaskId"), "RAO run failed", e);
         }
@@ -104,7 +104,7 @@ public class SweCsaRaoValidator {
             businessLogger.info("There is overloads on '{}' border, network is not secure", borderName);
             Set<FlowCnec> flowCnecs = getBorderFlowCnecs(crac, borderName);
             Pair<String, Double> flowCnecSmallestMargin = getFlowCnecSmallestMargin(raoResult, flowCnecs);
-            businessLogger.info("On the '{}' border, the most limiting CNEC is {}", borderName, flowCnecSmallestMargin.getLeft());
+            businessLogger.info("On the '{}' border, the most limiting CNEC is {}, with a margin of {}", borderName, flowCnecSmallestMargin.getLeft(), flowCnecSmallestMargin.getRight());
 
         }
     }

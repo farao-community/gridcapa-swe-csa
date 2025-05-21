@@ -45,26 +45,40 @@ public class RequestService {
         MDC.put("gridcapaTaskId", csaRequest.getId());
         try {
             String requestId = csaRequest.getId();
-            // send ack message
-            streamBridge.send(ACK_BRIDGE_NAME, jsonApiConverter.toJsonMessage(new CsaResponse(requestId, Status.ACCEPTED.toString(),  "",  Status.ACCEPTED.toString(), ""), CsaResponse.class));
-            businessLogger.info("Csa request received : {}", csaRequest);
-
-            //Log current version: implementation-Version from META-INF/MANIFEST.MF isn’t available in unit tests because tests run from the target/classes directory, not the actual packaged JAR
-            businessLogger.info("Current CSA runner version is: {}", Optional.ofNullable(this.getClass().getPackage().getImplementationVersion()).orElse("unknown"));
-
+            // check if task is canceled before run start
             if (checkIfInterruptionRequested(requestId)) {
                 businessLogger.warn("CSA computation has been canceled for timestamp {} before even the process starts", csaRequest.getBusinessTimestamp());
                 CsaResponse csaResponse = new CsaResponse(requestId, Status.INTERRUPTED_UNSECURE.toString(), null, Status.INTERRUPTED_UNSECURE.toString(), null);
                 return jsonApiConverter.toJsonMessage(csaResponse, CsaResponse.class);
             }
 
+            // send ack message
+            streamBridge.send(ACK_BRIDGE_NAME, jsonApiConverter.toJsonMessage(new CsaResponse(requestId, Status.ACCEPTED.toString(), "", Status.ACCEPTED.toString(), ""), CsaResponse.class));
+            businessLogger.info("Csa request received : {}", csaRequest);
+
+            //Log current version: implementation-Version from META-INF/MANIFEST.MF isn’t available in unit tests because tests run from the target/classes directory, not the actual packaged JAR
+            businessLogger.info("Current CSA runner version is: {}", Optional.ofNullable(this.getClass().getPackage().getImplementationVersion()).orElse("unknown"));
+
             Instant utcInstant = Instant.parse(csaRequest.getBusinessTimestamp());
             String ptEsRaoResultDestinationPath = s3ArtifactsAdapter.createRaoResultDestination(OffsetDateTime.ofInstant(utcInstant, ZoneId.of("UTC")).toString(), DichotomyDirection.PT_ES.toString());
             String frEsRaoResultDestinationPath = s3ArtifactsAdapter.createRaoResultDestination(OffsetDateTime.ofInstant(utcInstant, ZoneId.of("UTC")).toString(), DichotomyDirection.FR_ES.toString());
 
-            FinalResult result = dichotomyRunner.runDichotomy(csaRequest, ptEsRaoResultDestinationPath, frEsRaoResultDestinationPath);
+            FinalResult finalResult = dichotomyRunner.runDichotomy(csaRequest, ptEsRaoResultDestinationPath, frEsRaoResultDestinationPath);
             businessLogger.info("CSA computation finished for TimeStamp: '{}'", utcInstant);
-            CsaResponse csaResponse = new CsaResponse(csaRequest.getId(), result.ptEsResult().getRight().toString(), s3ArtifactsAdapter.generatePreSignedUrl(ptEsRaoResultDestinationPath), result.frEsResult().getRight().toString(), s3ArtifactsAdapter.generatePreSignedUrl(frEsRaoResultDestinationPath));
+            // Validate results for both borders
+            if (finalResult.ptEsResult() == null) {
+                throw new CsaInvalidDataException(csaRequest.getId(), "Failed to compute results for PT-ES border");
+            }
+            if (finalResult.frEsResult() == null) {
+                throw new CsaInvalidDataException(csaRequest.getId(), "Failed to compute results for FR-ES border");
+            }
+
+            Status ptEsFinalStatus = finalResult.ptEsResult().getRight();
+            Status frEsFinalStatus = finalResult.frEsResult().getRight();
+
+            businessLogger.info("PT-ES border result status: {}", ptEsFinalStatus);
+            businessLogger.info("FR-ES border result status: {}", frEsFinalStatus);
+            CsaResponse csaResponse = new CsaResponse(csaRequest.getId(), ptEsFinalStatus.toString(), s3ArtifactsAdapter.generatePreSignedUrl(ptEsRaoResultDestinationPath), frEsFinalStatus.toString(), s3ArtifactsAdapter.generatePreSignedUrl(frEsRaoResultDestinationPath));
             resultBytes = jsonApiConverter.toJsonMessage(csaResponse, CsaResponse.class);
             businessLogger.info("Csa response sent: {}", csaResponse);
         } catch (Exception e) {

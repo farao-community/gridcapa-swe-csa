@@ -28,13 +28,13 @@ public class SweCsaRaoValidatorMock extends SweCsaRaoValidator {
     public DichotomyStepResult validateNetworkForFrenchBorder(Network network, Crac crac, String cracUri, ZonalData<Scalable> scalableZonalData, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
         RaoSuccessResponse raoResponse = Mockito.mock(RaoSuccessResponse.class);
         RaoResult raoResult = Mockito.mock(RaoResult.class);
-        return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, counterTradingValues);
+        return DichotomyStepResult.fromNetworkValidationResult(raoResult, true, raoResponse, counterTradingValues);
     }
 
     @Override
     public DichotomyStepResult validateNetworkForPortugueseBorder(Network network, Crac crac, String cracUri, ZonalData<Scalable> scalableZonalData, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
         RaoSuccessResponse raoResponse = Mockito.mock(RaoSuccessResponse.class);
         RaoResult raoResult = Mockito.mock(RaoResult.class);
-        return DichotomyStepResult.fromNetworkValidationResult(raoResult, raoResponse, counterTradingValues);
+        return DichotomyStepResult.fromNetworkValidationResult(raoResult, true, raoResponse, counterTradingValues);
     }
 }

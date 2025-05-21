@@ -1,6 +1,5 @@
 package com.farao_community.farao.swe_csa.app.dichotomy;
 
-import com.powsybl.openrao.commons.PhysicalParameter;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class Index {
@@ -34,7 +33,7 @@ public class Index {
 
     public boolean addPtEsDichotomyStepResult(double ptEsCtStepValue, DichotomyStepResult stepResult) {
         ptEsDichotomyCount++;
-        if (stepResult.getRaoResult().isSecure(PhysicalParameter.FLOW)) {
+        if (stepResult.isSecure()) {
             ptEsLowestSecureStep = Pair.of(ptEsCtStepValue, stepResult);
             return true;
         } else {
@@ -45,7 +44,7 @@ public class Index {
 
     public boolean addFrEsDichotomyStepResult(double frEsCtStepValue, DichotomyStepResult stepResult) {
         frEsDichotomyCount++;
-        if (stepResult.getRaoResult().isSecure(PhysicalParameter.FLOW)) {
+        if (stepResult.isSecure()) {
             frEsLowestSecureStep = Pair.of(frEsCtStepValue, stepResult);
             return true;
         } else {

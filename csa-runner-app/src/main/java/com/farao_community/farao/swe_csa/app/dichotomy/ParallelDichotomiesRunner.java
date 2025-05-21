@@ -29,16 +29,30 @@ public class ParallelDichotomiesRunner {
                 return supplierFrEs.get();
             }, executor);
 
+            // If one fails, cancel the other
+            futurePtEs.whenComplete((r, ex) -> {
+                if (ex != null) {
+                    futureFrEs.cancel(true);
+                }
+            });
+            futureFrEs.whenComplete((r, ex) -> {
+                if (ex != null) {
+                    futurePtEs.cancel(true);
+                }
+            });
             try {
-                DichotomyStepResult ptEsDichotomyStepResult = futurePtEs.join();
-                DichotomyStepResult frEsDichotomyStepResult = futureFrEs.join();
-                return new ParallelDichotomiesResult(ptEsDichotomyStepResult, frEsDichotomyStepResult, counterTradingValues);
+                CompletableFuture.allOf(futurePtEs, futureFrEs).join();
+                return new ParallelDichotomiesResult(
+                    futurePtEs.join(),
+                    futureFrEs.join(),
+                    counterTradingValues);
 
             } catch (CompletionException e) {
-                throw new CsaInternalException(csaTaskId, e.getMessage());
+                Throwable root = e.getCause() != null ? e.getCause() : e;
+                throw new CsaInternalException(csaTaskId, root.getMessage(), root);
             }
         } finally {
-            executor.shutdown();
+            executor.shutdownNow();
         }
     }
 }
