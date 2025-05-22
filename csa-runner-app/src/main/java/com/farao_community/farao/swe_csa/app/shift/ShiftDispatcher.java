@@ -22,8 +22,8 @@ public class ShiftDispatcher {
 
     public Map<String, Double> dispatch(CounterTradingValues counterTradingValues) {
         Map<String, Double> dispatching = new HashMap<>();
-        dispatching.put(EI_CODE_FR, -counterTradingValues.getFrEsCt() * signum(initialNetPositions.get(Country.FR.getName())));
-        dispatching.put(EI_CODE_PT, -counterTradingValues.getPtEsCt() * signum(initialNetPositions.get(Country.PT.getName())));
+        dispatching.put(EI_CODE_FR, -counterTradingValues.frEsCt() * signum(initialNetPositions.get(Country.FR.getName())));
+        dispatching.put(EI_CODE_PT, -counterTradingValues.ptEsCt() * signum(initialNetPositions.get(Country.PT.getName())));
         dispatching.put(EI_CODE_ES, -dispatching.get(EI_CODE_FR) - dispatching.get(EI_CODE_PT));
 
         return dispatching;

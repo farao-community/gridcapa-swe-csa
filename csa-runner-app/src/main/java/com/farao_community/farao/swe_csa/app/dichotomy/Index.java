@@ -23,6 +23,14 @@ public class Index {
         this.maxDichotomiesByBorder = maxDichotomiesByBorder;
     }
 
+    public Pair<Double, DichotomyStepResult> getFrEsHighestUnsecureStep() {
+        return frEsHighestUnsecureStep;
+    }
+
+    public Pair<Double, DichotomyStepResult> getPtEsHighestUnsecureStep() {
+        return ptEsHighestUnsecureStep;
+    }
+
     public Pair<Double, DichotomyStepResult> getFrEsLowestSecureStep() {
         return frEsLowestSecureStep;
     }

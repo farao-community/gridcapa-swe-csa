@@ -68,8 +68,8 @@ public final class SweCsaNetworkShifter {
 
         // Compute target exchange values, given the counter-trading values
         Map<String, Double> targetExchanges = Map.of(
-            DichotomyDirection.ES_FR.toString(), esFrInitialExchange - Math.signum(esFrInitialExchange) * Math.abs(counterTradingValues.getFrEsCt()),
-            DichotomyDirection.ES_PT.toString(), esPtInitialExchange - Math.signum(esPtInitialExchange) * Math.abs(counterTradingValues.getPtEsCt())
+            DichotomyDirection.ES_FR.toString(), esFrInitialExchange - Math.signum(esFrInitialExchange) * Math.abs(counterTradingValues.frEsCt()),
+            DichotomyDirection.ES_PT.toString(), esPtInitialExchange - Math.signum(esPtInitialExchange) * Math.abs(counterTradingValues.ptEsCt())
         );
         BUSINESS_LOGS.info("Target exchanges: PT->ES: {}, FR-ES: {}", -targetExchanges.get(DichotomyDirection.ES_PT.toString()), -targetExchanges.get(DichotomyDirection.ES_FR.toString()));
 

@@ -207,7 +207,7 @@ public class DichotomyRunner {
 
             String newVariantName = getNewVariantName(counterTradingValues);
             try {
-                businessLogger.info("Next CT values are '{}' for PT-ES and '{}' for FR-ES", counterTradingValues.getPtEsCt(), counterTradingValues.getFrEsCt());
+                businessLogger.info("Next CT values are '{}' for PT-ES and '{}' for FR-ES", counterTradingValues.ptEsCt(), counterTradingValues.frEsCt());
                 setWorkingVariant(network, initialVariant, newVariantName);
                 networkShifter.applyCounterTrading(counterTradingValues, network);
 
@@ -215,8 +215,8 @@ public class DichotomyRunner {
 
                 ptEsCtStepResult = parallelDichotomiesResult.getPtEsResult();
                 frEsCtStepResult = parallelDichotomiesResult.getFrEsResult();
-                boolean ptEsCtSecure = index.addPtEsDichotomyStepResult(counterTradingValues.getPtEsCt(), ptEsCtStepResult);
-                boolean frEsCtSecure = index.addFrEsDichotomyStepResult(counterTradingValues.getFrEsCt(), frEsCtStepResult);
+                boolean ptEsCtSecure = index.addPtEsDichotomyStepResult(counterTradingValues.ptEsCt(), ptEsCtStepResult);
+                boolean frEsCtSecure = index.addFrEsDichotomyStepResult(counterTradingValues.frEsCt(), frEsCtStepResult);
                 if (ptEsCtSecure && frEsCtSecure) {
                     index.setBestValidDichotomyStepResult(parallelDichotomiesResult);
                     // enhance rao result with monitoring result + CT values and send notification
@@ -226,24 +226,24 @@ public class DichotomyRunner {
                     streamBridge.send(RESPONSE_BRIDGE_NAME, jsonApiConverter.toJsonMessage(csaResponse, CsaResponse.class));
                 }
             } catch (GlskLimitationException e) {
-                businessLogger.warn("GLSK limits have been reached with CT of '{}' for PT-ES and '{}' for FR-ES", counterTradingValues.getPtEsCt(), counterTradingValues.getFrEsCt());
+                businessLogger.warn("GLSK limits have been reached with CT of '{}' for PT-ES and '{}' for FR-ES", counterTradingValues.ptEsCt(), counterTradingValues.frEsCt());
                 ptEsCtStepResult = DichotomyStepResult.fromFailure(ReasonInvalid.GLSK_LIMITATION, "PT-ES border: " + e.getMessage(), counterTradingValues);
                 frEsCtStepResult = DichotomyStepResult.fromFailure(ReasonInvalid.GLSK_LIMITATION, "FR-ES border: " + e.getMessage(), counterTradingValues);
-                index.addPtEsDichotomyStepResult(counterTradingValues.getPtEsCt(), ptEsCtStepResult);
-                index.addFrEsDichotomyStepResult(counterTradingValues.getFrEsCt(), frEsCtStepResult);
+                index.addPtEsDichotomyStepResult(counterTradingValues.ptEsCt(), ptEsCtStepResult);
+                index.addFrEsDichotomyStepResult(counterTradingValues.frEsCt(), frEsCtStepResult);
 
             } catch (ShiftingException | RaoRunnerException e) {
-                businessLogger.warn("Validation failed with CT of '{}' for PT-ES and '{}' for FR-ES", counterTradingValues.getPtEsCt(), counterTradingValues.getFrEsCt());
+                businessLogger.warn("Validation failed with CT of '{}' for PT-ES and '{}' for FR-ES", counterTradingValues.ptEsCt(), counterTradingValues.frEsCt());
                 ptEsCtStepResult = DichotomyStepResult.fromFailure(ReasonInvalid.VALIDATION_FAILED, "PT-ES border: " + e.getMessage(), counterTradingValues);
                 frEsCtStepResult = DichotomyStepResult.fromFailure(ReasonInvalid.VALIDATION_FAILED, "FR-ES border: " + e.getMessage(), counterTradingValues);
-                index.addPtEsDichotomyStepResult(counterTradingValues.getPtEsCt(), ptEsCtStepResult);
-                index.addFrEsDichotomyStepResult(counterTradingValues.getFrEsCt(), frEsCtStepResult);
+                index.addPtEsDichotomyStepResult(counterTradingValues.ptEsCt(), ptEsCtStepResult);
+                index.addFrEsDichotomyStepResult(counterTradingValues.frEsCt(), frEsCtStepResult);
             } finally {
                 resetToInitialVariant(network, initialVariant, newVariantName);
             }
 
         }
-        businessLogger.info("Dichotomy stop criterion reached, CT PT-ES: {}, CT FR-ES: {}", Math.round(index.getBestValidDichotomyStepResult().getCounterTradingValues().getPtEsCt()), Math.round(index.getBestValidDichotomyStepResult().getCounterTradingValues().getFrEsCt()));
+        businessLogger.info("Dichotomy stop criterion reached, CT PT-ES: {}, CT FR-ES: {}", Math.round(index.getBestValidDichotomyStepResult().getCounterTradingValues().ptEsCt()), Math.round(index.getBestValidDichotomyStepResult().getCounterTradingValues().frEsCt()));
         uploadFinalResult(raoParameters, network, cracPtEs, index, index.getBestValidDichotomyStepResult().getPtEsResult().getRaoResult(), ptEsRaoResultDestinationPath, "PT-ES");
         uploadFinalResult(raoParameters, network, cracFrEs, index, index.getBestValidDichotomyStepResult().getFrEsResult().getRaoResult(), frEsRaoResultDestinationPath, "FR-ES");
 
