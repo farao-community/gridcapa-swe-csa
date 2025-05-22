@@ -61,7 +61,7 @@ public class ResultHelper {
                 CounterTradeRangeAction ctRaEsPt = Objects.requireNonNull(
                     crac.getCounterTradeRangeAction("CT_RA_ESPT"),
                     "CRAC is missing CT_RA_ESPT CT range action");
-                resultMap.put(ctRaEsPt, new CounterTradeRangeActionResult(ctRaPtes.getId(), value, flowCnecs));
+                resultMap.put(ctRaEsPt, new CounterTradeRangeActionResult(ctRaEsPt.getId(), value, flowCnecs));
             }
             case "FR-ES" -> {
                 double value = Math.abs(index.getFrEsLowestSecureStep().getLeft());
