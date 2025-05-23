@@ -76,7 +76,7 @@ public final class SweCsaNetworkShifter {
         shiftExchangeValues(network, targetExchanges, scalingValueEstimationPerCountry);
     }
 
-    private void shiftExchangeValues(Network network, Map<String, Double> targetExchanges, Map<String, Double> scalingValueEstimationPerCountry) throws ShiftingException, GlskLimitationException {
+    void shiftExchangeValues(Network network, Map<String, Double> targetExchanges, Map<String, Double> scalingValueEstimationPerCountry) throws ShiftingException, GlskLimitationException {
         ScalableGeneratorConnector scalableGeneratorConnector = new ScalableGeneratorConnector(zonalScalable);
         GeneratorLimitsHandler generatorLimitsHandler = new GeneratorLimitsHandler(zonalScalable);
         Map<String, Double> scalingValuePerCountry = new HashMap<>(scalingValueEstimationPerCountry);
@@ -126,7 +126,7 @@ public final class SweCsaNetworkShifter {
         }
     }
 
-    private static Map<String, Double> computeExchangeValuesMismatch(Network network, String workingVariantCopyId, Map<String, Double> targetExchanges) throws ShiftingException {
+    static Map<String, Double> computeExchangeValuesMismatch(Network network, String workingVariantCopyId, Map<String, Double> targetExchanges) throws ShiftingException {
         Map<String, Double> mismatchPerBorder;
         LoadFlowResult loadFlowResult = LoadFlow.run(network, workingVariantCopyId, LocalComputationManager.getDefault(), LoadFlowParameters.load());
         if (!loadFlowResult.isFullyConverged()) {
