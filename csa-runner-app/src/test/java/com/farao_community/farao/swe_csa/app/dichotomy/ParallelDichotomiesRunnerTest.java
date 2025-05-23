@@ -1,7 +1,6 @@
 package com.farao_community.farao.swe_csa.app.dichotomy;
 
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import java.util.function.Supplier;
 
