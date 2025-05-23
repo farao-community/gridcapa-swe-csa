@@ -3,7 +3,6 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-
 import com.farao_community.farao.swe_csa.api.resource.Status;
 import com.powsybl.openrao.data.raoresult.api.RaoResult;
 
@@ -16,13 +15,10 @@ class FinalResultTest {
 
     @Mock
     private DichotomyStepResult ptEsDichotomyStepResult;
-
     @Mock
     private DichotomyStepResult frEsDichotomyStepResult;
-
     @Mock
     private RaoResult raoResultPtEs;
-
     @Mock
     private RaoResult raoResultFrEs;
 
@@ -37,9 +33,7 @@ class FinalResultTest {
         when(raoResultPtEs.isSecure()).thenReturn(true);
         when(frEsDichotomyStepResult.getRaoResult()).thenReturn(raoResultFrEs);
         when(raoResultFrEs.isSecure()).thenReturn(true);
-
         FinalResult result = FinalResult.fromDichotomyStepResults(ptEsDichotomyStepResult, frEsDichotomyStepResult);
-
         assertNotNull(result);
         assertTrue(result.ptEsResult().getLeft().isSecure());
         assertTrue(result.frEsResult().getLeft().isSecure());
@@ -51,9 +45,7 @@ class FinalResultTest {
         when(raoResultPtEs.isSecure()).thenReturn(false);
         when(frEsDichotomyStepResult.getRaoResult()).thenReturn(raoResultFrEs);
         when(raoResultFrEs.isSecure()).thenReturn(false);
-
         FinalResult result = FinalResult.fromDichotomyStepResults(ptEsDichotomyStepResult, frEsDichotomyStepResult);
-
         assertNotNull(result);
         assertFalse(result.ptEsResult().getLeft().isSecure());
         assertFalse(result.frEsResult().getLeft().isSecure());
@@ -65,9 +57,7 @@ class FinalResultTest {
         when(raoResultPtEs.isSecure()).thenReturn(true);
         when(frEsDichotomyStepResult.getRaoResult()).thenReturn(raoResultFrEs);
         when(raoResultFrEs.isSecure()).thenReturn(false);
-
         FinalResult result = FinalResult.fromDichotomyStepResults(ptEsDichotomyStepResult, frEsDichotomyStepResult);
-
         assertNotNull(result);
         assertTrue(result.ptEsResult().getLeft().isSecure());
         assertFalse(result.frEsResult().getLeft().isSecure());
@@ -79,9 +69,7 @@ class FinalResultTest {
         when(ptEsDichotomyStepResult.getRaoResult()).thenReturn(mockRaoResult);
         when(frEsDichotomyStepResult.getRaoResult()).thenReturn(mockRaoResult);
         when(mockRaoResult.isSecure()).thenReturn(false);
-
         FinalResult result = FinalResult.fromDichotomyStepResults(ptEsDichotomyStepResult, frEsDichotomyStepResult);
-
         assertNotNull(result);
         assertNotNull(result.ptEsResult().getLeft());
         assertNotNull(result.frEsResult().getLeft());

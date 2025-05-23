@@ -1,7 +1,6 @@
 package com.farao_community.farao.swe_csa.app.dichotomy;
 
 import com.farao_community.farao.swe_csa.api.resource.Status;
-import com.powsybl.openrao.commons.PhysicalParameter;
 import com.powsybl.openrao.data.raoresult.api.RaoResult;
 import org.apache.commons.lang3.tuple.Pair;
 

@@ -52,7 +52,6 @@ class InterruptionServiceTest {
         assertTrue(tasksToInterrupt.contains(taskId));
     }
 
-
     @Test
     void testGetTasksToInterrupt() {
         String taskId1 = "task1";
