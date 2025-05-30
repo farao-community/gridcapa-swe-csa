@@ -28,13 +28,15 @@ public class SweCsaRaoValidatorMock extends SweCsaRaoValidator {
     public DichotomyStepResult validateNetworkForFrenchBorder(Network network, Crac crac, String cracUri, ZonalData<Scalable> scalableZonalData, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
         RaoSuccessResponse raoResponse = Mockito.mock(RaoSuccessResponse.class);
         RaoResult raoResult = Mockito.mock(RaoResult.class);
-        return DichotomyStepResult.fromNetworkValidationResult(raoResult, true, raoResponse, counterTradingValues);
+        boolean isSecure = counterTradingValues.frEsCt() > 600;
+        return DichotomyStepResult.fromNetworkValidationResult(raoResult, isSecure, raoResponse, counterTradingValues);
     }
 
     @Override
     public DichotomyStepResult validateNetworkForPortugueseBorder(Network network, Crac crac, String cracUri, ZonalData<Scalable> scalableZonalData, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
         RaoSuccessResponse raoResponse = Mockito.mock(RaoSuccessResponse.class);
         RaoResult raoResult = Mockito.mock(RaoResult.class);
-        return DichotomyStepResult.fromNetworkValidationResult(raoResult, true, raoResponse, counterTradingValues);
+        boolean isSecure = counterTradingValues.ptEsCt() >= 0;
+        return DichotomyStepResult.fromNetworkValidationResult(raoResult, isSecure, raoResponse, counterTradingValues);
     }
 }

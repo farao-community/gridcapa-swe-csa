@@ -122,7 +122,7 @@ public final class SweCsaNetworkShifter {
             network.getVariantManager().removeVariant(workingVariantCopyId);
         } finally {
             // here set working variant generators pmin and pmax values to initial values
-            generatorLimitsHandler.resetInitialPminPmax(network);
+            //generatorLimitsHandler.resetInitialPminPmax(network);
         }
     }
 

@@ -2,7 +2,6 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
 
 import com.farao_community.farao.dichotomy.api.results.ReasonInvalid;
 import com.farao_community.farao.rao_runner.api.resource.RaoSuccessResponse;
-import com.powsybl.openrao.commons.PhysicalParameter;
 import com.powsybl.openrao.data.raoresult.api.RaoResult;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
@@ -27,7 +26,7 @@ public final class DichotomyStepResult {
         this.raoResult = raoResult;
         this.isSecure = isSecure;
         this.raoSuccessResponse = raoSuccessResponse;
-        this.reasonInvalid = raoResult.isSecure(PhysicalParameter.FLOW) ? ReasonInvalid.NONE : ReasonInvalid.UNSECURE_AFTER_VALIDATION;
+        this.reasonInvalid = isSecure ? ReasonInvalid.NONE : ReasonInvalid.UNSECURE_AFTER_VALIDATION;
         this.counterTradingValues = counterTradingValues;
         this.failureMessage = "None";
     }

@@ -55,7 +55,7 @@ class DichotomyStepResultTest {
 
     @Test
     void creationFromNetworkValidationResultTest() {
-        DichotomyStepResult dichotomyStepResult = DichotomyStepResult.fromNetworkValidationResult(Mockito.mock(RaoResult.class), true,
+        DichotomyStepResult dichotomyStepResult = DichotomyStepResult.fromNetworkValidationResult(Mockito.mock(RaoResult.class), false,
             Mockito.mock(RaoSuccessResponse.class), new CounterTradingValues(1500.0, 900.0));
 
         assertNotNull(dichotomyStepResult.getRaoResult());

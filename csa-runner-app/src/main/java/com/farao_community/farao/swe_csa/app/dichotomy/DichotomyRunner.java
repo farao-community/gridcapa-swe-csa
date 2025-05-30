@@ -171,8 +171,7 @@ public class DichotomyRunner {
 
             resetToInitialVariant(network, initialVariant, maxCtVariantName);
 
-            // TODO check with Thomas if we consider angle as well here?
-            if (!maxCtParallelDichotomiesResult.getPtEsResult().getRaoResult().isSecure(PhysicalParameter.FLOW) || !maxCtParallelDichotomiesResult.getFrEsResult().getRaoResult().isSecure(PhysicalParameter.FLOW)) {
+            if (!maxCtParallelDichotomiesResult.getPtEsResult().isSecure() || !maxCtParallelDichotomiesResult.getFrEsResult().isSecure()) {
                 businessLogger.error("Maximum CT value cannot secure this case");
                 fileExporter.saveRaoResultInArtifact(ptEsRaoResultDestinationPath, maxCtParallelDichotomiesResult.getPtEsResult().getRaoResult(), cracPtEs);
                 fileExporter.saveRaoResultInArtifact(frEsRaoResultDestinationPath, maxCtParallelDichotomiesResult.getFrEsResult().getRaoResult(), cracFrEs);
@@ -314,4 +313,11 @@ public class DichotomyRunner {
         return String.format("network-ScaledBy-%s", counterTradingValues.print());
     }
 
+    public void setIndexPrecision(double indexPrecision) {
+        this.indexPrecision = indexPrecision;
+    }
+
+    public void setMaxDichotomiesByBorder(double maxDichotomiesByBorder) {
+        this.maxDichotomiesByBorder = maxDichotomiesByBorder;
+    }
 }
