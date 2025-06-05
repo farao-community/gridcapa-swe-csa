@@ -19,7 +19,7 @@ class CounterTradeRangeActionTest {
 
         assertEquals(ctRangeActionId, result.getCtRangeActionId());
         assertEquals(setPoint, result.getSetPoint(), 0.001);
-        assertEquals(concernedCnecs, result.getConcernedCnecs());
+        assertEquals(concernedCnecs, result.getInvolvedCnecs());
     }
 
 }

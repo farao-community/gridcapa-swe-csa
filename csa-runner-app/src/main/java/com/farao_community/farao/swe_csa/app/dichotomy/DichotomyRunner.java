@@ -81,8 +81,7 @@ public class DichotomyRunner {
         ZonalData<Scalable> scalableZonalData = fileImporter.getZonalData(csaRequest.getId(), instant, csaRequest.getGlskUri(), network, false);
         ZonalData<Scalable> scalableZonalDataFilteredForSweCountries = fileImporter.getZonalData(csaRequest.getId(), instant, csaRequest.getGlskUri(), network, true);
 
-        // TODO remove me, temporary workaround,
-        // In real data crac should already contain CT-RAs, should be removed then
+        // Temporary workaround, in real data crac should already contain CT-RAs, should be removed then
         Preprocessing.updateCracWithPtEsCounterTradeRangeActions(cracPtEs);
         Preprocessing.updateCracWithFrEsCounterTradeRangeActions(cracFrEs);
 
@@ -115,23 +114,9 @@ public class DichotomyRunner {
         } catch (CsaInvalidDataException e) {
             businessLogger.warn(e.getMessage());
             businessLogger.warn("No counter trading will be done, only input network will be checked by rao");
-
             ParallelDichotomiesResult parallelDichotomiesResult = supplyParallelDichotomiesResult(csaRequest, raoParameters, raoParametersUrl, network, cracPtEs, cracFrEs, scalableZonalDataFilteredForSweCountries, minCounterTradingValues);
-
             RaoResult ptEsRaoResult = parallelDichotomiesResult.getPtEsResult().getRaoResult();
-            DichotomyStepResult ptEsResult = parallelDichotomiesResult.getPtEsResult();
-            if (ptEsResult.isSecure() && !cracPtEs.getVoltageCnecs().isEmpty()) {
-                businessLogger.info("CRAC PT-ES contains voltage CNECs. Applying voltage monitoring for the final result.");
-                ptEsRaoResult = resultHelper.updateRaoResultWithVoltageMonitoring(network, cracPtEs, ptEsRaoResult, raoParameters);
-            }
-
             RaoResult frEsRaoResult = parallelDichotomiesResult.getFrEsResult().getRaoResult();
-            DichotomyStepResult frEsResult = parallelDichotomiesResult.getFrEsResult();
-            if (frEsResult.isSecure() && !cracFrEs.getVoltageCnecs().isEmpty()) {
-                businessLogger.info("CRAC FR-ES contains voltage CNECs. Applying voltage monitoring for the final result.");
-                frEsRaoResult = resultHelper.updateRaoResultWithVoltageMonitoring(network, cracFrEs, frEsRaoResult, raoParameters);
-            }
-
             fileExporter.saveRaoResultInArtifact(ptEsRaoResultDestinationPath, ptEsRaoResult, cracPtEs);
             fileExporter.saveRaoResultInArtifact(frEsRaoResultDestinationPath, frEsRaoResult, cracFrEs);
 
