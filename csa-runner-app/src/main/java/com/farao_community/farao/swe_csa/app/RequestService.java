@@ -47,7 +47,7 @@ public class RequestService {
             String requestId = csaRequest.getId();
             // check if task is canceled before run start
             if (checkIfInterruptionRequested(requestId)) {
-                businessLogger.warn("CSA computation has been canceled for timestamp {} before even the process starts", csaRequest.getBusinessTimestamp());
+                businessLogger.warn("CSA computation has been canceled for timestamp {} before the process started", csaRequest.getBusinessTimestamp());
                 CsaResponse csaResponse = new CsaResponse(requestId, Status.INTERRUPTED_UNSECURE.toString(), null, Status.INTERRUPTED_UNSECURE.toString(), null);
                 return jsonApiConverter.toJsonMessage(csaResponse, CsaResponse.class);
             }
