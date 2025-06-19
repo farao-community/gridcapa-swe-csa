@@ -112,11 +112,15 @@
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
-            <artifactId>monitoring</artifactId>
+            <artifactId>open-rao-monitoring</artifactId>
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
             <artifactId>open-rao-crac-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.powsybl</groupId>
+            <artifactId>open-rao-crac-io-json</artifactId>
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
