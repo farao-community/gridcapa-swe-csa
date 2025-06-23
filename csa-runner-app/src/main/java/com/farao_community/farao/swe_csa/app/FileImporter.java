@@ -8,7 +8,6 @@ import com.powsybl.glsk.api.io.GlskDocumentImporter;
 import com.powsybl.glsk.api.io.GlskDocumentImporters;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
-import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.commons.OpenRaoException;
 import com.powsybl.openrao.data.crac.api.Crac;
@@ -25,9 +24,6 @@ import java.net.URL;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 
 @Service
 public class FileImporter {
@@ -88,23 +84,15 @@ public class FileImporter {
         }
     }
 
-    public ZonalData<Scalable> getZonalData(String taskId, Instant instant, String glskUri, Network network, boolean filteredForSweCountries) {
+    public ZonalData<Scalable> getZonalData(String taskId, Instant instant, String glskUri, Network network) {
         try {
             GlskDocumentImporter glskDocumentImporter = GlskDocumentImporters.findImporter(openUrlStream(taskId, glskUri));
-
             GlskDocument glskDocument = glskDocumentImporter.importGlsk(openUrlStream(taskId, glskUri));
             businessLogger.info("Glsk document imported");
-            // TODO MBR check if we need to do the same workaround here for angle monitoring by filtering for swe countries only
             return glskDocument.getZonalScalable(network, instant);
         } catch (Exception e) {
             businessLogger.error("Glsk document couldn't be imported, as a backup solution Scalable proportional to network generators will be used");
-            if (filteredForSweCountries) {
-                Set<Country> sweCountries = new HashSet<>(Arrays.asList(Country.FR, Country.PT, Country.ES));
-                return SweCsaZonalData.getZonalData(network, sweCountries);
-            } else {
-                return SweCsaZonalData.getZonalData(network);
-
-            }
+            return SweCsaZonalData.getZonalData(network);
         }
     }
 }

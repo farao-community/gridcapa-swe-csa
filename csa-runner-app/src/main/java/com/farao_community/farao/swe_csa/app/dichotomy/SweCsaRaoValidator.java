@@ -56,13 +56,12 @@ public class SweCsaRaoValidator {
         this.businessLogger = businessLogger;
     }
 
-    // TODO review me: scalableZonalDataFilteredForSweCountries : should be replaced with filtered zonal data for the matching border?
-    public DichotomyStepResult validateNetworkForPortugueseBorder(Network network, Crac crac, String cracUri, ZonalData<Scalable> scalableZonalDataFilteredForSweCountries, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
-        return validateNetworkForBorder(network, crac, cracUri, csaRequest, raoParametersUrl, counterTradingValues, "PT-ES", scalableZonalDataFilteredForSweCountries, raoParameters);
+    public DichotomyStepResult validateNetworkForPortugueseBorder(Network network, Crac crac, String cracUri, ZonalData<Scalable> scalableZonalData, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
+        return validateNetworkForBorder(network, crac, cracUri, csaRequest, raoParametersUrl, counterTradingValues, "PT-ES", scalableZonalData, raoParameters);
     }
 
-    public DichotomyStepResult validateNetworkForFrenchBorder(Network network, Crac crac, String cracUri, ZonalData<Scalable> scalableZonalDataFilteredForSweCountries, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
-        return validateNetworkForBorder(network, crac, cracUri, csaRequest, raoParametersUrl, counterTradingValues, "FR-ES", scalableZonalDataFilteredForSweCountries, raoParameters);
+    public DichotomyStepResult validateNetworkForFrenchBorder(Network network, Crac crac, String cracUri, ZonalData<Scalable> scalableZonalData, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
+        return validateNetworkForBorder(network, crac, cracUri, csaRequest, raoParametersUrl, counterTradingValues, "FR-ES", scalableZonalData, raoParameters);
     }
 
     private DichotomyStepResult validateNetworkForBorder(Network network, Crac crac, String cracUri, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues, String border, ZonalData<Scalable> scalableZonalDataFilteredForSweCountries, RaoParameters raoParameters) {

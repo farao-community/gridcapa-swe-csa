@@ -78,8 +78,7 @@ public class DichotomyRunner {
         Crac cracPtEs = fileImporter.importCrac(csaRequest.getId(), csaRequest.getPtEsCracFileUri(), network);
         Crac cracFrEs = fileImporter.importCrac(csaRequest.getId(), csaRequest.getFrEsCracFileUri(), network);
 
-        ZonalData<Scalable> scalableZonalData = fileImporter.getZonalData(csaRequest.getId(), instant, csaRequest.getGlskUri(), network, false);
-        ZonalData<Scalable> scalableZonalDataFilteredForSweCountries = fileImporter.getZonalData(csaRequest.getId(), instant, csaRequest.getGlskUri(), network, true);
+        ZonalData<Scalable> scalableZonalData = fileImporter.getZonalData(csaRequest.getId(), instant, csaRequest.getGlskUri(), network);
 
         // Temporary workaround, in real data crac should already contain CT-RAs, should be removed then
         Preprocessing.updateCracWithPtEsCounterTradeRangeActions(cracPtEs);
@@ -114,7 +113,7 @@ public class DichotomyRunner {
         } catch (CsaInvalidDataException e) {
             businessLogger.warn(e.getMessage());
             businessLogger.warn("No counter trading will be done, only input network will be checked by rao");
-            ParallelDichotomiesResult parallelDichotomiesResult = supplyParallelDichotomiesResult(csaRequest, raoParameters, raoParametersUrl, network, cracPtEs, cracFrEs, scalableZonalDataFilteredForSweCountries, minCounterTradingValues);
+            ParallelDichotomiesResult parallelDichotomiesResult = supplyParallelDichotomiesResult(csaRequest, raoParameters, raoParametersUrl, network, cracPtEs, cracFrEs, scalableZonalData, minCounterTradingValues);
             RaoResult ptEsRaoResult = parallelDichotomiesResult.getPtEsResult().getRaoResult();
             RaoResult frEsRaoResult = parallelDichotomiesResult.getFrEsResult().getRaoResult();
             fileExporter.saveRaoResultInArtifact(ptEsRaoResultDestinationPath, ptEsRaoResult, cracPtEs);
@@ -127,7 +126,7 @@ public class DichotomyRunner {
         String noCtVariantName = "no-ct-PT-ES-0_FR-ES-0";
         setWorkingVariant(network, initialVariant, noCtVariantName);
 
-        ParallelDichotomiesResult noCtParallelDichotomiesResult = supplyParallelDichotomiesResult(csaRequest, raoParameters, raoParametersUrl, network, cracPtEs, cracFrEs, scalableZonalDataFilteredForSweCountries, minCounterTradingValues);
+        ParallelDichotomiesResult noCtParallelDichotomiesResult = supplyParallelDichotomiesResult(csaRequest, raoParameters, raoParametersUrl, network, cracPtEs, cracFrEs, scalableZonalData, minCounterTradingValues);
 
         resetToInitialVariant(network, initialVariant, noCtVariantName);
 
@@ -152,7 +151,7 @@ public class DichotomyRunner {
             SweCsaNetworkShifter networkShifter = new SweCsaNetworkShifter(scalableZonalData, initialExchanges.get(ES_FR), initialExchanges.get(ES_PT), new ShiftDispatcher(initialNetPositions));
             networkShifter.applyCounterTrading(maxCounterTradingValues, network);
 
-            ParallelDichotomiesResult maxCtParallelDichotomiesResult = supplyParallelDichotomiesResult(csaRequest, raoParameters, raoParametersUrl, network, cracPtEs, cracFrEs, scalableZonalDataFilteredForSweCountries, maxCounterTradingValues);
+            ParallelDichotomiesResult maxCtParallelDichotomiesResult = supplyParallelDichotomiesResult(csaRequest, raoParameters, raoParametersUrl, network, cracPtEs, cracFrEs, scalableZonalData, maxCounterTradingValues);
 
             resetToInitialVariant(network, initialVariant, maxCtVariantName);
 
@@ -243,9 +242,9 @@ public class DichotomyRunner {
         fileExporter.saveRaoResultInArtifact(uploadPath, finalRaoResult, crac);
     }
 
-    private ParallelDichotomiesResult supplyParallelDichotomiesResult(CsaRequest csaRequest, RaoParameters raoParameters, String raoParametersUrl, Network network, Crac cracPtEs, Crac cracFrEs, ZonalData<Scalable> scalableZonalDataFilteredForSweCountries, CounterTradingValues minCounterTradingValues) {
-        Supplier<DichotomyStepResult> ptEsRaoResultSupplier = () -> sweCsaRaoValidator.validateNetworkForPortugueseBorder(network, cracPtEs, csaRequest.getPtEsCracFileUri(), scalableZonalDataFilteredForSweCountries, raoParameters, csaRequest, raoParametersUrl, minCounterTradingValues);
-        Supplier<DichotomyStepResult> frEsRaoResultSupplier = () -> sweCsaRaoValidator.validateNetworkForFrenchBorder(network, cracFrEs, csaRequest.getFrEsCracFileUri(), scalableZonalDataFilteredForSweCountries, raoParameters, csaRequest, raoParametersUrl, minCounterTradingValues);
+    private ParallelDichotomiesResult supplyParallelDichotomiesResult(CsaRequest csaRequest, RaoParameters raoParameters, String raoParametersUrl, Network network, Crac cracPtEs, Crac cracFrEs, ZonalData<Scalable> scalableZonalData, CounterTradingValues minCounterTradingValues) {
+        Supplier<DichotomyStepResult> ptEsRaoResultSupplier = () -> sweCsaRaoValidator.validateNetworkForPortugueseBorder(network, cracPtEs, csaRequest.getPtEsCracFileUri(), scalableZonalData, raoParameters, csaRequest, raoParametersUrl, minCounterTradingValues);
+        Supplier<DichotomyStepResult> frEsRaoResultSupplier = () -> sweCsaRaoValidator.validateNetworkForFrenchBorder(network, cracFrEs, csaRequest.getFrEsCracFileUri(), scalableZonalData, raoParameters, csaRequest, raoParametersUrl, minCounterTradingValues);
         return parallelDichotomiesRunner.run(csaRequest.getId(), minCounterTradingValues, ptEsRaoResultSupplier, frEsRaoResultSupplier);
     }
 

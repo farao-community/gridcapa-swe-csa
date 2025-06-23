@@ -70,8 +70,7 @@ class SweCsaDichotomyRunnerTest {
         Mockito.when(fileImporter.importNetwork("csa-task-id", "cgm-url")).thenReturn(network);
         Mockito.when(fileImporter.importCrac("csa-task-id", "pt-es-crac-url", network)).thenReturn(ptEsCrac);
         Mockito.when(fileImporter.importCrac("csa-task-id", "fr-es-crac-url", network)).thenReturn(frEsCrac);
-        Mockito.when(fileImporter.getZonalData("csa-task-id", utcInstant, "glsk-url", network, true)).thenReturn(scalableZonalData);
-        Mockito.when(fileImporter.getZonalData("csa-task-id", utcInstant, "glsk-url", network, false)).thenReturn(scalableZonalData);
+        Mockito.when(fileImporter.getZonalData("csa-task-id", utcInstant, "glsk-url", network)).thenReturn(scalableZonalData);
         Mockito.when(fileExporter.saveNetworkInArtifact(Mockito.anyString(), Mockito.any(), Mockito.any())).thenReturn("scaled-network-url");
         AbstractRaoResponse raoResponse = Mockito.mock(AbstractRaoResponse.class);
         Mockito.when(raoRunnerClient.runRao(Mockito.any())).thenReturn(raoResponse);
