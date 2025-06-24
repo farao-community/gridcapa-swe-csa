@@ -8,6 +8,10 @@ package com.farao_community.farao.swe_csa.api.resource;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
+
+import java.util.Optional;
 
 /**
  * @author Mohamed Benrejeb {@literal <mohamed.ben-rejeb at rte-france.com>}
@@ -69,7 +73,12 @@ public class RaoRunnerLogsModel {
         return serviceName;
     }
 
-    public String getEventPrefix() {
-        return eventPrefix;
+    public Optional<String> getEventPrefix() {
+        return Optional.ofNullable(eventPrefix);
     }
+
+    public String toString() {
+        return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_STYLE);
+    }
+
 }

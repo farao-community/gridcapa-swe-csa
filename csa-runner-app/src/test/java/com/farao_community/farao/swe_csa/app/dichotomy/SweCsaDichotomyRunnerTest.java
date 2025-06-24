@@ -5,11 +5,10 @@ import com.farao_community.farao.dichotomy.api.exceptions.ShiftingException;
 import com.farao_community.farao.rao_runner.api.resource.AbstractRaoResponse;
 import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
-import com.farao_community.farao.swe_csa.api.results.CounterTradeRangeActionResult;
+import com.farao_community.farao.swe_csa.api.resource.Status;
 import com.farao_community.farao.swe_csa.app.FileExporter;
 import com.farao_community.farao.swe_csa.app.FileImporter;
 import com.farao_community.farao.swe_csa.app.InterruptionService;
-import com.farao_community.farao.swe_csa.app.rao_result.RaoResultWithCounterTradeRangeActions;
 import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
 import com.farao_community.farao.swe_csa.app.shift.SweCsaZonalData;
 import com.powsybl.glsk.commons.ZonalData;
@@ -18,23 +17,26 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.data.crac.api.Crac;
 import com.powsybl.openrao.data.crac.api.CracFactory;
 import com.powsybl.openrao.data.crac.impl.CounterTradeRangeActionImpl;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.cloud.stream.function.StreamBridge;
 
 import java.time.Instant;
-import java.util.*;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.*;
 
 @SpringBootTest
 class SweCsaDichotomyRunnerTest {
+
+    @Autowired
+    DichotomyRunner dichotomyRunner;
 
     @Mock
     FileImporter fileImporter;
@@ -52,51 +54,40 @@ class SweCsaDichotomyRunnerTest {
     @MockBean
     InterruptionService interruptionService;
 
+    @Autowired
+    ParallelDichotomiesRunner parallelDichotomiesRunner;
+
     @Test
     void runCounterTradingTest() throws GlskLimitationException, ShiftingException {
         Instant utcInstant = Instant.parse("2023-09-13T09:30:00Z");
         Network network = Network.read("/dichotomy/TestCase_with_swe_countries.xiidm", getClass().getResourceAsStream("/dichotomy/TestCase_with_swe_countries.xiidm"));
         ZonalData<Scalable> scalableZonalData = SweCsaZonalData.getZonalData(network);
-        Crac crac = CracFactory.findDefault().create("id");
+        Crac ptEsCrac = CracFactory.findDefault().create("pt-es-crac");
+        Crac frEsCrac = CracFactory.findDefault().create("fr-es-crac");
+
+        Mockito.doNothing().when(s3ArtifactsAdapter).uploadFile(any(), any());
         Mockito.when(fileImporter.uploadRaoParameters(utcInstant)).thenReturn("rao-parameters-url");
-        Mockito.when(fileImporter.importNetwork("id", "cgm-url")).thenReturn(network);
-        Mockito.when(fileImporter.importCrac("id", "ptEs-crac-url", network)).thenReturn(crac);
-        Mockito.when(fileImporter.getZonalData("id", utcInstant, "glsk-url", network, false)).thenReturn(scalableZonalData);
-        Mockito.when(fileImporter.getZonalData("id", utcInstant, "glsk-url", network, true)).thenReturn(scalableZonalData);
+        Mockito.when(fileImporter.importNetwork("csa-task-id", "cgm-url")).thenReturn(network);
+        Mockito.when(fileImporter.importCrac("csa-task-id", "pt-es-crac-url", network)).thenReturn(ptEsCrac);
+        Mockito.when(fileImporter.importCrac("csa-task-id", "fr-es-crac-url", network)).thenReturn(frEsCrac);
+        Mockito.when(fileImporter.getZonalData("csa-task-id", utcInstant, "glsk-url", network)).thenReturn(scalableZonalData);
         Mockito.when(fileExporter.saveNetworkInArtifact(Mockito.anyString(), Mockito.any(), Mockito.any())).thenReturn("scaled-network-url");
         AbstractRaoResponse raoResponse = Mockito.mock(AbstractRaoResponse.class);
         Mockito.when(raoRunnerClient.runRao(Mockito.any())).thenReturn(raoResponse);
         SweCsaRaoValidator sweCsaRaoValidator = new SweCsaRaoValidatorMock(fileExporter, raoRunnerClient);
+        CsaRequest csaRequest = new CsaRequest("csa-task-id", "2023-09-13T09:30:00Z", "cgm-url", "glsk-url", "pt-es-crac-url", "fr-es-crac-url");
 
-        DichotomyRunner sweCsaDichotomyRunner = new DichotomyRunner(sweCsaRaoValidator, fileImporter, fileExporter, interruptionService, streamBridge, s3ArtifactsAdapter, LoggerFactory.getLogger(SweCsaDichotomyRunnerTest.class));
+        DichotomyRunner sweCsaDichotomyRunner = new DichotomyRunner(sweCsaRaoValidator, fileImporter, fileExporter, interruptionService, streamBridge, s3ArtifactsAdapter, LoggerFactory.getLogger(SweCsaDichotomyRunnerTest.class), parallelDichotomiesRunner);
         sweCsaDichotomyRunner.setIndexPrecision(50);
         sweCsaDichotomyRunner.setMaxDichotomiesByBorder(10);
-        CsaRequest csaRequest = new CsaRequest("id", "2023-09-13T09:30:00Z", "cgm-url", "glsk-url", "ptEs-crac-url", "frEs-crac-url");
-        RaoResultWithCounterTradeRangeActions raoResult = (RaoResultWithCounterTradeRangeActions) sweCsaDichotomyRunner.runDichotomy(csaRequest, "rao-result-url").getFirst();
+        FinalResult finalResult = sweCsaDichotomyRunner.runDichotomy(csaRequest, "pt-es-rao-result-path", "fr-es-rao-result-path");
+        Assertions.assertEquals(Status.FINISHED_SECURE, finalResult.ptEsResult().getRight());
+        Assertions.assertEquals(Status.FINISHED_SECURE, finalResult.frEsResult().getRight());
 
-        Iterator<CounterTradeRangeActionResult> ctRaResultIt  = raoResult.getCounterTradingResult().getCounterTradeRangeActionResults().values().stream().sorted(Comparator.comparing(CounterTradeRangeActionResult::getCtRangeActionId)).collect(Collectors.toCollection(LinkedHashSet::new)).iterator();
-
-        CounterTradeRangeActionResult esFrCtRaResult = ctRaResultIt.next();
-        assertEquals("CT_RA_ESFR", esFrCtRaResult.getCtRangeActionId());
-        assertEquals(629., esFrCtRaResult.getSetPoint(), 1);
-
-        CounterTradeRangeActionResult esPtCtRaResult = ctRaResultIt.next();
-        assertEquals("CT_RA_ESPT", esPtCtRaResult.getCtRangeActionId());
-        assertEquals(0., esPtCtRaResult.getSetPoint());
-
-        CounterTradeRangeActionResult frEsCtRaResult = ctRaResultIt.next();
-        assertEquals("CT_RA_FRES", frEsCtRaResult.getCtRangeActionId());
-        assertEquals(629., frEsCtRaResult.getSetPoint(), 1);
-
-        CounterTradeRangeActionResult ptEsCtRaResult = ctRaResultIt.next();
-        assertEquals("CT_RA_PTES", ptEsCtRaResult.getCtRangeActionId());
-        assertEquals(0., ptEsCtRaResult.getSetPoint());
     }
 
     @Test
     void getMaxCounterTradingTestMaximumReached() {
-        SweCsaRaoValidator sweCsaRaoValidatorMock = Mockito.mock(SweCsaRaoValidator.class);
-        DichotomyRunner dichotomyRunner = new DichotomyRunner(sweCsaRaoValidatorMock, fileImporter, fileExporter, interruptionService, streamBridge, s3ArtifactsAdapter, LoggerFactory.getLogger(SweCsaDichotomyRunnerTest.class));
         CounterTradeRangeActionImpl ctraMock1 = Mockito.mock(CounterTradeRangeActionImpl.class);
         Mockito.when(ctraMock1.getMinAdmissibleSetpoint(anyDouble())).thenReturn(-1000.0);
         Mockito.when(ctraMock1.getMaxAdmissibleSetpoint(anyDouble())).thenReturn(1000.0);
@@ -116,8 +107,6 @@ class SweCsaDichotomyRunnerTest {
 
     @Test
     void getMaxCounterTradingTestMaximumUnreached() {
-        SweCsaRaoValidator sweCsaRaoValidatorMock = Mockito.mock(SweCsaRaoValidator.class);
-        DichotomyRunner dichotomyRunner = new DichotomyRunner(sweCsaRaoValidatorMock, fileImporter, fileExporter, interruptionService, streamBridge, s3ArtifactsAdapter, LoggerFactory.getLogger(SweCsaDichotomyRunnerTest.class));
         CounterTradeRangeActionImpl ctraMock1 = Mockito.mock(CounterTradeRangeActionImpl.class);
         Mockito.when(ctraMock1.getMinAdmissibleSetpoint(anyDouble())).thenReturn(-350.0);
         Mockito.when(ctraMock1.getMaxAdmissibleSetpoint(anyDouble())).thenReturn(300.0);

@@ -18,18 +18,18 @@ spring:
     stream:
       default:
         binder: rabbit
-        group: swe-csa-runner
       bindings:
         interrupt-in-0:
           destination: csa-interrupt
         request-in-0:
+          group: swe-csa-runner
           destination: csa-request
         request-out-0:
+          group: swe-csa-runner
           destination: csa-response
         acknowledgement:
+          group: swe-csa-runner
           destination: csa-request-ack
-        stop-rao:
-          destination: stop-rao-runner
 
 s3:
   inputs:

@@ -36,9 +36,9 @@ public class S3ArtifactsAdapter {
         return S3AdapterUtil.generatePreSignedUrl(minioClient, basePath + "/" + minioPath, bucket);
     }
 
-    public String createRaoResultDestination(String timestamp) {
+    public String createRaoResultDestination(String timestamp, String borderName) {
         OffsetDateTime offsetDateTime = OffsetDateTime.parse(timestamp);
-        return "artifacts" + "/" + offsetDateTime.getYear() + "/" + offsetDateTime.getMonthValue() + "/" + offsetDateTime.getDayOfMonth() + "/" + offsetDateTime.getHour() + "_" + offsetDateTime.getMinute() + "/"  + "rao-result.json";
+        return "artifacts" + "/" + offsetDateTime.getYear() + "/" + offsetDateTime.getMonthValue() + "/" + offsetDateTime.getDayOfMonth() + "/" + offsetDateTime.getHour() + "_" + offsetDateTime.getMinute() + "/"  + borderName + "-rao-result.json";
     }
 
 }

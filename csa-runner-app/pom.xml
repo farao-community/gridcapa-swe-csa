@@ -112,7 +112,7 @@
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
-            <artifactId>monitoring</artifactId>
+            <artifactId>open-rao-monitoring</artifactId>
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
@@ -120,12 +120,11 @@
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
-            <artifactId>powsybl-glsk-document-io-api</artifactId>
+            <artifactId>open-rao-crac-io-json</artifactId>
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
-            <artifactId>powsybl-glsk-document-cim</artifactId>
-            <scope>runtime</scope>
+            <artifactId>powsybl-glsk-document-io-api</artifactId>
         </dependency>
         <!-- TECHNICAL DEPENDENCIES -->
         <dependency>
@@ -147,6 +146,10 @@
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-stream-binder-rabbit</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.amqp</groupId>
+            <artifactId>spring-rabbit</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>

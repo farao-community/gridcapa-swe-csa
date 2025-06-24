@@ -10,10 +10,7 @@ import com.farao_community.farao.swe_csa.api.exception.CsaInvalidDataException;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.api.resource.CsaResponse;
 import com.farao_community.farao.swe_csa.api.resource.Status;
-import com.farao_community.farao.swe_csa.api.results.CounterTradeRangeActionResult;
-import com.farao_community.farao.swe_csa.api.results.CounterTradingResult;
 import com.farao_community.farao.swe_csa.app.*;
-import com.farao_community.farao.swe_csa.app.rao_result.RaoResultWithCounterTradeRangeActions;
 import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
 import com.farao_community.farao.swe_csa.app.shift.ShiftDispatcher;
 import com.powsybl.glsk.commons.CountryEICode;
@@ -21,15 +18,13 @@ import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.openrao.commons.PhysicalParameter;
 import com.powsybl.openrao.data.crac.api.Crac;
-import com.powsybl.openrao.data.crac.api.Identifiable;
 import com.powsybl.openrao.data.crac.api.rangeaction.CounterTradeRangeAction;
 import com.powsybl.openrao.data.raoresult.api.RaoResult;
-import com.powsybl.openrao.monitoring.Monitoring;
-import com.powsybl.openrao.monitoring.MonitoringInput;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
 import com.powsybl.openrao.raoapi.parameters.extensions.LoadFlowAndSensitivityParameters;
-import kotlin.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,9 +32,8 @@ import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Service
@@ -51,6 +45,7 @@ public class DichotomyRunner {
     @Value("${dichotomy-parameters.index.max-iterations-by-border}")
     private double maxDichotomiesByBorder;
     private final SweCsaRaoValidator sweCsaRaoValidator;
+    private final ResultHelper resultHelper;
     private final FileImporter fileImporter;
     private final FileExporter fileExporter;
     private final InterruptionService interruptionService;
@@ -58,34 +53,36 @@ public class DichotomyRunner {
     private final S3ArtifactsAdapter s3ArtifactsAdapter;
     private final JsonApiConverter jsonApiConverter = new JsonApiConverter();
     private final Logger businessLogger;
+    private final ParallelDichotomiesRunner parallelDichotomiesRunner;
 
-    private static final String CT_RA_PTES = "CT_RA_PTES";
-    private static final String CT_RA_FRES = "CT_RA_FRES";
-    private static final String CT_RA_ESPT = "CT_RA_ESPT";
-    private static final String CT_RA_ESFR = "CT_RA_ESFR";
     private static final String ES_FR = "ES_FR";
     private static final String ES_PT = "ES_PT";
 
-    public DichotomyRunner(SweCsaRaoValidator sweCsaRaoValidator, FileImporter fileImporter, FileExporter fileExporter, InterruptionService interruptionService, StreamBridge streamBridge, S3ArtifactsAdapter s3ArtifactsAdapter, Logger businessLogger) {
+    public DichotomyRunner(SweCsaRaoValidator sweCsaRaoValidator, FileImporter fileImporter, FileExporter fileExporter, InterruptionService interruptionService, StreamBridge streamBridge, S3ArtifactsAdapter s3ArtifactsAdapter, Logger businessLogger, ParallelDichotomiesRunner parallelDichotomiesRunner) {
         this.sweCsaRaoValidator = sweCsaRaoValidator;
+        this.resultHelper = new ResultHelper();
         this.fileImporter = fileImporter;
         this.fileExporter = fileExporter;
         this.interruptionService = interruptionService;
         this.streamBridge = streamBridge;
         this.s3ArtifactsAdapter = s3ArtifactsAdapter;
         this.businessLogger = businessLogger;
+        this.parallelDichotomiesRunner = parallelDichotomiesRunner;
     }
 
-    public Pair<RaoResult, Status> runDichotomy(CsaRequest csaRequest, String raoResultDestinationPath) throws GlskLimitationException, ShiftingException {
+    public FinalResult runDichotomy(CsaRequest csaRequest, String ptEsRaoResultDestinationPath, String frEsRaoResultDestinationPath) throws GlskLimitationException, ShiftingException {
         RaoParameters raoParameters = RaoParameters.load();
         Instant instant = Instant.parse(csaRequest.getBusinessTimestamp());
         String raoParametersUrl = fileImporter.uploadRaoParameters(instant);
         Network network = fileImporter.importNetwork(csaRequest.getId(), csaRequest.getGridModelUri());
-        // FIXME MBR temporary workaround to test integration before crac separated feature is finished
-        Crac crac = fileImporter.importCrac(csaRequest.getId(), csaRequest.getPtEsCracFileUri(), network);
-        ZonalData<Scalable> scalableZonalData = fileImporter.getZonalData(csaRequest.getId(), instant, csaRequest.getGlskUri(), network, false);
-        ZonalData<Scalable> scalableZonalDataFilteredForSweCountries = fileImporter.getZonalData(csaRequest.getId(), instant, csaRequest.getGlskUri(), network, true);
-        updateCracWithCounterTrageRangeActions(crac);
+        Crac cracPtEs = fileImporter.importCrac(csaRequest.getId(), csaRequest.getPtEsCracFileUri(), network);
+        Crac cracFrEs = fileImporter.importCrac(csaRequest.getId(), csaRequest.getFrEsCracFileUri(), network);
+
+        ZonalData<Scalable> scalableZonalData = fileImporter.getZonalData(csaRequest.getId(), instant, csaRequest.getGlskUri(), network);
+
+        // Temporary workaround, in real data crac should already contain CT-RAs, should be removed then
+        Preprocessing.updateCracWithPtEsCounterTradeRangeActions(cracPtEs);
+        Preprocessing.updateCracWithFrEsCounterTradeRangeActions(cracFrEs);
 
         String initialVariant = network.getVariantManager().getWorkingVariantId();
 
@@ -107,43 +104,44 @@ public class DichotomyRunner {
         CounterTradeRangeAction ctRaEsFr;
         CounterTradeRangeAction ctRaPtEs;
         CounterTradeRangeAction ctRaEsPt;
+
         try {
-            ctRaFrEs = getCounterTradeRangeActionByCountries(crac, Country.FR, Country.ES);
-            ctRaEsFr = getCounterTradeRangeActionByCountries(crac, Country.ES, Country.FR);
-            ctRaPtEs = getCounterTradeRangeActionByCountries(crac, Country.PT, Country.ES);
-            ctRaEsPt = getCounterTradeRangeActionByCountries(crac, Country.ES, Country.PT);
+            ctRaFrEs = getCounterTradeRangeActionByCountries(cracFrEs, Country.FR, Country.ES);
+            ctRaEsFr = getCounterTradeRangeActionByCountries(cracFrEs, Country.ES, Country.FR);
+            ctRaPtEs = getCounterTradeRangeActionByCountries(cracPtEs, Country.PT, Country.ES);
+            ctRaEsPt = getCounterTradeRangeActionByCountries(cracPtEs, Country.ES, Country.PT);
         } catch (CsaInvalidDataException e) {
             businessLogger.warn(e.getMessage());
             businessLogger.warn("No counter trading will be done, only input network will be checked by rao");
-            RaoResult raoResult = sweCsaRaoValidator.validateNetwork(network, crac, scalableZonalDataFilteredForSweCountries, raoParameters, csaRequest, raoParametersUrl, minCounterTradingValues).getRaoResult();
-            fileExporter.saveRaoResultInArtifact(raoResultDestinationPath, raoResult, crac);
-            return raoResult.isSecure() ? new Pair<>(raoResult, Status.FINISHED_SECURE) : new Pair<>(raoResult, Status.FINISHED_UNSECURE);
+            ParallelDichotomiesResult parallelDichotomiesResult = supplyParallelDichotomiesResult(csaRequest, raoParameters, raoParametersUrl, network, cracPtEs, cracFrEs, scalableZonalData, minCounterTradingValues);
+            RaoResult ptEsRaoResult = parallelDichotomiesResult.getPtEsResult().getRaoResult();
+            RaoResult frEsRaoResult = parallelDichotomiesResult.getFrEsResult().getRaoResult();
+            fileExporter.saveRaoResultInArtifact(ptEsRaoResultDestinationPath, ptEsRaoResult, cracPtEs);
+            fileExporter.saveRaoResultInArtifact(frEsRaoResultDestinationPath, frEsRaoResult, cracFrEs);
+
+            return FinalResult.fromDichotomyStepResults(parallelDichotomiesResult.getPtEsResult(), parallelDichotomiesResult.getFrEsResult());
         }
         // best case no counter trading , no scaling
         businessLogger.info("Starting Counter trading algorithm by validating input network without scaling");
         String noCtVariantName = "no-ct-PT-ES-0_FR-ES-0";
         setWorkingVariant(network, initialVariant, noCtVariantName);
-        DichotomyStepResult noCtStepResult = sweCsaRaoValidator.validateNetwork(network, crac, scalableZonalDataFilteredForSweCountries, raoParameters, csaRequest, raoParametersUrl, minCounterTradingValues);
+
+        ParallelDichotomiesResult noCtParallelDichotomiesResult = supplyParallelDichotomiesResult(csaRequest, raoParameters, raoParametersUrl, network, cracPtEs, cracFrEs, scalableZonalData, minCounterTradingValues);
+
         resetToInitialVariant(network, initialVariant, noCtVariantName);
 
-        logBorderOverload(noCtStepResult);
-
-        if (noCtStepResult.isValid()) {
+        if (noCtParallelDichotomiesResult.getPtEsResult().getRaoResult().isSecure(PhysicalParameter.FLOW) && noCtParallelDichotomiesResult.getFrEsResult().getRaoResult().isSecure(PhysicalParameter.FLOW)) {
             businessLogger.info("Input network is secure no need for counter trading");
-            fileExporter.saveRaoResultInArtifact(raoResultDestinationPath, noCtStepResult.getRaoResult(), crac);
-            return new Pair<>(noCtStepResult.getRaoResult(), Status.FINISHED_SECURE);
+            fileExporter.saveRaoResultInArtifact(ptEsRaoResultDestinationPath, noCtParallelDichotomiesResult.getPtEsResult().getRaoResult(), cracPtEs);
+            fileExporter.saveRaoResultInArtifact(frEsRaoResultDestinationPath, noCtParallelDichotomiesResult.getFrEsResult().getRaoResult(), cracFrEs);
+            return FinalResult.fromDichotomyStepResults(noCtParallelDichotomiesResult.getPtEsResult(), noCtParallelDichotomiesResult.getFrEsResult());
         } else {
-            if (interruptionService.getTasksToInterrupt().remove(csaRequest.getId())) {
-                businessLogger.info("Interruption asked for task {}, before any secure situation is found", csaRequest.getId());
-                return new Pair<>(null, Status.FINISHED_UNSECURE);
-            }
-
             // initial network not secure, try worst case maximum counter trading
-            double ctFrEsMax = getMaxCounterTrading(ctRaFrEs, ctRaEsFr, expFrEs0, "FR-ES");
-            double ctPtEsMax = getMaxCounterTrading(ctRaPtEs, ctRaEsPt, expPtEs0, "PT-ES");
+            double ctPtEsMax = getMaxCounterTrading(ctRaPtEs, ctRaEsPt, expPtEs0, DichotomyDirection.PT_ES.toString());
+            double ctFrEsMax = getMaxCounterTrading(ctRaFrEs, ctRaEsFr, expFrEs0, DichotomyDirection.FR_ES.toString());
 
-            double ctPtEsUpperBound = noCtStepResult.isPtEsCnecsSecure() ? 0 : ctPtEsMax;
-            double ctFrEsUpperBound = noCtStepResult.isFrEsCnecsSecure() ? 0 : ctFrEsMax;
+            double ctPtEsUpperBound = noCtParallelDichotomiesResult.getPtEsResult().getRaoResult().isSecure(PhysicalParameter.FLOW) ? 0 : ctPtEsMax;
+            double ctFrEsUpperBound = noCtParallelDichotomiesResult.getFrEsResult().getRaoResult().isSecure(PhysicalParameter.FLOW) ? 0 : ctFrEsMax;
             CounterTradingValues maxCounterTradingValues = new CounterTradingValues(ctPtEsUpperBound, ctFrEsUpperBound);
             businessLogger.info("Testing Counter trading worst case by scaling to maximum: CT PT-ES: '{}', and CT FR-ES: '{}'", ctPtEsUpperBound, ctFrEsUpperBound);
 
@@ -152,28 +150,33 @@ public class DichotomyRunner {
 
             SweCsaNetworkShifter networkShifter = new SweCsaNetworkShifter(scalableZonalData, initialExchanges.get(ES_FR), initialExchanges.get(ES_PT), new ShiftDispatcher(initialNetPositions));
             networkShifter.applyCounterTrading(maxCounterTradingValues, network);
-            DichotomyStepResult maxCtStepResult = sweCsaRaoValidator.validateNetwork(network, crac, scalableZonalDataFilteredForSweCountries, raoParameters, csaRequest, raoParametersUrl, maxCounterTradingValues);
+
+            ParallelDichotomiesResult maxCtParallelDichotomiesResult = supplyParallelDichotomiesResult(csaRequest, raoParameters, raoParametersUrl, network, cracPtEs, cracFrEs, scalableZonalData, maxCounterTradingValues);
+
             resetToInitialVariant(network, initialVariant, maxCtVariantName);
 
-            logBorderOverload(maxCtStepResult);
-            if (!maxCtStepResult.isValid()) {
+            if (!maxCtParallelDichotomiesResult.getPtEsResult().isSecure() || !maxCtParallelDichotomiesResult.getFrEsResult().isSecure()) {
                 businessLogger.error("Maximum CT value cannot secure this case");
-                fileExporter.saveRaoResultInArtifact(raoResultDestinationPath, maxCtStepResult.getRaoResult(), crac);
-                return new Pair<>(maxCtStepResult.getRaoResult(), Status.FINISHED_UNSECURE);
+                fileExporter.saveRaoResultInArtifact(ptEsRaoResultDestinationPath, maxCtParallelDichotomiesResult.getPtEsResult().getRaoResult(), cracPtEs);
+                fileExporter.saveRaoResultInArtifact(frEsRaoResultDestinationPath, maxCtParallelDichotomiesResult.getFrEsResult().getRaoResult(), cracFrEs);
+                return FinalResult.fromDichotomyStepResults(maxCtParallelDichotomiesResult.getPtEsResult(), maxCtParallelDichotomiesResult.getFrEsResult());
             } else {
                 businessLogger.info("Best case in unsecure, worst case is secure, trying to find optimum in between using dichotomy");
                 Index index = new Index(0, 0, indexPrecision, maxDichotomiesByBorder);
-                index.addPtEsDichotomyStepResult(0, noCtStepResult);
-                index.addPtEsDichotomyStepResult(ctPtEsUpperBound, maxCtStepResult);
-                index.addFrEsDichotomyStepResult(0, noCtStepResult);
-                index.addFrEsDichotomyStepResult(ctFrEsUpperBound, maxCtStepResult);
-                index.setBestValidDichotomyStepResult(maxCtStepResult);
-                return processDichotomy(csaRequest, raoResultDestinationPath, raoParameters, raoParametersUrl, network, crac, scalableZonalData, initialVariant, networkShifter, index);
+
+                index.addPtEsDichotomyStepResult(0, noCtParallelDichotomiesResult.getPtEsResult());
+                index.addPtEsDichotomyStepResult(ctPtEsUpperBound, maxCtParallelDichotomiesResult.getPtEsResult());
+
+                index.addFrEsDichotomyStepResult(0, noCtParallelDichotomiesResult.getFrEsResult());
+                index.addFrEsDichotomyStepResult(ctFrEsUpperBound, maxCtParallelDichotomiesResult.getFrEsResult());
+
+                index.setBestValidDichotomyStepResult(maxCtParallelDichotomiesResult);
+                return processDichotomy(csaRequest, ptEsRaoResultDestinationPath, frEsRaoResultDestinationPath, raoParameters, raoParametersUrl, network, cracPtEs, cracFrEs, scalableZonalData, initialVariant, networkShifter, index);
             }
         }
     }
 
-    private Pair<RaoResult, Status> processDichotomy(CsaRequest csaRequest, String raoResultDestinationPath, RaoParameters raoParameters, String raoParametersUrl, Network network, Crac crac, ZonalData<Scalable> scalableZonalDataFilteredForSweCountries, String initialVariant, SweCsaNetworkShifter networkShifter, Index index) {
+    private FinalResult processDichotomy(CsaRequest csaRequest, String ptEsRaoResultDestinationPath, String frEsRaoResultDestinationPath, RaoParameters raoParameters, String raoParametersUrl, Network network, Crac cracPtEs, Crac cracFrEs, ZonalData<Scalable> scalableZonalDataFilteredForSweCountries, String initialVariant, SweCsaNetworkShifter networkShifter, Index index) {
         boolean interrupted = false;
         while (index.exitConditionIsNotMetForPtEs() || index.exitConditionIsNotMetForFrEs()) {
             if (interruptionService.getTasksToInterrupt().remove(csaRequest.getId())) {
@@ -182,57 +185,81 @@ public class DichotomyRunner {
                 break;
             }
             CounterTradingValues counterTradingValues = index.nextValues();
-            DichotomyStepResult ctStepResult;
+            DichotomyStepResult ptEsCtStepResult;
+            DichotomyStepResult frEsCtStepResult;
+
             String newVariantName = getNewVariantName(counterTradingValues);
             try {
-                businessLogger.info("Next CT values are '{}' for PT-ES and '{}' for FR-ES", counterTradingValues.getPtEsCt(), counterTradingValues.getFrEsCt());
+                businessLogger.info("Next CT values are '{}' for PT-ES and '{}' for FR-ES", counterTradingValues.ptEsCt(), counterTradingValues.frEsCt());
                 setWorkingVariant(network, initialVariant, newVariantName);
                 networkShifter.applyCounterTrading(counterTradingValues, network);
-                ctStepResult = sweCsaRaoValidator.validateNetwork(network, crac, scalableZonalDataFilteredForSweCountries, raoParameters, csaRequest, raoParametersUrl, counterTradingValues);
+
+                ParallelDichotomiesResult parallelDichotomiesResult = supplyParallelDichotomiesResult(csaRequest, raoParameters, raoParametersUrl, network, cracPtEs, cracFrEs, scalableZonalDataFilteredForSweCountries, counterTradingValues);
+
+                ptEsCtStepResult = parallelDichotomiesResult.getPtEsResult();
+                frEsCtStepResult = parallelDichotomiesResult.getFrEsResult();
+                boolean ptEsCtSecure = index.addPtEsDichotomyStepResult(counterTradingValues.ptEsCt(), ptEsCtStepResult);
+                boolean frEsCtSecure = index.addFrEsDichotomyStepResult(counterTradingValues.frEsCt(), frEsCtStepResult);
+                if (ptEsCtSecure && frEsCtSecure) {
+                    index.setBestValidDichotomyStepResult(parallelDichotomiesResult);
+                    // enhance rao result with monitoring result + CT values and send notification
+                    uploadFinalResult(raoParameters, network, cracPtEs, index, ptEsCtStepResult.getRaoResult(), ptEsRaoResultDestinationPath, "PT-ES");
+                    uploadFinalResult(raoParameters, network, cracFrEs, index, frEsCtStepResult.getRaoResult(), frEsRaoResultDestinationPath, "FR-ES");
+                    CsaResponse csaResponse = new CsaResponse(csaRequest.getId(), Status.STILL_RUNNING_SECURE.toString(), s3ArtifactsAdapter.generatePreSignedUrl(ptEsRaoResultDestinationPath), Status.STILL_RUNNING_SECURE.toString(), s3ArtifactsAdapter.generatePreSignedUrl(frEsRaoResultDestinationPath));
+                    streamBridge.send(RESPONSE_BRIDGE_NAME, jsonApiConverter.toJsonMessage(csaResponse, CsaResponse.class));
+                }
             } catch (GlskLimitationException e) {
-                businessLogger.warn("GLSK limits have been reached with CT of '{}' for PT-ES and '{}' for FR-ES", counterTradingValues.getPtEsCt(), counterTradingValues.getFrEsCt());
-                ctStepResult = DichotomyStepResult.fromFailure(ReasonInvalid.GLSK_LIMITATION, e.getMessage(), counterTradingValues);
+                businessLogger.warn("GLSK limits have been reached with CT of '{}' for PT-ES and '{}' for FR-ES", counterTradingValues.ptEsCt(), counterTradingValues.frEsCt());
+                ptEsCtStepResult = DichotomyStepResult.fromFailure(ReasonInvalid.GLSK_LIMITATION, "PT-ES border: " + e.getMessage(), counterTradingValues);
+                frEsCtStepResult = DichotomyStepResult.fromFailure(ReasonInvalid.GLSK_LIMITATION, "FR-ES border: " + e.getMessage(), counterTradingValues);
+                index.addPtEsDichotomyStepResult(counterTradingValues.ptEsCt(), ptEsCtStepResult);
+                index.addFrEsDichotomyStepResult(counterTradingValues.frEsCt(), frEsCtStepResult);
+
             } catch (ShiftingException | RaoRunnerException e) {
-                businessLogger.warn("Validation failed with CT of '{}' for PT-ES and '{}' for FR-ES", counterTradingValues.getPtEsCt(), counterTradingValues.getFrEsCt());
-                ctStepResult = DichotomyStepResult.fromFailure(ReasonInvalid.GLSK_LIMITATION, e.getMessage(), counterTradingValues);
+                businessLogger.warn("Validation failed with CT of '{}' for PT-ES and '{}' for FR-ES", counterTradingValues.ptEsCt(), counterTradingValues.frEsCt());
+                ptEsCtStepResult = DichotomyStepResult.fromFailure(ReasonInvalid.VALIDATION_FAILED, "PT-ES border: " + e.getMessage(), counterTradingValues);
+                frEsCtStepResult = DichotomyStepResult.fromFailure(ReasonInvalid.VALIDATION_FAILED, "FR-ES border: " + e.getMessage(), counterTradingValues);
+                index.addPtEsDichotomyStepResult(counterTradingValues.ptEsCt(), ptEsCtStepResult);
+                index.addFrEsDichotomyStepResult(counterTradingValues.frEsCt(), frEsCtStepResult);
             } finally {
                 resetToInitialVariant(network, initialVariant, newVariantName);
             }
-            logBorderOverload(ctStepResult);
-            boolean ptEsCtSecure = index.addPtEsDichotomyStepResult(counterTradingValues.getPtEsCt(), ctStepResult);
-            boolean frEsCtSecure = index.addFrEsDichotomyStepResult(counterTradingValues.getFrEsCt(), ctStepResult);
-            if (ptEsCtSecure && frEsCtSecure) {
-                index.setBestValidDichotomyStepResult(ctStepResult);
-                // enhance rao result with monitoring result + CT values and send notification
-                Pair<RaoResult, Status> intermediateSuccessfulStep = getRaoResultStatusPair(raoResultDestinationPath, raoParameters, network, crac, index, false, true);
-                streamBridge.send(RESPONSE_BRIDGE_NAME, jsonApiConverter.toJsonMessage(new CsaResponse(csaRequest.getId(), intermediateSuccessfulStep.getSecond().toString(), s3ArtifactsAdapter.generatePreSignedUrl(raoResultDestinationPath)), CsaResponse.class));
 
-            }
         }
-        businessLogger.info("Dichotomy stop criterion reached, CT PT-ES: {}, CT FR-ES: {}", Math.round(index.getBestValidDichotomyStepResult().getCounterTradingValues().getPtEsCt()), Math.round(index.getBestValidDichotomyStepResult().getCounterTradingValues().getFrEsCt()));
-        return getRaoResultStatusPair(raoResultDestinationPath, raoParameters, network, crac, index, interrupted, false);
+        businessLogger.info("Dichotomy stop criterion reached, CT PT-ES: {}, CT FR-ES: {}", Math.round(index.getBestValidDichotomyStepResult().getCounterTradingValues().ptEsCt()), Math.round(index.getBestValidDichotomyStepResult().getCounterTradingValues().frEsCt()));
+        uploadFinalResult(raoParameters, network, cracPtEs, index, index.getBestValidDichotomyStepResult().getPtEsResult().getRaoResult(), ptEsRaoResultDestinationPath, "PT-ES");
+        uploadFinalResult(raoParameters, network, cracFrEs, index, index.getBestValidDichotomyStepResult().getFrEsResult().getRaoResult(), frEsRaoResultDestinationPath, "FR-ES");
+
+        return new FinalResult(getRaoResultStatusPair(index.getBestValidDichotomyStepResult().getPtEsResult().getRaoResult(), index, interrupted), getRaoResultStatusPair(index.getBestValidDichotomyStepResult().getFrEsResult().getRaoResult(), index, interrupted));
     }
 
-    private Pair<RaoResult, Status> getRaoResultStatusPair(String raoResultDestinationPath, RaoParameters raoParameters, Network network, Crac crac, Index index, boolean interrupted, boolean stillRunningAndSecure) {
+    private void uploadFinalResult(RaoParameters raoParameters, Network network, Crac crac, Index index, RaoResult raoResult, String uploadPath, String border) {
+        RaoResult finalRaoResult = raoResult;
+        if (!crac.getVoltageCnecs().isEmpty()) {
+            finalRaoResult = resultHelper.updateRaoResultWithVoltageMonitoring(network, crac, raoResult, raoParameters);
+        }
+        finalRaoResult = resultHelper.updateRaoResultWithCounterTradingRangeActions(network, crac, index, finalRaoResult, border);
+        fileExporter.saveRaoResultInArtifact(uploadPath, finalRaoResult, crac);
+    }
+
+    private ParallelDichotomiesResult supplyParallelDichotomiesResult(CsaRequest csaRequest, RaoParameters raoParameters, String raoParametersUrl, Network network, Crac cracPtEs, Crac cracFrEs, ZonalData<Scalable> scalableZonalData, CounterTradingValues minCounterTradingValues) {
+        Supplier<DichotomyStepResult> ptEsRaoResultSupplier = () -> sweCsaRaoValidator.validateNetworkForPortugueseBorder(network, cracPtEs, csaRequest.getPtEsCracFileUri(), scalableZonalData, raoParameters, csaRequest, raoParametersUrl, minCounterTradingValues);
+        Supplier<DichotomyStepResult> frEsRaoResultSupplier = () -> sweCsaRaoValidator.validateNetworkForFrenchBorder(network, cracFrEs, csaRequest.getFrEsCracFileUri(), scalableZonalData, raoParameters, csaRequest, raoParametersUrl, minCounterTradingValues);
+        return parallelDichotomiesRunner.run(csaRequest.getId(), minCounterTradingValues, ptEsRaoResultSupplier, frEsRaoResultSupplier);
+    }
+
+    private Pair<RaoResult, Status> getRaoResultStatusPair(RaoResult raoResult, Index index, boolean interrupted) {
         Status status;
         if (index.getBestValidDichotomyStepResult() == null) {
             status = Status.FINISHED_UNSECURE;
-            return new Pair<>(null, status);
+            return Pair.of(null, status);
         } else {
             if (interrupted) {
                 status = Status.INTERRUPTED_SECURE;
-            } else if (stillRunningAndSecure) {
-                status = Status.STILL_RUNNING_SECURE;
             } else {
                 status = Status.FINISHED_SECURE;
             }
-
-            RaoResult raoResult = index.getBestValidDichotomyStepResult().getRaoResult();
-            // TODO MBR : check if we need to rerun angle monitoring here
-            raoResult = updateRaoResultWithVoltageMonitoring(network, crac, raoResult, raoParameters);
-            RaoResultWithCounterTradeRangeActions raoResultWithRangeAction = updateRaoResultWithCounterTradingRAs(network, crac, index, raoResult);
-            fileExporter.saveRaoResultInArtifact(raoResultDestinationPath, raoResultWithRangeAction, crac);
-            return new Pair<>(raoResultWithRangeAction, status);
+            return Pair.of(raoResult, status);
         }
     }
 
@@ -245,22 +272,6 @@ public class DichotomyRunner {
         }
 
         return ctMax;
-    }
-
-    private static RaoResult updateRaoResultWithVoltageMonitoring(Network network, Crac crac, RaoResult raoResult, RaoParameters raoParameters) {
-        MonitoringInput voltageMonitoringInput = MonitoringInput.buildWithVoltage(network, crac, raoResult).build();
-        return Monitoring.runVoltageAndUpdateRaoResult(LoadFlowAndSensitivityParameters.getLoadFlowProvider(raoParameters), LoadFlowAndSensitivityParameters.getSensitivityWithLoadFlowParameters(raoParameters).getLoadFlowParameters(), Runtime.getRuntime().availableProcessors(), voltageMonitoringInput);
-    }
-
-    private RaoResultWithCounterTradeRangeActions updateRaoResultWithCounterTradingRAs(Network network, Crac crac, Index index, RaoResult raoResult) {
-        Map<CounterTradeRangeAction, CounterTradeRangeActionResult> counterTradingResultsMap = new HashMap<>();
-        List<String> frEsFlowCnecs = SweCsaRaoValidator.getBorderFlowCnecs(crac, network, Country.FR).stream().map(Identifiable::getId).toList();
-        List<String> ptEsFlowCnecs = SweCsaRaoValidator.getBorderFlowCnecs(crac, network, Country.PT).stream().map(Identifiable::getId).toList();
-        counterTradingResultsMap.put(crac.getCounterTradeRangeAction(CT_RA_PTES), new CounterTradeRangeActionResult(CT_RA_PTES, Math.abs(index.getPtEsLowestSecureStep().getLeft()), ptEsFlowCnecs));
-        counterTradingResultsMap.put(crac.getCounterTradeRangeAction(CT_RA_ESPT), new CounterTradeRangeActionResult(CT_RA_ESPT, Math.abs(index.getPtEsLowestSecureStep().getLeft()), ptEsFlowCnecs));
-        counterTradingResultsMap.put(crac.getCounterTradeRangeAction(CT_RA_FRES), new CounterTradeRangeActionResult(CT_RA_FRES, Math.abs(index.getFrEsLowestSecureStep().getLeft()), frEsFlowCnecs));
-        counterTradingResultsMap.put(crac.getCounterTradeRangeAction(CT_RA_ESFR), new CounterTradeRangeActionResult(CT_RA_ESFR, Math.abs(index.getFrEsLowestSecureStep().getLeft()), frEsFlowCnecs));
-        return new RaoResultWithCounterTradeRangeActions(raoResult, new CounterTradingResult(counterTradingResultsMap));
     }
 
     private void setWorkingVariant(Network network, String initialVariant, String newVariantName) {
@@ -282,74 +293,15 @@ public class DichotomyRunner {
         throw new CsaInvalidDataException(MDC.get("gridcapaTaskId"), String.format("Crac should contain 4 counter trading remedial actions for csa swe process, Two CT RAs by border, and couldn't find CT RA for '%s' as exporting country and '%s' as importing country", exportingCountry.getName(), importingCountry.getName()));
     }
 
-    private void logBorderOverload(DichotomyStepResult ctStepResult) {
-        if (ctStepResult.isFrEsCnecsSecure()) {
-            businessLogger.info("There is no overload on FR-ES border");
-        } else {
-            businessLogger.info("There is overloads on FR-ES border, network is not secure");
-            if (ctStepResult.getFrEsMostLimitingCnec() != null) {
-                businessLogger.info("On the FR-ES border, the most limiting CNEC is {}", ctStepResult.getFrEsMostLimitingCnec().getLeft());
-            }
-        }
-
-        if (ctStepResult.isPtEsCnecsSecure()) {
-            businessLogger.info("There is no overload on PT-ES border");
-        } else {
-            businessLogger.info("There is overloads on PT-ES border, network is not secure");
-            if (ctStepResult.getPtEsMostLimitingCnec() != null) {
-                businessLogger.info("On the PT-ES border, the most limiting CNEC is {}", ctStepResult.getPtEsMostLimitingCnec().getLeft());
-            }
-        }
-    }
-
     private String getNewVariantName(CounterTradingValues counterTradingValues) {
         return String.format("network-ScaledBy-%s", counterTradingValues.print());
     }
 
-    void updateCracWithCounterTrageRangeActions(Crac crac) {
-        crac.newCounterTradeRangeAction()
-            .withId(CT_RA_PTES)
-            .withOperator("REN")
-            .newRange().withMin(-50000.0)
-            .withMax(50000.0).add()
-            .withInitialSetpoint(0.0)
-            .withExportingCountry(Country.PT)
-            .withImportingCountry(Country.ES)
-            .add();
-        crac.newCounterTradeRangeAction()
-            .withId(CT_RA_ESPT)
-            .withOperator("REE")
-            .newRange().withMin(-50000.0)
-            .withMax(50000.0).add()
-            .withInitialSetpoint(0.0)
-            .withExportingCountry(Country.ES)
-            .withImportingCountry(Country.PT)
-            .add();
-        crac.newCounterTradeRangeAction()
-            .withId(CT_RA_ESFR)
-            .withOperator("REE")
-            .newRange().withMin(-50000.0)
-            .withMax(50000.0).add()
-            .withInitialSetpoint(0.0)
-            .withExportingCountry(Country.ES)
-            .withImportingCountry(Country.FR)
-            .add();
-        crac.newCounterTradeRangeAction()
-            .withId(CT_RA_FRES)
-            .withOperator("RTE")
-            .newRange().withMin(-50000.0)
-            .withMax(50000.0).add()
-            .withInitialSetpoint(0.0)
-            .withExportingCountry(Country.FR)
-            .withImportingCountry(Country.ES)
-            .add();
-    }
-
-    void setIndexPrecision(double indexPrecision) {
+    public void setIndexPrecision(double indexPrecision) {
         this.indexPrecision = indexPrecision;
     }
 
-    void setMaxDichotomiesByBorder(double maxDichotomiesByBorder) {
+    public void setMaxDichotomiesByBorder(double maxDichotomiesByBorder) {
         this.maxDichotomiesByBorder = maxDichotomiesByBorder;
     }
 }

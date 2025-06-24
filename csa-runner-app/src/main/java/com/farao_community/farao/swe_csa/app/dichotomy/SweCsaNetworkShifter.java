@@ -44,8 +44,6 @@ public final class SweCsaNetworkShifter {
     private final int maxShiftIterations;
     private final double esFrInitialExchange;
     private final double esPtInitialExchange;
-    private static final String ES_FR = "ES_FR";
-    private static final String ES_PT = "ES_PT";
 
     private final ShiftDispatcher shiftDispatcher;
 
@@ -70,15 +68,15 @@ public final class SweCsaNetworkShifter {
 
         // Compute target exchange values, given the counter-trading values
         Map<String, Double> targetExchanges = Map.of(
-            ES_FR, esFrInitialExchange - Math.signum(esFrInitialExchange) * Math.abs(counterTradingValues.getFrEsCt()),
-            ES_PT, esPtInitialExchange - Math.signum(esPtInitialExchange) * Math.abs(counterTradingValues.getPtEsCt())
+            DichotomyDirection.ES_FR.toString(), esFrInitialExchange - Math.signum(esFrInitialExchange) * Math.abs(counterTradingValues.frEsCt()),
+            DichotomyDirection.ES_PT.toString(), esPtInitialExchange - Math.signum(esPtInitialExchange) * Math.abs(counterTradingValues.ptEsCt())
         );
-        BUSINESS_LOGS.info("Target exchanges: PT->ES: {}, FR-ES: {}", -targetExchanges.get(ES_PT), -targetExchanges.get(ES_FR));
+        BUSINESS_LOGS.info("Target exchanges: PT->ES: {}, FR-ES: {}", -targetExchanges.get(DichotomyDirection.ES_PT.toString()), -targetExchanges.get(DichotomyDirection.ES_FR.toString()));
 
         shiftExchangeValues(network, targetExchanges, scalingValueEstimationPerCountry);
     }
 
-    private void shiftExchangeValues(Network network, Map<String, Double> targetExchanges, Map<String, Double> scalingValueEstimationPerCountry) throws ShiftingException, GlskLimitationException {
+    void shiftExchangeValues(Network network, Map<String, Double> targetExchanges, Map<String, Double> scalingValueEstimationPerCountry) throws ShiftingException, GlskLimitationException {
         ScalableGeneratorConnector scalableGeneratorConnector = new ScalableGeneratorConnector(zonalScalable);
         GeneratorLimitsHandler generatorLimitsHandler = new GeneratorLimitsHandler(zonalScalable);
         Map<String, Double> scalingValuePerCountry = new HashMap<>(scalingValueEstimationPerCountry);
@@ -113,7 +111,7 @@ public final class SweCsaNetworkShifter {
 
             // Step 4 : check after iteration max and out of tolerance
             if (!shiftSucceed) {
-                String message = String.format("Balancing adjustment out of tolerances: mismatch on ES-PT = %.2f , mismatch on ES-FR =  %.2f", mismatchPerBorder.get(ES_PT), mismatchPerBorder.get(ES_FR));
+                String message = String.format("Balancing adjustment out of tolerances: mismatch on ES-PT = %.2f , mismatch on ES-FR =  %.2f", mismatchPerBorder.get(DichotomyDirection.ES_PT.toString()), mismatchPerBorder.get(DichotomyDirection.ES_FR.toString()));
                 BUSINESS_LOGS.error(message);
                 throw new ShiftingException(message);
             }
@@ -124,11 +122,11 @@ public final class SweCsaNetworkShifter {
             network.getVariantManager().removeVariant(workingVariantCopyId);
         } finally {
             // here set working variant generators pmin and pmax values to initial values
-            generatorLimitsHandler.resetInitialPminPmax(network);
+            //generatorLimitsHandler.resetInitialPminPmax(network);
         }
     }
 
-    private static Map<String, Double> computeExchangeValuesMismatch(Network network, String workingVariantCopyId, Map<String, Double> targetExchanges) throws ShiftingException {
+    static Map<String, Double> computeExchangeValuesMismatch(Network network, String workingVariantCopyId, Map<String, Double> targetExchanges) throws ShiftingException {
         Map<String, Double> mismatchPerBorder;
         LoadFlowResult loadFlowResult = LoadFlow.run(network, workingVariantCopyId, LocalComputationManager.getDefault(), LoadFlowParameters.load());
         if (!loadFlowResult.isFullyConverged()) {
@@ -136,10 +134,10 @@ public final class SweCsaNetworkShifter {
             throw new ShiftingException(message);
         }
         Map<String, Double> bordersExchanges = CountryBalanceComputation.computeSweBordersExchanges(network);
-        double mismatchEsPt = targetExchanges.get(ES_PT) - bordersExchanges.get(ES_PT);
-        double mismatchEsFr = targetExchanges.get(ES_FR) - bordersExchanges.get(ES_FR);
-        mismatchPerBorder = Map.of(ES_FR, mismatchEsFr, ES_PT, mismatchEsPt);
-        BUSINESS_LOGS.info("Resulting exchanges: PT->ES: {}, FR->ES: {}", -bordersExchanges.get(ES_PT), -bordersExchanges.get(ES_FR));
+        double mismatchEsPt = targetExchanges.get(DichotomyDirection.ES_PT.toString()) - bordersExchanges.get(DichotomyDirection.ES_PT.toString());
+        double mismatchEsFr = targetExchanges.get(DichotomyDirection.ES_FR.toString()) - bordersExchanges.get(DichotomyDirection.ES_FR.toString());
+        mismatchPerBorder = Map.of(DichotomyDirection.ES_FR.toString(), mismatchEsFr, DichotomyDirection.ES_PT.toString(), mismatchEsPt);
+        BUSINESS_LOGS.info("Resulting exchanges: PT->ES: {}, FR->ES: {}", -bordersExchanges.get(DichotomyDirection.ES_PT.toString()), -bordersExchanges.get(DichotomyDirection.ES_FR.toString()));
         BUSINESS_LOGS.info("Mismatch: PT->ES: {}, FR->ES: {}", mismatchEsPt, mismatchEsFr);
         return mismatchPerBorder;
     }
@@ -184,8 +182,8 @@ public final class SweCsaNetworkShifter {
 
     public void updateScalingValuesWithMismatch(Map<String, Double> scalingValuesByCountry, Map<String, Double> mismatchPerBorder) {
         BUSINESS_LOGS.info("Adjusting target shifts to reduce mismatch");
-        scalingValuesByCountry.put(EI_CODE_FR, scalingValuesByCountry.get(EI_CODE_FR) - mismatchPerBorder.get(ES_FR));
-        scalingValuesByCountry.put(EI_CODE_PT, scalingValuesByCountry.get(EI_CODE_PT) - mismatchPerBorder.get(ES_PT));
-        scalingValuesByCountry.put(EI_CODE_ES, scalingValuesByCountry.get(EI_CODE_ES) + mismatchPerBorder.get(ES_PT) + mismatchPerBorder.get(ES_FR));
+        scalingValuesByCountry.put(EI_CODE_FR, scalingValuesByCountry.get(EI_CODE_FR) - mismatchPerBorder.get(DichotomyDirection.ES_FR.toString()));
+        scalingValuesByCountry.put(EI_CODE_PT, scalingValuesByCountry.get(EI_CODE_PT) - mismatchPerBorder.get(DichotomyDirection.ES_PT.toString()));
+        scalingValuesByCountry.put(EI_CODE_ES, scalingValuesByCountry.get(EI_CODE_ES) + mismatchPerBorder.get(DichotomyDirection.ES_PT.toString()) + mismatchPerBorder.get(DichotomyDirection.ES_FR.toString()));
     }
 }

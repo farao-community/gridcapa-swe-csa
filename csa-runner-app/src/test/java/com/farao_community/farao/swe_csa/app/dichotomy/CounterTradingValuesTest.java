@@ -9,8 +9,8 @@ class CounterTradingValuesTest {
     @Test
     void printTest() {
         CounterTradingValues counterTradingValues = new CounterTradingValues(2.5, 9999.004);
-        assertEquals(9999.004, counterTradingValues.getFrEsCt());
-        assertEquals(2.5, counterTradingValues.getPtEsCt());
+        assertEquals(9999.004, counterTradingValues.frEsCt());
+        assertEquals(2.5, counterTradingValues.ptEsCt());
         assertEquals("PT-ES-scaled-by-3_and_FR-ES-scaled-by-9999", counterTradingValues.print());
     }
 }

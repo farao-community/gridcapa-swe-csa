@@ -6,15 +6,15 @@
     <parent>
         <artifactId>farao-parent-ws</artifactId>
         <groupId>com.farao-community.farao</groupId>
-        <version>1.9.0</version>
+        <version>1.13.0</version>
     </parent>
 
     <artifactId>gridcapa-swe-csa</artifactId>
     <version>2.6.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>gridcapa-swe-csa</name>
-    <description>Service responsible for running a dichotomy process for swe csa based on a network, a crac and a timestamp,
-        and returns the best rao result while taking into account some dichotomy stop criterion from configurations.
+    <description>Service responsible for running a dichotomy process for swe csa based on a network, a glsk, two crac files one for pt-es border and one for fr-es border and a timestamp,
+        it returns the best rao result for each border while taking into account some dichotomy stop criterion from configurations.
     All files transfers pass through amazon s3 buckets, and request/response of this microservice are in json api format.
     </description>
 
@@ -25,8 +25,8 @@
 
     <properties>
         <!-- BUSINESS DEPENDENCIES -->
-        <farao.dependencies.version>1.39.0</farao.dependencies.version>
-        <gridcapa.rao.runner.version>1.35.0</gridcapa.rao.runner.version>
+        <farao.dependencies.version>1.41.0</farao.dependencies.version>
+        <gridcapa.rao.runner.version>1.38.0</gridcapa.rao.runner.version>
         <gridcapa.swe.commons.version>1.35.0</gridcapa.swe.commons.version>
 
         <!-- TECHNICAL DEPENDENCIES -->
@@ -37,7 +37,6 @@
         <logstash.version>7.0.1</logstash.version>
         <awaitility.version>3.0.0</awaitility.version>
         <jackson.datatype.version>2.12.2</jackson.datatype.version>
-
     </properties>
 
     <build>

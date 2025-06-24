@@ -6,16 +6,8 @@ import com.powsybl.openrao.data.crac.api.rangeaction.CounterTradeRangeAction;
 import com.powsybl.openrao.data.crac.api.rangeaction.RangeAction;
 import java.util.*;
 
-public class CounterTradingResult {
-    private final Map<CounterTradeRangeAction, CounterTradeRangeActionResult> counterTradeRangeActionResults;
-
-    public CounterTradingResult(Map<CounterTradeRangeAction, CounterTradeRangeActionResult> counterTradeRangeActionResults) {
-        this.counterTradeRangeActionResults = counterTradeRangeActionResults;
-    }
-
-    public Map<CounterTradeRangeAction, CounterTradeRangeActionResult> getCounterTradeRangeActionResults() {
-        return counterTradeRangeActionResults;
-    }
+public record CounterTradingResult(
+    Map<CounterTradeRangeAction, CounterTradeRangeActionResult> counterTradeRangeActionResults) {
 
     public boolean isActivatedDuringState(State state, RangeAction<?> rangeAction) {
         return isActivatedDuringState(state, (RemedialAction<?>) rangeAction);
