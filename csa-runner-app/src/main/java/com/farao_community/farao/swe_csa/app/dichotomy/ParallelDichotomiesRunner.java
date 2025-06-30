@@ -21,12 +21,20 @@ public class ParallelDichotomiesRunner {
             CompletableFuture<DichotomyStepResult> futurePtEs = CompletableFuture.supplyAsync(() -> {
                 MDC.setContextMap(contextMap);
                 MDC.put("eventPrefix", DichotomyDirection.PT_ES.toString());
-                return supplierPtEs.get();
+                try {
+                    return supplierPtEs.get();
+                } finally {
+                    MDC.remove("eventPrefix");
+                }
             }, executor);
             CompletableFuture<DichotomyStepResult> futureFrEs = CompletableFuture.supplyAsync(() -> {
                 MDC.setContextMap(contextMap);
                 MDC.put("eventPrefix", DichotomyDirection.FR_ES.toString());
-                return supplierFrEs.get();
+                try {
+                    return supplierFrEs.get();
+                } finally {
+                    MDC.remove("eventPrefix");
+                }
             }, executor);
 
             // If one fails, cancel the other
