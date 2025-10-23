@@ -80,10 +80,6 @@ public class DichotomyRunner {
 
         ZonalData<Scalable> scalableZonalData = fileImporter.getZonalData(csaRequest.getId(), instant, csaRequest.getGlskUri(), network);
 
-        // Temporary workaround, in real data crac should already contain CT-RAs, should be removed then
-        Preprocessing.updateCracWithPtEsCounterTradeRangeActions(cracPtEs);
-        Preprocessing.updateCracWithFrEsCounterTradeRangeActions(cracFrEs);
-
         String initialVariant = network.getVariantManager().getWorkingVariantId();
 
         Map<String, Double> initialNetPositions = CountryBalanceComputation.computeSweCountriesBalances(network, LoadFlowAndSensitivityParameters.getSensitivityWithLoadFlowParameters(raoParameters).getLoadFlowParameters())
@@ -238,7 +234,7 @@ public class DichotomyRunner {
         if (!crac.getVoltageCnecs().isEmpty()) {
             finalRaoResult = resultHelper.updateRaoResultWithVoltageMonitoring(network, crac, raoResult, raoParameters);
         }
-        finalRaoResult = resultHelper.updateRaoResultWithCounterTradingRangeActions(network, crac, index, finalRaoResult, border);
+        finalRaoResult = resultHelper.updateRaoResultWithCounterTradingRangeActions(crac, index, finalRaoResult, border);
         fileExporter.saveRaoResultInArtifact(uploadPath, finalRaoResult, crac);
     }
 
