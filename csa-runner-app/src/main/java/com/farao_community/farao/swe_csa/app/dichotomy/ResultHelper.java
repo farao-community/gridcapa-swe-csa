@@ -1,5 +1,6 @@
 package com.farao_community.farao.swe_csa.app.dichotomy;
 
+import com.farao_community.farao.swe_csa.api.exception.CsaInvalidDataException;
 import com.farao_community.farao.swe_csa.api.results.CounterTradeRangeActionResult;
 import com.farao_community.farao.swe_csa.api.results.CounterTradingResult;
 import com.farao_community.farao.swe_csa.app.rao_result.RaoResultWithCounterTradeRangeActions;
@@ -15,6 +16,7 @@ import com.powsybl.openrao.monitoring.Monitoring;
 import com.powsybl.openrao.monitoring.MonitoringInput;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
 import com.powsybl.openrao.raoapi.parameters.extensions.LoadFlowAndSensitivityParameters;
+import org.slf4j.MDC;
 
 import java.util.HashMap;
 import java.util.List;
@@ -77,6 +79,6 @@ public class ResultHelper {
         return ctActions.stream()
                 .filter(action -> action.getExportingCountry() == exportingCountry && action.getImportingCountry() == importingCountry)
                 .findFirst()
-                .orElseThrow(() -> new IllegalStateException("No CounterTradeRangeAction found for " + exportingCountry + " → " + importingCountry));
+                .orElseThrow(() -> new CsaInvalidDataException(MDC.get("gridcapaTaskId"), String.format("No CounterTradeRangeAction found for '%s' → '%s'", exportingCountry.getName(), importingCountry.getName())));
     }
 }
