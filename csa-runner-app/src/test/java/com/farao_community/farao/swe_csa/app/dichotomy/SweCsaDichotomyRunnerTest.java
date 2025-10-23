@@ -13,9 +13,9 @@ import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
 import com.farao_community.farao.swe_csa.app.shift.SweCsaZonalData;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
+import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.data.crac.api.Crac;
-import com.powsybl.openrao.data.crac.api.CracFactory;
 import com.powsybl.openrao.data.crac.impl.CounterTradeRangeActionImpl;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -28,9 +28,11 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.cloud.stream.function.StreamBridge;
 
 import java.time.Instant;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
 
 @SpringBootTest
 class SweCsaDichotomyRunnerTest {
@@ -62,8 +64,18 @@ class SweCsaDichotomyRunnerTest {
         Instant utcInstant = Instant.parse("2023-09-13T09:30:00Z");
         Network network = Network.read("/dichotomy/TestCase_with_swe_countries.xiidm", getClass().getResourceAsStream("/dichotomy/TestCase_with_swe_countries.xiidm"));
         ZonalData<Scalable> scalableZonalData = SweCsaZonalData.getZonalData(network);
-        Crac ptEsCrac = CracFactory.findDefault().create("pt-es-crac");
-        Crac frEsCrac = CracFactory.findDefault().create("fr-es-crac");
+
+        // Mock CRACs with the required CT RAs
+        Crac ptEsCrac = Mockito.mock(Crac.class);
+        Crac frEsCrac = Mockito.mock(Crac.class);
+
+        CounterTradeRangeActionImpl ctRaPtEs = mockCtAction(Country.PT, Country.ES);
+        CounterTradeRangeActionImpl ctRaEsPt = mockCtAction(Country.ES, Country.PT);
+        CounterTradeRangeActionImpl ctRaFrEs = mockCtAction(Country.FR, Country.ES);
+        CounterTradeRangeActionImpl ctRaEsFr = mockCtAction(Country.ES, Country.FR);
+
+        Mockito.when(ptEsCrac.getCounterTradeRangeActions()).thenReturn(Set.of(ctRaPtEs, ctRaEsPt));
+        Mockito.when(frEsCrac.getCounterTradeRangeActions()).thenReturn(Set.of(ctRaFrEs, ctRaEsFr));
 
         Mockito.doNothing().when(s3ArtifactsAdapter).uploadFile(any(), any());
         Mockito.when(fileImporter.uploadRaoParameters(utcInstant)).thenReturn("rao-parameters-url");
@@ -124,5 +136,13 @@ class SweCsaDichotomyRunnerTest {
         assertEquals(300.0, resultMaxCT2);
     }
 
-}
+    private static CounterTradeRangeActionImpl mockCtAction(Country exporting, Country importing) {
+        CounterTradeRangeActionImpl action = Mockito.mock(CounterTradeRangeActionImpl.class);
+        Mockito.when(action.getExportingCountry()).thenReturn(exporting);
+        Mockito.when(action.getImportingCountry()).thenReturn(importing);
+        Mockito.when(action.getMinAdmissibleSetpoint(Mockito.anyDouble())).thenReturn(-50000.0);
+        Mockito.when(action.getMaxAdmissibleSetpoint(Mockito.anyDouble())).thenReturn(50000.0);
+        return action;
+    }
 
+}
