@@ -234,7 +234,7 @@ public class DichotomyRunner {
         if (!crac.getVoltageCnecs().isEmpty()) {
             finalRaoResult = resultHelper.updateRaoResultWithVoltageMonitoring(network, crac, raoResult, raoParameters);
         }
-        finalRaoResult = resultHelper.updateRaoResultWithCounterTradingRangeActions(network, crac, index, finalRaoResult, border);
+        finalRaoResult = resultHelper.updateRaoResultWithCounterTradingRangeActions(crac, index, finalRaoResult, border);
         fileExporter.saveRaoResultInArtifact(uploadPath, finalRaoResult, crac);
     }
 
