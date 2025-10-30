@@ -148,7 +148,7 @@ public class SweCsaRaoValidator {
     private RaoRequest buildRaoRequest(String stepFolder, String timestamp, String taskId, Network network, String cracUrl, String raoParametersUrl, String border) {
         String scaledNetworkPath = generateScaledNetworkPath(network, timestamp, stepFolder);
         String scaledNetworkPreSignedUrl = fileExporter.saveNetworkInArtifact(taskId, network, scaledNetworkPath);
-        String raoResultDestination = generateArtifactsFolder(timestamp, stepFolder);
+        String raoResultDestination = generateBorderRaoResultPath(border, timestamp, stepFolder);
         return new RaoRequest.RaoRequestBuilder()
             .withId(taskId)
             .withRunId(taskId)
@@ -163,6 +163,10 @@ public class SweCsaRaoValidator {
     private String generateArtifactsFolder(String timestamp, String stepFolder) {
         OffsetDateTime offsetDateTime = OffsetDateTime.parse(timestamp);
         return "artifacts" + "/" + offsetDateTime.getYear() + "/" + offsetDateTime.getMonthValue() + "/" + offsetDateTime.getDayOfMonth() + "/" + offsetDateTime.getHour() + "_" + offsetDateTime.getMinute() + "/" + stepFolder;
+    }
+
+    private String generateBorderRaoResultPath(String border, String timestamp, String stepFolder) {
+        return generateArtifactsFolder(timestamp, stepFolder) + "/" + border;
     }
 
     private String generateScaledNetworkPath(Network network, String timestamp, String stepFolder) {
