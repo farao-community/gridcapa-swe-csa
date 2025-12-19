@@ -57,17 +57,17 @@ public class ResultHelper {
             case "PT-ES" -> {
                 double value = Math.abs(index.getPtEsLowestSecureStep().getLeft());
                 CounterTradeRangeAction ctRaPtes = findCounterTradingAction(ctActions, Country.PT, Country.ES);
-                resultMap.put(ctRaPtes, new CounterTradeRangeActionResult(ctRaPtes.getId(), -value, flowCnecs));
+                resultMap.put(ctRaPtes, new CounterTradeRangeActionResult(ctRaPtes.getId(), value, flowCnecs));
 
                 CounterTradeRangeAction ctRaEsPt = findCounterTradingAction(ctActions, Country.ES, Country.PT);
-                resultMap.put(ctRaEsPt, new CounterTradeRangeActionResult(ctRaEsPt.getId(), value, flowCnecs));
+                resultMap.put(ctRaEsPt, new CounterTradeRangeActionResult(ctRaEsPt.getId(), -value, flowCnecs));
             }
             case "FR-ES" -> {
                 double value = Math.abs(index.getFrEsLowestSecureStep().getLeft());
                 CounterTradeRangeAction ctRaFrEs = findCounterTradingAction(ctActions, Country.FR, Country.ES);
-                resultMap.put(ctRaFrEs, new CounterTradeRangeActionResult(ctRaFrEs.getId(), -value, flowCnecs));
+                resultMap.put(ctRaFrEs, new CounterTradeRangeActionResult(ctRaFrEs.getId(), value, flowCnecs));
                 CounterTradeRangeAction ctRaEsFr = findCounterTradingAction(ctActions, Country.ES, Country.FR);
-                resultMap.put(ctRaEsFr, new CounterTradeRangeActionResult(ctRaEsFr.getId(), value, flowCnecs));
+                resultMap.put(ctRaEsFr, new CounterTradeRangeActionResult(ctRaEsFr.getId(), -value, flowCnecs));
             }
             default -> throw new IllegalArgumentException("Unsupported border: " + border);
         }
