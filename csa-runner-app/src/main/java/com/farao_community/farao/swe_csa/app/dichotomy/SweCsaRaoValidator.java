@@ -69,6 +69,7 @@ public class SweCsaRaoValidator {
 
         try {
             businessLogger.info("[{}] : RAO request sent: {}", border, raoRequest);
+            // Run RAO to validate the network
             AbstractRaoResponse abstractRaoResponse = raoRunnerClient.runRao(raoRequest);
             businessLogger.info("[{}] : RAO response received: {}", border, abstractRaoResponse);
 
@@ -84,9 +85,12 @@ public class SweCsaRaoValidator {
             }
             RaoResult raoResult = new RaoResultJsonImporter().importData(new URI(raoSuccessResponse.getRaoResultFileUrl()).toURL().openStream(), crac);
             businessLogger.info("RAO result imported: {}", raoResult);
+            // Check overload on the most limiting cnec
             logBorderOverload(raoResult, crac, border);
+            // Check if the raoResult is secure
             boolean isSecure = raoResult.isSecure(PhysicalParameter.FLOW);
             if (isSecure && !crac.getAngleCnecs().isEmpty()) {
+                // If angleCnecs exist, Angle monitoring
                 businessLogger.info("{} crac contains Angle CNECs. Angle monitoring will be run.", border);
                 raoResult = resultHelper.updateRaoResultWithAngleMonitoring(network, crac, scalableZonalDataFilteredForSweCountries, raoResult, raoParameters);
                 isSecure = raoResult.isSecure(PhysicalParameter.FLOW, PhysicalParameter.ANGLE);
@@ -98,6 +102,7 @@ public class SweCsaRaoValidator {
             }
 
             if (isSecure && !crac.getVoltageCnecs().isEmpty()) {
+                // If voltageCnecs exist, Voltage monitoring
                 businessLogger.info("{} crac contains Voltage CNECs. Voltage monitoring will be run.", border);
                 raoResult = resultHelper.updateRaoResultWithVoltageMonitoring(network, crac, raoResult, raoParameters);
                 isSecure = raoResult.isSecure(PhysicalParameter.FLOW, PhysicalParameter.VOLTAGE);
