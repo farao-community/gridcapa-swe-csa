@@ -65,12 +65,10 @@ public final class SweCsaNetworkShifter {
         BUSINESS_LOGS.info("Starting shift on network {}", network.getVariantManager().getWorkingVariantId());
 
         // Compute the initial estimation of country net position scaling values, given the counter-trading values
-        // Compute the shift of generators for each country
         Map<String, Double> scalingValueEstimationPerCountry = shiftDispatcher.dispatch(counterTradingValues);
 
         // Compute target exchange values, given the counter-trading values
         Map<String, Double> targetExchanges = Map.of(
-            // Target exchange: after CT application, how much exchange to get to the initial exchange (network secure)
             DichotomyDirection.ES_FR.toString(), esFrInitialExchange - Math.signum(esFrInitialExchange) * Math.abs(counterTradingValues.frEsCt()),
             DichotomyDirection.ES_PT.toString(), esPtInitialExchange - Math.signum(esPtInitialExchange) * Math.abs(counterTradingValues.ptEsCt())
         );
@@ -88,7 +86,6 @@ public final class SweCsaNetworkShifter {
             boolean shiftSucceed = false;
             Map<String, Double> mismatchPerBorder;
 
-            // Initial network without any shift
             String initialVariantId = network.getVariantManager().getWorkingVariantId();
             String processedVariantId = initialVariantId + " PROCESSED COPY";
             String workingVariantCopyId = initialVariantId + " WORKING COPY";
@@ -103,13 +100,11 @@ public final class SweCsaNetworkShifter {
                 // Step 3: Checks balance adjustment results
                 if (mismatchPerBorder.values().stream().allMatch(mismatch -> Math.abs(mismatch) < shiftTolerance)) {
                     BUSINESS_LOGS.info("Tolerance of {} reached, shift succeeded after {} iteration(s)", shiftTolerance, ++iterationCounter);
-                    // If success, assign initialVariantId (returned at the end) is the current workingVariantCopyId
                     network.getVariantManager().cloneVariant(workingVariantCopyId, initialVariantId, true);
                     shiftSucceed = true;
                 } else {
-                    // Reset current variant with initial state (stored in processedVariantId) for each iteration (keeping pre-processing)
+                    // Reset current variant with initial state for each iteration (keeping pre-processing)
                     network.getVariantManager().cloneVariant(processedVariantId, workingVariantCopyId, true);
-                    // Increase/Decrease the NEX of each country by the amount of mismatch
                     updateScalingValuesWithMismatch(scalingValuePerCountry, mismatchPerBorder);
                     ++iterationCounter;
                 }
@@ -122,7 +117,7 @@ public final class SweCsaNetworkShifter {
                 throw new ShiftingException(message);
             }
 
-            // Step 5: Reset current variant with initial state (the successful state stored at cloneVariant(workingVariantCopyId, initialVariantId))
+            // Step 5: Reset current variant with initial state
             network.getVariantManager().setWorkingVariant(initialVariantId);
             network.getVariantManager().removeVariant(processedVariantId);
             network.getVariantManager().removeVariant(workingVariantCopyId);
@@ -134,7 +129,6 @@ public final class SweCsaNetworkShifter {
 
     static Map<String, Double> computeExchangeValuesMismatch(Network network, String workingVariantCopyId, Map<String, Double> targetExchanges, RaoParameters raoParameters) throws ShiftingException {
         Map<String, Double> mismatchPerBorder;
-        // Run loadflow
         LoadFlowResult loadFlowResult = LoadFlow.run(network, workingVariantCopyId, LocalComputationManager.getDefault(), LoadFlowAndSensitivityParameters.getSensitivityWithLoadFlowParameters(raoParameters).getLoadFlowParameters());
         if (!loadFlowResult.isFullyConverged()) {
             String message = String.format("Load-flow computation diverged on network '%s' during balancing adjustment", network.getId());
@@ -163,7 +157,6 @@ public final class SweCsaNetworkShifter {
             ScalingParameters scalingParameters = new ScalingParameters();
             scalingParameters.setPriority(ScalingParameters.Priority.RESPECT_OF_VOLUME_ASKED);
             scalingParameters.setReconnect(true);
-            // Change initial setpoint of generators
             double done = zonalScalable.getData(zoneId).scale(network, asked, scalingParameters);
             if (Math.abs(done - asked) > shiftTolerance) {
                 String logWarnIncompleteVariation = String.format("Incomplete variation on zone %s (target: %.2f, done: %.2f)", zoneId, asked, done);
