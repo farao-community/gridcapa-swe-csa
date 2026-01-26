@@ -12,6 +12,7 @@ import com.farao_community.farao.swe_csa.api.resource.CsaResponse;
 import com.farao_community.farao.swe_csa.api.resource.Status;
 import com.farao_community.farao.swe_csa.app.*;
 import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
+import com.farao_community.farao.swe_csa.app.security_evaluator.SweCsaRaoResultValidator;
 import com.farao_community.farao.swe_csa.app.shift.ShiftDispatcher;
 import com.powsybl.glsk.commons.CountryEICode;
 import com.powsybl.glsk.commons.ZonalData;
@@ -241,7 +242,12 @@ public class DichotomyRunner {
     private ParallelDichotomiesResult supplyParallelDichotomiesResult(CsaRequest csaRequest, RaoParameters raoParameters, String raoParametersUrl, Network network, Crac cracPtEs, Crac cracFrEs, ZonalData<Scalable> scalableZonalData, CounterTradingValues minCounterTradingValues) {
         Supplier<DichotomyStepResult> ptEsRaoResultSupplier = () -> sweCsaRaoValidator.validateNetworkForPortugueseBorder(network, cracPtEs, csaRequest.getPtEsCracFileUri(), scalableZonalData, raoParameters, csaRequest, raoParametersUrl, minCounterTradingValues);
         Supplier<DichotomyStepResult> frEsRaoResultSupplier = () -> sweCsaRaoValidator.validateNetworkForFrenchBorder(network, cracFrEs, csaRequest.getFrEsCracFileUri(), scalableZonalData, raoParameters, csaRequest, raoParametersUrl, minCounterTradingValues);
-        return parallelDichotomiesRunner.run(csaRequest.getId(), minCounterTradingValues, ptEsRaoResultSupplier, frEsRaoResultSupplier);
+        ParallelDichotomiesResult parallelDichotomiesResult = parallelDichotomiesRunner.run(csaRequest.getId(), minCounterTradingValues, ptEsRaoResultSupplier, frEsRaoResultSupplier);
+        SweCsaRaoResultValidator sweCsaRaoResultValidator = new SweCsaRaoResultValidator(
+                LoadFlowAndSensitivityParameters.getLoadFlowProvider(raoParameters),
+                LoadFlowAndSensitivityParameters.getSensitivityWithLoadFlowParameters(raoParameters).getLoadFlowParameters(),
+                businessLogger);
+        return sweCsaRaoResultValidator.validateNetworkForTwoBorders(network, parallelDichotomiesResult, cracFrEs, cracPtEs, scalableZonalData);
     }
 
     private Pair<RaoResult, Status> getRaoResultStatusPair(RaoResult raoResult, Index index, boolean interrupted) {
