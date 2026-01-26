@@ -30,7 +30,6 @@ import com.powsybl.openrao.util.AbstractNetworkPool;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.MDC;
-import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -354,7 +353,7 @@ public class SweCsaRaoResultValidator {
     private void processMonitoringCnecs(Set<Cnec> cnecs, State state, MonitoringInput monitoringInput, Set<CnecResult> cnecResults, List<AppliedNetworkActionsResult> appliedNetworkActionsResultList, Network network, Unit unit, PhysicalParameter physicalParameter, Logger businessLogger) {
         cnecs.forEach(cnec -> {
             if (cnec.computeMargin(network, unit) < 0) {
-                Set<NetworkAction> availableNetworkActions = getNetworkActionsAssociatedToCnec(state, monitoringInput.getCrac(), cnec, physicalParameter, businessLogger);
+                Set<NetworkAction> availableNetworkActions = getNetworkActionsAssociatedToCnec(state, monitoringInput.getCrac(), cnec, physicalParameter);
 
                 if (!availableNetworkActions.isEmpty()) {
                     AppliedNetworkActionsResult result = applyNetworkActions(network, availableNetworkActions, cnec.getId(), monitoringInput);

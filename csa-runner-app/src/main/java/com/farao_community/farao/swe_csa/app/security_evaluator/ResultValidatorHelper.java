@@ -27,6 +27,8 @@ import org.slf4j.Logger;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.powsybl.openrao.commons.logs.OpenRaoLoggerProvider.BUSINESS_WARNS;
+
 public final class ResultValidatorHelper {
     private ResultValidatorHelper() {
     }
@@ -49,15 +51,16 @@ public final class ResultValidatorHelper {
     }
 
     public static AppliedNetworkActionsResult applyNetworkActions(Network network, Set<NetworkAction> availableNetworkActions, String cnecId, MonitoringInput monitoringInput) {
-        Set<RemedialAction> appliedNetworkActions = new TreeSet(Comparator.comparing(com.powsybl.openrao.data.crac.api.Identifiable::getId));
         AppliedNetworkActionsResult appliedNetworkActionsResult;
+        Set<RemedialAction> appliedNetworkActions = new TreeSet<>(Comparator.comparing(RemedialAction::getId));
         if (monitoringInput.getPhysicalParameter().equals(PhysicalParameter.VOLTAGE)) {
             for (NetworkAction na : availableNetworkActions) {
                 na.apply(network);
                 appliedNetworkActions.add(na);
             }
 
-            appliedNetworkActionsResult = (new AppliedNetworkActionsResult.AppliedNetworkActionsResultBuilder()).withAppliedNetworkActions(appliedNetworkActions).withNetworkElementsToBeExcluded(new HashSet()).withPowerToBeRedispatched(new EnumMap(Country.class)).build();
+            appliedNetworkActionsResult = new AppliedNetworkActionsResult.AppliedNetworkActionsResultBuilder().withAppliedNetworkActions(appliedNetworkActions)
+                    .withNetworkElementsToBeExcluded(new HashSet<>()).withPowerToBeRedispatched(new EnumMap<>(Country.class)).build();
         } else {
             boolean networkActionOk = false;
             EnumMap<Country, Double> powerToBeRedispatched = new EnumMap(Country.class);
@@ -87,44 +90,47 @@ public final class ResultValidatorHelper {
         return appliedNetworkActionsResult;
     }
 
+    /**
+     * 1) Checks a network action's elementary action : it must be a Generator or a Load injection setpoint,
+     * with a defined country.
+     * 2) Stores applied injections on network
+     * Returns false if network action must be filtered.
+     */
     public static boolean checkElementaryActionAndStoreInjection(Action ea, Network network, String angleCnecId, String naId, Set<String> networkElementsToBeExcluded, Map<Country, Double> powerToBeRedispatched, ZonalData<Scalable> scalableZonalData) {
         if (!(ea instanceof LoadAction) && !(ea instanceof GeneratorAction)) {
-            OpenRaoLoggerProvider.BUSINESS_WARNS.warn("Remedial action {} of AngleCnec {} is ignored : it has an elementary action that's not an injection setpoint.", naId, angleCnecId);
+            BUSINESS_WARNS.warn("Remedial action {} of AngleCnec {} is ignored : it has an elementary action that's not an injection setpoint.", naId, angleCnecId);
+            return false;
+        }
+        Identifiable<?> ne = getInjectionSetpointIdentifiable(ea, network);
+
+        if (ne == null) {
+            BUSINESS_WARNS.warn("Remedial action {} of AngleCnec {} is ignored : it has no elementary actions.", naId, angleCnecId);
+            return false;
+        }
+
+        Optional<Substation> substation = ((Injection<?>) ne).getTerminal().getVoltageLevel().getSubstation();
+        if (substation.isEmpty()) {
+            BUSINESS_WARNS.warn("Remedial action {} of AngleCnec {} is ignored : it has an elementary action that doesn't have a substation.", naId, angleCnecId);
             return false;
         } else {
-            Identifiable<?> ne = getInjectionSetpointIdentifiable(ea, network);
-            if (ne == null) {
-                OpenRaoLoggerProvider.BUSINESS_WARNS.warn("Remedial action {} of AngleCnec {} is ignored : it has no elementary actions.", naId, angleCnecId);
+            Optional<Country> country = substation.get().getCountry();
+            if (country.isEmpty()) {
+                BUSINESS_WARNS.warn("Remedial action {} of AngleCnec {} is ignored : it has an elementary action that doesn't have a country.", naId, angleCnecId);
                 return false;
             } else {
-                Optional<Substation> substation = ((Injection) ne).getTerminal().getVoltageLevel().getSubstation();
-                if (substation.isEmpty()) {
-                    OpenRaoLoggerProvider.BUSINESS_WARNS.warn("Remedial action {} of AngleCnec {} is ignored : it has an elementary action that doesn't have a substation.", naId, angleCnecId);
-                    return false;
+                checkGlsks(country.get(), naId, angleCnecId, scalableZonalData);
+                if (ne.getType().equals(IdentifiableType.GENERATOR)) {
+                    powerToBeRedispatched.merge(country.get(), ((Generator) ne).getTargetP() - ((GeneratorAction) ea).getActivePowerValue().getAsDouble(), Double::sum);
+                } else if (ne.getType().equals(IdentifiableType.LOAD)) {
+                    powerToBeRedispatched.merge(country.get(), -((Load) ne).getP0() + ((LoadAction) ea).getActivePowerValue().getAsDouble(), Double::sum);
                 } else {
-                    Optional<Country> country = ((Substation) substation.get()).getCountry();
-                    if (country.isEmpty()) {
-                        OpenRaoLoggerProvider.BUSINESS_WARNS.warn("Remedial action {} of AngleCnec {} is ignored : it has an elementary action that doesn't have a country.", naId, angleCnecId);
-                        return false;
-                    } else {
-                        checkGlsks((Country) country.get(), naId, angleCnecId, scalableZonalData);
-                        if (ne.getType().equals(IdentifiableType.GENERATOR)) {
-                            powerToBeRedispatched.merge((Country) country.get(), ((Generator) ne).getTargetP() - ((GeneratorAction) ea).getActivePowerValue().getAsDouble(), Double::sum);
-                        } else {
-                            if (!ne.getType().equals(IdentifiableType.LOAD)) {
-                                OpenRaoLoggerProvider.BUSINESS_WARNS.warn("Remedial action {} of AngleCnec {} is ignored : it has an injection setpoint that's neither a generator nor a load.", naId, angleCnecId);
-                                return false;
-                            }
-
-                            powerToBeRedispatched.merge((Country) country.get(), -((Load) ne).getP0() + ((LoadAction) ea).getActivePowerValue().getAsDouble(), Double::sum);
-                        }
-
-                        networkElementsToBeExcluded.add(ne.getId());
-                        return true;
-                    }
+                    BUSINESS_WARNS.warn("Remedial action {} of AngleCnec {} is ignored : it has an injection setpoint that's neither a generator nor a load.", naId, angleCnecId);
+                    return false;
                 }
+                networkElementsToBeExcluded.add(ne.getId());
             }
         }
+        return true;
     }
 
     public static void checkGlsks(Country country, String naId, String angleCnecId, ZonalData<Scalable> scalableZonalData) {
@@ -169,7 +175,7 @@ public final class ResultValidatorHelper {
         return loadFlowResult.isFullyConverged();
     }
 
-    public static Set<NetworkAction> getNetworkActionsAssociatedToCnec(State state, Crac crac, Cnec cnec, PhysicalParameter physicalParameter, Logger businessLogger) {
+    public static Set<NetworkAction> getNetworkActionsAssociatedToCnec(State state, Crac crac, Cnec cnec, PhysicalParameter physicalParameter) {
         Set<RemedialAction<?>> availableRemedialActions =
                 crac.getRemedialActions().stream()
                         .filter(remedialAction ->
@@ -178,10 +184,10 @@ public final class ResultValidatorHelper {
                                         .anyMatch(onConstraint -> onConstraint.getCnec().equals(cnec)))
                         .collect(Collectors.toSet());
         if (availableRemedialActions.isEmpty()) {
-            businessLogger.warn("{} Cnec {} in state {} has no associated RA. {} constraint cannot be secured.", physicalParameter, cnec.getId(), state.getId(), physicalParameter);
+            BUSINESS_WARNS.warn("{} Cnec {} in state {} has no associated RA. {} constraint cannot be secured.", physicalParameter, cnec.getId(), state.getId(), physicalParameter);
             return Collections.emptySet();
         } else if (state.isPreventive()) {
-            businessLogger.warn("{} Cnec {} is constrained in preventive state, it cannot be secured.", physicalParameter, cnec.getId());
+            BUSINESS_WARNS.warn("{} Cnec {} is constrained in preventive state, it cannot be secured.", physicalParameter, cnec.getId());
             return Collections.emptySet();
         }
         // Convert remedial actions to network actions
@@ -189,7 +195,7 @@ public final class ResultValidatorHelper {
             if (remedialAction instanceof NetworkAction) {
                 return true;
             } else {
-                businessLogger.warn("Remedial action {} of Cnec {} in state {} is ignored : it's not a network action.", remedialAction.getId(), cnec.getId(), state.getId());
+                BUSINESS_WARNS.warn("Remedial action {} of Cnec {} in state {} is ignored : it's not a network action.", remedialAction.getId(), cnec.getId(), state.getId());
                 return false;
             }
         }).map(NetworkAction.class::cast).collect(Collectors.toSet());
