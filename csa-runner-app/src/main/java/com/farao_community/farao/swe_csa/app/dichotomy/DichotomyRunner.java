@@ -12,7 +12,6 @@ import com.farao_community.farao.swe_csa.api.resource.CsaResponse;
 import com.farao_community.farao.swe_csa.api.resource.Status;
 import com.farao_community.farao.swe_csa.app.*;
 import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
-import com.farao_community.farao.swe_csa.app.security_evaluator.SweCsaRaoResultValidator;
 import com.farao_community.farao.swe_csa.app.shift.ShiftDispatcher;
 import com.powsybl.glsk.commons.CountryEICode;
 import com.powsybl.glsk.commons.ZonalData;
@@ -84,8 +83,8 @@ public class DichotomyRunner {
         String initialVariant = network.getVariantManager().getWorkingVariantId();
 
         Map<String, Double> initialNetPositions = CountryBalanceComputation.computeSweCountriesBalances(network, LoadFlowAndSensitivityParameters.getSensitivityWithLoadFlowParameters(raoParameters).getLoadFlowParameters())
-            .entrySet().stream()
-            .collect(Collectors.toMap(entry -> new CountryEICode(entry.getKey()).getCountry().getName(), Map.Entry::getValue));
+                .entrySet().stream()
+                .collect(Collectors.toMap(entry -> new CountryEICode(entry.getKey()).getCountry().getName(), Map.Entry::getValue));
 
         businessLogger.info("Initial net positions: PT: {}, ES: {}, FR: {}", initialNetPositions.get(Country.PT.getName()), initialNetPositions.get(Country.ES.getName()), initialNetPositions.get(Country.FR.getName()));
         Map<String, Double> initialExchanges = CountryBalanceComputation.computeSweBordersExchanges(network);
@@ -242,12 +241,7 @@ public class DichotomyRunner {
     private ParallelDichotomiesResult supplyParallelDichotomiesResult(CsaRequest csaRequest, RaoParameters raoParameters, String raoParametersUrl, Network network, Crac cracPtEs, Crac cracFrEs, ZonalData<Scalable> scalableZonalData, CounterTradingValues minCounterTradingValues) {
         Supplier<DichotomyStepResult> ptEsRaoResultSupplier = () -> sweCsaRaoValidator.validateNetworkForPortugueseBorder(network, cracPtEs, csaRequest.getPtEsCracFileUri(), scalableZonalData, raoParameters, csaRequest, raoParametersUrl, minCounterTradingValues);
         Supplier<DichotomyStepResult> frEsRaoResultSupplier = () -> sweCsaRaoValidator.validateNetworkForFrenchBorder(network, cracFrEs, csaRequest.getFrEsCracFileUri(), scalableZonalData, raoParameters, csaRequest, raoParametersUrl, minCounterTradingValues);
-        ParallelDichotomiesResult parallelDichotomiesResult = parallelDichotomiesRunner.run(csaRequest.getId(), minCounterTradingValues, ptEsRaoResultSupplier, frEsRaoResultSupplier);
-        SweCsaRaoResultValidator sweCsaRaoResultValidator = new SweCsaRaoResultValidator(
-                LoadFlowAndSensitivityParameters.getLoadFlowProvider(raoParameters),
-                LoadFlowAndSensitivityParameters.getSensitivityWithLoadFlowParameters(raoParameters).getLoadFlowParameters(),
-                businessLogger);
-        return sweCsaRaoResultValidator.validateNetworkForTwoBorders(network, parallelDichotomiesResult, cracFrEs, cracPtEs, scalableZonalData);
+        return parallelDichotomiesRunner.run(csaRequest.getId(), minCounterTradingValues, ptEsRaoResultSupplier, frEsRaoResultSupplier);
     }
 
     private Pair<RaoResult, Status> getRaoResultStatusPair(RaoResult raoResult, Index index, boolean interrupted) {
@@ -267,7 +261,7 @@ public class DichotomyRunner {
 
     double getMaxCounterTrading(CounterTradeRangeAction ctraTowardsES, CounterTradeRangeAction ctraFromES, double initialExchangeTowardsES, String borderName) {
         double ctMax = initialExchangeTowardsES >= 0 ? Math.min(Math.min(-ctraTowardsES.getMinAdmissibleSetpoint(initialExchangeTowardsES), ctraFromES.getMaxAdmissibleSetpoint(-initialExchangeTowardsES)), initialExchangeTowardsES)
-            : Math.min(Math.min(ctraTowardsES.getMaxAdmissibleSetpoint(initialExchangeTowardsES), -ctraFromES.getMinAdmissibleSetpoint(-initialExchangeTowardsES)), -initialExchangeTowardsES);
+                : Math.min(Math.min(ctraTowardsES.getMaxAdmissibleSetpoint(initialExchangeTowardsES), -ctraFromES.getMinAdmissibleSetpoint(-initialExchangeTowardsES)), -initialExchangeTowardsES);
 
         if (ctMax != Math.abs(initialExchangeTowardsES)) {
             businessLogger.warn("Maximum counter trading {} '{}' is different from initial exchange {} '{}' ", borderName, ctMax, borderName, Math.abs(initialExchangeTowardsES));

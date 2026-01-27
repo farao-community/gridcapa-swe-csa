@@ -13,6 +13,7 @@ import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
 import com.farao_community.farao.swe_csa.app.shift.SweCsaZonalData;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
+import com.powsybl.iidm.network.Area;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.data.crac.api.Crac;
@@ -63,6 +64,7 @@ class SweCsaDichotomyRunnerTest {
     void runCounterTradingTest() throws GlskLimitationException, ShiftingException {
         Instant utcInstant = Instant.parse("2023-09-13T09:30:00Z");
         Network network = Network.read("/dichotomy/TestCase_with_swe_countries.xiidm", getClass().getResourceAsStream("/dichotomy/TestCase_with_swe_countries.xiidm"));
+        Iterable<Area> ares = network.getAreas();
         ZonalData<Scalable> scalableZonalData = SweCsaZonalData.getZonalData(network);
 
         // Mock CRACs with the required CT RAs

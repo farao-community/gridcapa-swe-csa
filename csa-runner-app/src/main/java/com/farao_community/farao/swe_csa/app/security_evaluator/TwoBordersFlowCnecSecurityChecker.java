@@ -13,6 +13,7 @@ import com.powsybl.openrao.data.crac.api.State;
 import com.powsybl.openrao.data.crac.api.cnec.Cnec;
 import com.powsybl.openrao.data.raoresult.api.RaoResult;
 import com.powsybl.openrao.util.AbstractNetworkPool;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 
 import java.util.List;
@@ -54,11 +55,12 @@ public class TwoBordersFlowCnecSecurityChecker {
      * @return True if all flowCnecs are secure and False if there is at least
      * one flowCnec is not secure
      */
-    public Boolean check() {
+    public Pair<Boolean, Boolean> check() {
         businessLogger.info("----- Monitoring flow cnecs for two borders [start]");
 
         PhysicalParameter flowPhysicalParameter = PhysicalParameter.FLOW;
         Unit unit = Unit.AMPERE;
+        Pair<Boolean, Boolean> securityStates = Pair.of(true, true);
 
         Set<Cnec> frEsFlowCnecs = frEsCrac.getCnecs(flowPhysicalParameter);
         Set<Cnec> ptEsFlowCnecs = ptEsCrac.getCnecs(flowPhysicalParameter);
@@ -66,7 +68,7 @@ public class TwoBordersFlowCnecSecurityChecker {
         if (frEsFlowCnecs.isEmpty() && ptEsFlowCnecs.isEmpty()) {
             businessLogger.warn("No Flow Cnecs defined in two borders.");
             businessLogger.info("----- Monitoring flow cnecs for two borders [end]");
-            return Boolean.TRUE;
+            return securityStates;
         }
 
         // Preventive states
@@ -82,12 +84,13 @@ public class TwoBordersFlowCnecSecurityChecker {
             // Compute the load-flow
             if (!computeLoadFlow(network, loadFlowProvider, loadFlowParameters)) {
                 businessLogger.warn("Load-flow computation failed at preventive state when validating network for both borders.");
-                return false;
+                return Pair.of(false, false);
             }
 
             // Check all the cnecs from two borders
-            if (!checkMargins(frEsCrac, frEsPreventiveState, flowPhysicalParameter, network, unit) || !checkMargins(ptEsCrac, ptEsPreventiveState, flowPhysicalParameter, network, unit)) {
-                return false;
+            securityStates = Pair.of(checkMargins(frEsCrac, frEsPreventiveState, flowPhysicalParameter, network, unit), checkMargins(ptEsCrac, ptEsPreventiveState, flowPhysicalParameter, network, unit));
+            if (securityStates.equals(Pair.of(false, false))) {
+                return securityStates;
             }
         }
 
@@ -97,17 +100,18 @@ public class TwoBordersFlowCnecSecurityChecker {
 
         if (frEsContingencyStates.isEmpty() && ptEsContingencyStates.isEmpty()) {
             businessLogger.info("----- Monitoring flow cnecs for two borders [end]");
-            return true;
+            return securityStates;
         }
 
         // FR-ES contingency processing
         try (AbstractNetworkPool networkPool = AbstractNetworkPool.create(network, network.getVariantManager().getWorkingVariantId(), Math.min(numberOfLoadFlowsInParallel, frEsContingencyStates.size()), true)) {
-            List<ForkJoinTask<Boolean>> frEsTasks = frEsContingencyStates.stream().map(frEsState -> networkPool.submit(() -> {
+            List<ForkJoinTask<Pair<Boolean, Boolean>>> frEsTasks = frEsContingencyStates.stream().map(frEsState -> networkPool.submit(() -> {
                 Network networkClone = networkPool.getAvailableNetwork();
                 Contingency contingency = frEsState.getContingency().orElseThrow();
                 if (!contingency.isValid(networkClone)) {
                     networkPool.releaseUsedNetwork(networkClone);
-                    return false;
+                    // Fixme: what should we return here?
+                    return Pair.of(false, true);
                 }
                 // Apply the CO to the network
                 contingency.toModification().apply(networkClone, (ComputationManager) null);
@@ -132,16 +136,20 @@ public class TwoBordersFlowCnecSecurityChecker {
                 networkPool.releaseUsedNetwork(networkClone);
 
                 // Network secure when both borders are secure
-                return frEsSecurity && ptEsSecurity;
+                return Pair.of(frEsSecurity, ptEsSecurity);
             })).toList();
 
             // Gather all parallel tasks, return false if there is any task returning false
-            boolean allTrue = true;
+            boolean frEsSecurityOnCO1 = true;
+            boolean ptEsSecurityOnCO1 = true;
             try {
-                for (ForkJoinTask<Boolean> task : frEsTasks) {
+                for (ForkJoinTask<Pair<Boolean, Boolean>> task : frEsTasks) {
                     try {
-                        if (!task.get()) {
-                            allTrue = false;
+                        if (!task.get().getLeft()) {
+                            frEsSecurityOnCO1 = false;
+                        }
+                        if (!task.get().getRight()) {
+                            ptEsSecurityOnCO1 = false;
                         }
                     } catch (Exception e) {
                         throw new OpenRaoException(e);
@@ -150,20 +158,21 @@ public class TwoBordersFlowCnecSecurityChecker {
             } finally {
                 networkPool.shutdownAndAwaitTermination(24, TimeUnit.HOURS);
             }
-            if (!allTrue) {
-                return false;
+            securityStates = Pair.of(frEsSecurityOnCO1 && securityStates.getLeft(), ptEsSecurityOnCO1 && securityStates.getRight());
+            if (securityStates.equals(Pair.of(false, false))) {
+                return securityStates;
             }
 
         } catch (Exception e) {
             Thread.currentThread().interrupt();
             // Return false if an error is thrown
-            return false;
+            return Pair.of(false, false);
         }
 
         // PT-ES contingency processing
         if (ptEsContingencyStates.isEmpty()) {
             businessLogger.info("----- Monitoring flow cnecs for two borders [end]");
-            return true;
+            return securityStates;
         }
 
         try (AbstractNetworkPool networkPool = AbstractNetworkPool.create(network, network.getVariantManager().getWorkingVariantId(), Math.min(numberOfLoadFlowsInParallel, ptEsContingencyStates.size()), true)) {
@@ -186,12 +195,12 @@ public class TwoBordersFlowCnecSecurityChecker {
 
             })).toList();
 
-            boolean allTrue = true;
+            boolean ptEsSecurityOnCO2 = true;
             try {
                 for (ForkJoinTask<Boolean> task : ptEsTasks) {
                     try {
                         if (!task.get()) {
-                            allTrue = false;
+                            ptEsSecurityOnCO2 = false;
                         }
                     } catch (Exception e) {
                         throw new OpenRaoException(e);
@@ -200,18 +209,16 @@ public class TwoBordersFlowCnecSecurityChecker {
             } finally {
                 networkPool.shutdownAndAwaitTermination(24, TimeUnit.HOURS);
             }
-            if (!allTrue) {
-                return false;
-            }
+            securityStates = Pair.of(securityStates.getLeft(), securityStates.getRight() && ptEsSecurityOnCO2);
 
         } catch (Exception e) {
             Thread.currentThread().interrupt();
             // Return false if an error is thrown
-            return false;
+            return Pair.of(false, false);
         }
 
         businessLogger.info("----- Monitoring flow cnecs for two borders [end]");
-        return true;
+        return securityStates;
     }
 }
 

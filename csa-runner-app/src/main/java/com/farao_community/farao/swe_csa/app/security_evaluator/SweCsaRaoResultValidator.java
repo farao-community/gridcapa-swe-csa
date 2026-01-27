@@ -73,35 +73,36 @@ public class SweCsaRaoResultValidator {
         try {
             // Check if all the flowCnecs in two borders are secure after applying all RAs from two borders
             TwoBordersFlowCnecSecurityChecker twoBordersFlowCnecSecurityChecker = new TwoBordersFlowCnecSecurityChecker(network, frEsCrac, ptEsCrac, frEsRaoResult, ptEsRaoResult, Runtime.getRuntime().availableProcessors(), businessLogger, loadFlowProvider, loadFlowParameters);
-            Boolean isSecure = twoBordersFlowCnecSecurityChecker.check();
-            if (isSecure && (!frEsCrac.getAngleCnecs().isEmpty() || !ptEsCrac.getAngleCnecs().isEmpty())) {
+            Pair<Boolean, Boolean> isSecurePair = twoBordersFlowCnecSecurityChecker.check();
+            if ((isSecurePair.getLeft() || isSecurePair.getRight()) && (!frEsCrac.getAngleCnecs().isEmpty() || !ptEsCrac.getAngleCnecs().isEmpty())) {
                 // If angleCnecs exist, Angle monitoring
+                // Fixme: if one AngleCnecList is not empty and another one is emtpy. The angle monitoring is processed for the border without angle cnec?
                 Pair<RaoResult, RaoResult> raoResultPair = updateRaoResultsWithAngleMonitoringForTwoBorders(network, frEsCrac, ptEsCrac, scalableZonalDataFilteredForSweCountries, frEsRaoResult, ptEsRaoResult);
                 frEsRaoResult = raoResultPair.getLeft();
                 ptEsRaoResult = raoResultPair.getRight();
-                isSecure = frEsRaoResult.isSecure(PhysicalParameter.FLOW, PhysicalParameter.ANGLE) && ptEsRaoResult.isSecure(PhysicalParameter.FLOW, PhysicalParameter.ANGLE);
-                if (isSecure) {
+                isSecurePair = Pair.of(frEsRaoResult.isSecure(PhysicalParameter.FLOW, PhysicalParameter.ANGLE) && isSecurePair.getLeft(), ptEsRaoResult.isSecure(PhysicalParameter.FLOW, PhysicalParameter.ANGLE) && isSecurePair.getRight());
+                if (isSecurePair.getRight() && isSecurePair.getLeft()) {
                     businessLogger.info("Angle monitoring secure for both borders, Final result will contain Angle monitoring results");
                 } else {
-                    businessLogger.info("Angle monitoring unsecure for both borders");
+                    businessLogger.info("Angle monitoring unsecure for at least one border");
                 }
             }
 
-            if (isSecure && (!frEsCrac.getVoltageCnecs().isEmpty() || !ptEsCrac.getVoltageCnecs().isEmpty())) {
+            if ((isSecurePair.getLeft() || isSecurePair.getRight()) && (!frEsCrac.getVoltageCnecs().isEmpty() || !ptEsCrac.getVoltageCnecs().isEmpty())) {
                 // If voltageCnecs exist, Voltage monitoring
                 Pair<RaoResult, RaoResult> raoResultPair = updateRaoResultsWithVoltageMonitoringForTwoBorders(network, frEsCrac, ptEsCrac, frEsRaoResult, ptEsRaoResult);
                 frEsRaoResult = raoResultPair.getLeft();
                 ptEsRaoResult = raoResultPair.getRight();
-                isSecure = frEsRaoResult.isSecure(PhysicalParameter.FLOW, PhysicalParameter.VOLTAGE) && ptEsRaoResult.isSecure(PhysicalParameter.FLOW, PhysicalParameter.VOLTAGE);
-                if (isSecure) {
+                isSecurePair = Pair.of(frEsRaoResult.isSecure(PhysicalParameter.FLOW, PhysicalParameter.VOLTAGE) && isSecurePair.getLeft(), ptEsRaoResult.isSecure(PhysicalParameter.FLOW, PhysicalParameter.VOLTAGE) && isSecurePair.getRight());
+                if (isSecurePair.getRight() && isSecurePair.getLeft()) {
                     businessLogger.info("Voltage monitoring secure for both borders, Final result will contain Voltage monitoring results");
                 } else {
-                    businessLogger.info("Voltage monitoring unsecure for both borders");
+                    businessLogger.info("Voltage monitoring unsecure for at least one border");
                 }
             }
 
-            DichotomyStepResult frEsDichotomyResult = DichotomyStepResult.fromNetworkValidationResult(frEsRaoResult, isSecure, parallelDichotomiesResult.getFrEsResult().getRaoSuccessResponse(), parallelDichotomiesResult.getCounterTradingValues());
-            DichotomyStepResult ptEsDichotomyResult = DichotomyStepResult.fromNetworkValidationResult(ptEsRaoResult, isSecure, parallelDichotomiesResult.getPtEsResult().getRaoSuccessResponse(), parallelDichotomiesResult.getCounterTradingValues());
+            DichotomyStepResult frEsDichotomyResult = DichotomyStepResult.fromNetworkValidationResult(frEsRaoResult, isSecurePair.getLeft(), parallelDichotomiesResult.getFrEsResult().getRaoSuccessResponse(), parallelDichotomiesResult.getCounterTradingValues());
+            DichotomyStepResult ptEsDichotomyResult = DichotomyStepResult.fromNetworkValidationResult(ptEsRaoResult, isSecurePair.getRight(), parallelDichotomiesResult.getPtEsResult().getRaoSuccessResponse(), parallelDichotomiesResult.getCounterTradingValues());
             // Return the updated parallelDichotomiesResult
             return new ParallelDichotomiesResult(frEsDichotomyResult, ptEsDichotomyResult, parallelDichotomiesResult.getCounterTradingValues());
         } catch (Exception e) {
@@ -189,7 +190,7 @@ public class SweCsaRaoResultValidator {
                     }
                     if (!contingency.isValid(networkClone)) {
                         businessLogger.warn("Unable to apply contingency " + contingency.getId());
-                        Pair<MonitoringResult, MonitoringResult> faileMonitonringResults = makeFailedMonitoringResultForStateWithNaNCnecRsults(frEsMonitoringInput, ptEsMonitoringInput, physicalParameter, frEsState, ptEsState, "Unable to apply contingency " + contingency.getId());
+                        Pair<MonitoringResult, MonitoringResult> faileMonitonringResults = makeFailedMonitoringResultForStateWithNaNCnecResults(frEsMonitoringInput, ptEsMonitoringInput, physicalParameter, frEsState, ptEsState, "Unable to apply contingency " + contingency.getId());
                         if (Objects.nonNull(faileMonitonringResults.getLeft())) {
                             frEsMonitoringResult.combine(faileMonitonringResults.getLeft());
                         }
@@ -243,7 +244,7 @@ public class SweCsaRaoResultValidator {
                     Contingency contingency = ptEsState.getContingency().orElseThrow();
                     if (!contingency.isValid(networkClone)) {
                         businessLogger.warn("Unable to apply contingency " + contingency.getId());
-                        Pair<MonitoringResult, MonitoringResult> faileMonitonringResults = makeFailedMonitoringResultForStateWithNaNCnecRsults(ptEsMonitoringInput, null, physicalParameter, ptEsState, null, "Unable to apply contingency " + contingency.getId());
+                        Pair<MonitoringResult, MonitoringResult> faileMonitonringResults = makeFailedMonitoringResultForStateWithNaNCnecResults(ptEsMonitoringInput, null, physicalParameter, ptEsState, null, "Unable to apply contingency " + contingency.getId());
                         ptEsMonitoringResult.combine(faileMonitonringResults.getLeft());
                         networkPool.releaseUsedNetwork(networkClone);
                         return null;
@@ -288,7 +289,7 @@ public class SweCsaRaoResultValidator {
         boolean lfSuccess = computeLoadFlow(network, loadFlowProvider, loadFlowParameters);
         if (!lfSuccess) {
             String failureReason = String.format("Load-flow computation failed at state %s. Skipping this state.", primaryState);
-            return makeFailedMonitoringResultForStateWithNaNCnecRsults(primaryMonitoringInput, secondaryMonitoringInput, physicalParameter, primaryState, secondaryState, failureReason);
+            return makeFailedMonitoringResultForStateWithNaNCnecResults(primaryMonitoringInput, secondaryMonitoringInput, physicalParameter, primaryState, secondaryState, failureReason);
         } else {
             List<AppliedNetworkActionsResult> appliedNetworkActionsResultList = new ArrayList<>();
             processMonitoringCnecs(primaryCnecs, primaryState, primaryMonitoringInput, primaryCnecResults, appliedNetworkActionsResultList, network, unit, physicalParameter, businessLogger);
@@ -330,7 +331,7 @@ public class SweCsaRaoResultValidator {
         }
     }
 
-    private Pair<MonitoringResult, MonitoringResult> makeFailedMonitoringResultForStateWithNaNCnecRsults(MonitoringInput primaryMonitoringInput, MonitoringInput secondaryMonitoringInput, PhysicalParameter physicalParameter, State primaryState, State secondaryState, String failureReason) {
+    private Pair<MonitoringResult, MonitoringResult> makeFailedMonitoringResultForStateWithNaNCnecResults(MonitoringInput primaryMonitoringInput, MonitoringInput secondaryMonitoringInput, PhysicalParameter physicalParameter, State primaryState, State secondaryState, String failureReason) {
         Set<CnecResult> frEsCnecResults = new HashSet();
         Set<CnecResult> ptEsCnecResults = new HashSet();
         CnecValue cnecValue = physicalParameter.equals(PhysicalParameter.ANGLE) ? new AngleCnecValue(Double.NaN) : new VoltageCnecValue(Double.NaN, Double.NaN);
