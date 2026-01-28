@@ -1,20 +1,19 @@
 package com.farao_community.farao.swe_csa.app.security_evaluator;
 
-import com.powsybl.computation.ComputationManager;
-import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openrao.commons.PhysicalParameter;
 import com.powsybl.openrao.commons.Unit;
 import com.powsybl.openrao.data.crac.api.State;
-import com.powsybl.openrao.data.crac.api.cnec.Cnec;
 import com.powsybl.openrao.util.AbstractNetworkPool;
 import org.slf4j.Logger;
 
-import java.util.*;
+import java.util.EnumMap;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static com.farao_community.farao.swe_csa.app.security_evaluator.ResultValidatorHelper.*;
 

@@ -104,7 +104,7 @@ public class SweCsaRaoResultValidator {
             DichotomyStepResult frEsDichotomyResult = DichotomyStepResult.fromNetworkValidationResult(raoResultMap.get(Border.FR_ES), isSecureMap.get(Border.FR_ES), parallelDichotomiesResult.getFrEsResult().getRaoSuccessResponse(), counterTradingValues);
             DichotomyStepResult ptEsDichotomyResult = DichotomyStepResult.fromNetworkValidationResult(raoResultMap.get(Border.PT_ES), isSecureMap.get(Border.PT_ES), parallelDichotomiesResult.getPtEsResult().getRaoSuccessResponse(), counterTradingValues);
             // Return the updated parallelDichotomiesResult
-            return new ParallelDichotomiesResult(frEsDichotomyResult, ptEsDichotomyResult, counterTradingValues);
+            return new ParallelDichotomiesResult(ptEsDichotomyResult, frEsDichotomyResult, counterTradingValues);
         } catch (Exception e) {
             throw new CsaInternalException(MDC.get("gridcapaTaskId"), "RAO run failed", e);
         }

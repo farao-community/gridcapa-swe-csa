@@ -67,7 +67,6 @@ public class MonitoringForTwoBorders {
     }
 
     public Map<Border, MonitoringResult> runMonitoringForTwoBorders(Map<Border, MonitoringInput> monitoringInputMap, int numberOfLoadFlowsInParallel) {
-        // Inspired by the class Monitoring
         // Get network and physcialParameter from one representative monitoringInput
         PhysicalParameter physicalParameter = monitoringInputMap.values().stream().findFirst().orElseThrow().getPhysicalParameter();
         Network inputNetwork = monitoringInputMap.values().stream().findFirst().orElseThrow().getNetwork();
@@ -82,7 +81,7 @@ public class MonitoringForTwoBorders {
         businessLogger.info("----- {} monitoring for two borders [start]", physicalParameter);
         Map<Border, Set<Cnec>> cnecsMap = cracMap.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey,
                 entry -> entry.getValue().getCnecs(physicalParameter)));
-        if (cnecsMap.values().stream() .anyMatch(set -> !set.isEmpty())) {
+        if (cnecsMap.values().stream().allMatch(Set::isEmpty)) {
             // Note: is this redundant and incoherent with validateNetworkForTwoBorders?
             businessLogger.warn("No Cnecs of type '{}' defined.", physicalParameter);
             businessLogger.info("----- {} monitoring for two borders [end]", physicalParameter);
@@ -160,7 +159,7 @@ public class MonitoringForTwoBorders {
         Map<Border, Set<Cnec>> impactedCnecMap = impactedBorders.stream().collect(Collectors.toMap(border -> border, border ->
                 new HashSet<>(monitoringInputMap.get(border).getCrac().getCnecs(physicalParameter, state))));
         Map<Border, MonitoringResult> currentStateMonitoringResults = monitorCnecsForTwoBorders(state, impactedCnecMap, networkClone, monitoringInputMap);
-        monitoringResultMap.forEach((border, monitoringResult) -> monitoringResult.combine(currentStateMonitoringResults.get(border)));
+        currentStateMonitoringResults.forEach((border, currentStateMonitoringResult) -> monitoringResultMap.get(border).combine(currentStateMonitoringResult));
         networkPool.releaseUsedNetwork(networkClone);
         return null;
     }
