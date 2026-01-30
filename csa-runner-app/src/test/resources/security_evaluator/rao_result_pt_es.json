@@ -244,7 +244,7 @@
     "networkActionId" : "Network-action-pt-es",
     "activatedStates" : [ {
       "instant" : "curative 2",
-      "contingency" : "CO-Pt-Es-1"
+      "contingency" : "CO-Es-1"
     } ]
   } ],
   "rangeActionResults" : [ {
@@ -252,7 +252,7 @@
     "initialTap" : 0,
     "activatedStates" : [ {
       "instant" : "curative 1",
-      "contingency" : "CO-Pt-Es-1",
+      "contingency" : "CO-Es-1",
       "tap" : 16
     }]
   },

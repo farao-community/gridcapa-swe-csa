@@ -552,7 +552,7 @@
     "initialTap" : 0,
     "activatedStates" : [ {
       "instant" : "curative 1",
-      "contingency" : "CO-Fr-Es-1",
+      "contingency" : "CO-Es-1",
       "tap" : 16
     }]
   },
