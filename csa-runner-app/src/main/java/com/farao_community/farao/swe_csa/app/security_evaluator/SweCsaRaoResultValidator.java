@@ -91,7 +91,7 @@ public class SweCsaRaoResultValidator {
 
                 Map<Border, RaoResult> oldRaoResultMap = raoResultMap;
                 isSecureMap.forEach((border, oldSecure) ->
-                        isSecureMap.put(border, oldSecure && Optional.ofNullable(oldRaoResultMap.get(border)).map(r -> r.isSecure(PhysicalParameter.FLOW, PhysicalParameter.ANGLE)).orElse(false)));
+                        isSecureMap.put(border, oldSecure && Optional.ofNullable(oldRaoResultMap.get(border)).map(r -> r.isSecure(PhysicalParameter.FLOW, PhysicalParameter.VOLTAGE)).orElse(false)));
 
                 if (isSecureMap.values().stream().allMatch(Boolean::booleanValue)) {
                     businessLogger.info("Voltage monitoring secure for both borders, Final result will contain Voltage monitoring results");
