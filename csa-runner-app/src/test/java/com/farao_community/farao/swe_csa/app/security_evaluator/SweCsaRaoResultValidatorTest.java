@@ -9,8 +9,10 @@ import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openrao.data.crac.api.Crac;
+import com.powsybl.openrao.data.crac.api.cnec.Cnec;
 import com.powsybl.openrao.data.raoresult.api.RaoResult;
 import com.powsybl.openrao.data.raoresult.io.json.RaoResultJsonImporter;
+import com.powsybl.openrao.monitoring.results.MonitoringResult;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
 import com.powsybl.openrao.raoapi.parameters.extensions.LoadFlowAndSensitivityParameters;
 import org.junit.jupiter.api.Test;
@@ -23,6 +25,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -53,7 +56,9 @@ class SweCsaRaoResultValidatorTest {
         );
 
         TwoBordersFlowCnecSecurityChecker twoBordersFlowCnecSecurityChecker = new TwoBordersFlowCnecSecurityChecker(network, borderContexts, numberOfLoadFlowsInParallel, LOGGER, loadFlowProvider, loadFlowParameters);
-        Map<Border, Boolean> flowSecurityPair = twoBordersFlowCnecSecurityChecker.check();
+
+        Map<Border, MonitoringResult> flowSecurityCheck = twoBordersFlowCnecSecurityChecker.check();
+        Map<Border, Boolean> flowSecurityPair = flowSecurityCheck.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getStatus() == Cnec.SecurityStatus.SECURE));
         assertEquals(true, flowSecurityPair.get(Border.FR_ES));
         assertEquals(false, flowSecurityPair.get(Border.PT_ES));
 

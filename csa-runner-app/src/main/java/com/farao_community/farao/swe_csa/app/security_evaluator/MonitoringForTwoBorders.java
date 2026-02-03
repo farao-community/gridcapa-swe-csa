@@ -144,24 +144,26 @@ public class MonitoringForTwoBorders {
 
     private Map<Border, Void> monitorContingencyState(AbstractNetworkPool networkPool, State state, Set<Border> impactedBorders, Map<Border, MonitoringInput> monitoringInputMap, Map<Border, MonitoringResult> monitoringResultMap, PhysicalParameter physicalParameter) throws InterruptedException {
         Network networkClone = networkPool.getAvailableNetwork();
-        Contingency contingency = state.getContingency().orElseThrow();
-        if (!contingency.isValid(networkClone)) {
-            businessLogger.warn("Unable to apply contingency {}", contingency.getId());
-            Map<Border, MonitoringResult> faileMonitonringResultMap = makeFailedMonitoringResultForStateWithNaNCnecResults(monitoringInputMap, physicalParameter, state, impactedBorders, "Unable to apply contingency " + contingency.getId());
-            monitoringResultMap.forEach((border, result) -> result.combine(faileMonitonringResultMap.get(border)));
-            networkPool.releaseUsedNetwork(networkClone);
+        try {
+            Contingency contingency = state.getContingency().orElseThrow();
+            if (!ResultValidatorHelper.applyContingency(state, networkClone)) {
+                businessLogger.warn("Unable to apply contingency {}", contingency.getId());
+                Map<Border, MonitoringResult> faileMonitonringResultMap = makeFailedMonitoringResultForStateWithNaNCnecResults(monitoringInputMap, physicalParameter, state, impactedBorders, "Unable to apply contingency " + contingency.getId());
+                monitoringResultMap.forEach((border, result) -> result.combine(faileMonitonringResultMap.get(border)));
+                return null;
+            }
+
+            monitoringInputMap.entrySet().stream()
+                    .filter(e -> impactedBorders.contains(e.getKey()))
+                    .forEach(e -> applyOptimalRemedialActionsOnContingencyState(state, networkClone, e.getValue().getCrac(), e.getValue().getRaoResult()));
+            Map<Border, Set<Cnec>> impactedCnecMap = impactedBorders.stream().collect(Collectors.toMap(border -> border, border ->
+                    new HashSet<>(monitoringInputMap.get(border).getCrac().getCnecs(physicalParameter, state))));
+            Map<Border, MonitoringResult> currentStateMonitoringResults = monitorCnecsForTwoBorders(state, impactedCnecMap, networkClone, monitoringInputMap);
+            currentStateMonitoringResults.forEach((border, currentStateMonitoringResult) -> monitoringResultMap.get(border).combine(currentStateMonitoringResult));
             return null;
+        }  finally {
+            networkPool.releaseUsedNetwork(networkClone);
         }
-        contingency.toModification().apply(networkClone, (ComputationManager) null);
-        monitoringInputMap.entrySet().stream()
-                .filter(e -> impactedBorders.contains(e.getKey()))
-                .forEach(e -> applyOptimalRemedialActionsOnContingencyState(state, networkClone, e.getValue().getCrac(), e.getValue().getRaoResult()));
-        Map<Border, Set<Cnec>> impactedCnecMap = impactedBorders.stream().collect(Collectors.toMap(border -> border, border ->
-                new HashSet<>(monitoringInputMap.get(border).getCrac().getCnecs(physicalParameter, state))));
-        Map<Border, MonitoringResult> currentStateMonitoringResults = monitorCnecsForTwoBorders(state, impactedCnecMap, networkClone, monitoringInputMap);
-        currentStateMonitoringResults.forEach((border, currentStateMonitoringResult) -> monitoringResultMap.get(border).combine(currentStateMonitoringResult));
-        networkPool.releaseUsedNetwork(networkClone);
-        return null;
     }
 
     private Map<Border, MonitoringResult> monitorCnecsForTwoBorders(State state, Map<Border, Set<Cnec>> impactedCnecMap, Network network, Map<Border, MonitoringInput> monitoringInputMap) {
@@ -242,6 +244,7 @@ public class MonitoringForTwoBorders {
         businessLogger.warn(failureReason);
         return monitoringResultMap;
     }
+
 
     private void processMonitoringCnecs(Set<Cnec> cnecs, State state, MonitoringInput monitoringInput, Set<CnecResult> cnecResults, List<AppliedNetworkActionsResult> appliedNetworkActionsResultList, Network network, Unit unit, PhysicalParameter physicalParameter) {
         cnecs.forEach(cnec -> {

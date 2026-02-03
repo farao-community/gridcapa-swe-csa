@@ -23,6 +23,7 @@ import com.powsybl.openrao.data.crac.api.usagerule.OnConstraint;
 import com.powsybl.openrao.data.raoresult.api.RaoResult;
 import com.powsybl.openrao.monitoring.MonitoringInput;
 import com.powsybl.openrao.monitoring.redispatching.RedispatchAction;
+import com.powsybl.openrao.monitoring.results.MonitoringResult;
 import org.slf4j.Logger;
 
 import java.util.*;
@@ -214,14 +215,7 @@ public final class ResultValidatorHelper {
         }).map(NetworkAction.class::cast).collect(Collectors.toSet());
     }
 
-    public static boolean checkMargins(Crac crac, State state, PhysicalParameter parameter, Network network, Unit unit) {
-        if (state == null) {
-            return true;
-        }
 
-        return crac.getCnecs(parameter, state).stream()
-                .noneMatch(cnec -> cnec.computeMargin(network, unit) < 0.0);
-    }
 
     public static void redispatchNetworkActions(Network network, List<AppliedNetworkActionsResult> appliedNetworkActionsResults, ZonalData<Scalable> scalableZonalData, Logger businessLogger) {
         appliedNetworkActionsResults.forEach(appliedNetworkActionsResult -> appliedNetworkActionsResult.getPowerToBeRedispatched().forEach((key, value) -> {

@@ -10,7 +10,9 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openrao.commons.PhysicalParameter;
 import com.powsybl.openrao.data.crac.api.Crac;
+import com.powsybl.openrao.data.crac.api.cnec.Cnec;
 import com.powsybl.openrao.data.raoresult.api.RaoResult;
+import com.powsybl.openrao.monitoring.results.MonitoringResult;
 import org.slf4j.Logger;
 import org.slf4j.MDC;
 
@@ -18,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static com.farao_community.farao.swe_csa.app.security_evaluator.MonitoringForTwoBorders.updateRaoResultsWithAngleMonitoringForTwoBorders;
 import static com.farao_community.farao.swe_csa.app.security_evaluator.MonitoringForTwoBorders.updateRaoResultsWithVoltageMonitoringForTwoBorders;
@@ -61,7 +64,8 @@ public class SweCsaRaoResultValidator {
         try {
             // Check if all the flowCnecs in two borders are secure after applying all RAs from two borders
             TwoBordersFlowCnecSecurityChecker checker = new TwoBordersFlowCnecSecurityChecker(network, borderContexts, Runtime.getRuntime().availableProcessors(), businessLogger, loadFlowProvider, loadFlowParameters);
-            Map<Border, Boolean> isSecureMap = checker.check();
+            Map<Border, MonitoringResult> flowSecurityCheck = checker.check();
+            Map<Border, Boolean> isSecureMap = flowSecurityCheck.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getStatus() == Cnec.SecurityStatus.SECURE));
 
             // If angleCnecs exist, Angle monitoring
             if (isSecureMap.values().stream().anyMatch(Boolean::booleanValue) && borderContexts.stream().anyMatch(bc -> !bc.crac().getAngleCnecs().isEmpty())) {
