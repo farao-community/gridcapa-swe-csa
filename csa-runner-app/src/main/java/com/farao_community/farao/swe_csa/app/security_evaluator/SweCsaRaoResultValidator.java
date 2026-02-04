@@ -4,6 +4,7 @@ import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
 import com.farao_community.farao.swe_csa.app.dichotomy.CounterTradingValues;
 import com.farao_community.farao.swe_csa.app.dichotomy.DichotomyStepResult;
 import com.farao_community.farao.swe_csa.app.dichotomy.ParallelDichotomiesResult;
+import com.farao_community.farao.swe_csa.app.security_evaluator.ParallelRaoMonitoringInput.CracRaoResultPair;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Network;
@@ -16,7 +17,6 @@ import com.powsybl.openrao.monitoring.results.MonitoringResult;
 import org.slf4j.Logger;
 import org.slf4j.MDC;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -52,58 +52,60 @@ public class SweCsaRaoResultValidator {
         Objects.requireNonNull(parallelDichotomiesResult.getFrEsResult().getRaoResult(), "RaoResult of the border FR_ES is null");
         Objects.requireNonNull(parallelDichotomiesResult.getPtEsResult().getRaoResult(), "RaoResult of the border PT_ES is null");
 
+
+
+        Map<Border, CracRaoResultPair> monitoringInputMap = Map.of(
+                Border.FR_ES, new CracRaoResultPair(frEsCrac, parallelDichotomiesResult.getFrEsResult().getRaoResult()),
+                Border.PT_ES, new CracRaoResultPair(ptEsCrac, parallelDichotomiesResult.getPtEsResult().getRaoResult())
+        );
+
+        ParallelRaoMonitoringInput parallelInput =
+                new ParallelRaoMonitoringInput(network, monitoringInputMap, PhysicalParameter.FLOW, null);
+
         Map<Border, RaoResult> raoResultMap = Map.of(
                 Border.FR_ES, parallelDichotomiesResult.getFrEsResult().getRaoResult(),
                 Border.PT_ES, parallelDichotomiesResult.getPtEsResult().getRaoResult()
         );
 
-        List<BorderContext> borderContexts = List.of(
-                new BorderContext(Border.FR_ES, frEsCrac, parallelDichotomiesResult.getFrEsResult().getRaoResult()),
-                new BorderContext(Border.PT_ES, ptEsCrac, parallelDichotomiesResult.getPtEsResult().getRaoResult())
-        );
         try {
             // Check if all the flowCnecs in two borders are secure after applying all RAs from two borders
-            TwoBordersFlowCnecSecurityChecker checker = new TwoBordersFlowCnecSecurityChecker(network, borderContexts, Runtime.getRuntime().availableProcessors(), businessLogger, loadFlowProvider, loadFlowParameters);
-            Map<Border, MonitoringResult> flowSecurityCheck = checker.check();
+            MonitoringForTwoBorders checker = new MonitoringForTwoBorders(parallelInput, Runtime.getRuntime().availableProcessors(), businessLogger, loadFlowProvider, loadFlowParameters);
+            Map<Border, MonitoringResult> flowSecurityCheck = checker.runMonitoringForTwoBorders();
             Map<Border, Boolean> isSecureMap = flowSecurityCheck.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getStatus() == Cnec.SecurityStatus.SECURE));
 
             // If angleCnecs exist, Angle monitoring
-            if (isSecureMap.values().stream().anyMatch(Boolean::booleanValue) && borderContexts.stream().anyMatch(bc -> !bc.crac().getAngleCnecs().isEmpty())) {
-                raoResultMap = updateRaoResultsWithAngleMonitoringForTwoBorders(network, borderContexts, scalableZonalDataFilteredForSweCountries, loadFlowProvider, loadFlowParameters, businessLogger);
+            boolean anyFlowSecure = isSecureMap.values().stream().anyMatch(Boolean::booleanValue);
+            boolean anyAngleCnecs = parallelInput.getBorders().stream().anyMatch(b -> !parallelInput.getCracForBorder(b).getAngleCnecs().isEmpty());
 
-                // Update raoResult of borderContexts with angle monitoring
-                borderContexts = List.of(
-                        //Fixme: throw error if frEsRaoResult is null?
-                        new BorderContext(Border.FR_ES, frEsCrac, raoResultMap.get(Border.FR_ES)),
-                        new BorderContext(Border.PT_ES, ptEsCrac, raoResultMap.get(Border.PT_ES)));
-
-                // Update isSecureMap
-                Map<Border, RaoResult> oldRaoResultMap = raoResultMap;
-                isSecureMap.forEach((border, oldSecure) ->
-                        isSecureMap.put(border, oldSecure && Optional.ofNullable(oldRaoResultMap.get(border)).map(r -> r.isSecure(PhysicalParameter.FLOW, PhysicalParameter.ANGLE)).orElse(false)));
-
+            if (anyFlowSecure && anyAngleCnecs) {
+                ParallelRaoMonitoringInput angleInput = new ParallelRaoMonitoringInput(network, parallelInput.asMap(), PhysicalParameter.ANGLE, parallelInput.getZonalScalableData());
+                raoResultMap = updateRaoResultsWithAngleMonitoringForTwoBorders(angleInput, loadFlowProvider, loadFlowParameters, businessLogger);
+                Map<Border, RaoResult> updatedAngleResults = raoResultMap;
+                isSecureMap.replaceAll((border, oldSecure) -> oldSecure && Optional.ofNullable(updatedAngleResults.get(border)).map(r -> r.isSecure(PhysicalParameter.FLOW, PhysicalParameter.ANGLE)).orElse(false));
                 if (isSecureMap.values().stream().allMatch(Boolean::booleanValue)) {
                     businessLogger.info("Angle monitoring secure for both borders, Final result will contain Angle monitoring results");
                 } else {
                     businessLogger.info("Angle monitoring unsecure for at least one border");
                 }
+                monitoringInputMap = Map.of(
+                        Border.FR_ES, new CracRaoResultPair(frEsCrac, raoResultMap.get(Border.FR_ES)),
+                        Border.PT_ES, new CracRaoResultPair(ptEsCrac,  raoResultMap.get(Border.PT_ES)));
+
             }
 
             // If voltageCnecs exist, Voltage monitoring
-            if (isSecureMap.values().stream() .anyMatch(Boolean::booleanValue) && borderContexts.stream().anyMatch(bc -> !bc.crac().getVoltageCnecs().isEmpty())) {
-                raoResultMap = updateRaoResultsWithVoltageMonitoringForTwoBorders(network, borderContexts, loadFlowProvider, loadFlowParameters, businessLogger);
-
-                Map<Border, RaoResult> oldRaoResultMap = raoResultMap;
-                isSecureMap.forEach((border, oldSecure) ->
-                        isSecureMap.put(border, oldSecure && Optional.ofNullable(oldRaoResultMap.get(border)).map(r -> r.isSecure(PhysicalParameter.FLOW, PhysicalParameter.VOLTAGE)).orElse(false)));
-
+            boolean anyVoltageCnecs = parallelInput.getBorders().stream().anyMatch(b -> !parallelInput.getCracForBorder(b).getVoltageCnecs().isEmpty());
+            if (isSecureMap.values().stream().anyMatch(Boolean::booleanValue) && anyVoltageCnecs) {
+                ParallelRaoMonitoringInput voltageInput = new ParallelRaoMonitoringInput(network, monitoringInputMap, PhysicalParameter.VOLTAGE, null);
+                raoResultMap = updateRaoResultsWithVoltageMonitoringForTwoBorders(voltageInput, loadFlowProvider, loadFlowParameters, businessLogger);
+                Map<Border, RaoResult> updatedVoltageResults = raoResultMap;
+                isSecureMap.replaceAll((border, oldSecure) -> oldSecure && Optional.ofNullable(updatedVoltageResults.get(border)).map(r -> r.isSecure(PhysicalParameter.FLOW, PhysicalParameter.VOLTAGE)).orElse(false));
                 if (isSecureMap.values().stream().allMatch(Boolean::booleanValue)) {
                     businessLogger.info("Voltage monitoring secure for both borders, Final result will contain Voltage monitoring results");
                 } else {
                     businessLogger.info("Voltage monitoring unsecure for at least one border");
                 }
             }
-
             CounterTradingValues counterTradingValues = parallelDichotomiesResult.getCounterTradingValues();
             DichotomyStepResult frEsDichotomyResult = DichotomyStepResult.fromNetworkValidationResult(raoResultMap.get(Border.FR_ES), isSecureMap.get(Border.FR_ES), parallelDichotomiesResult.getFrEsResult().getRaoSuccessResponse(), counterTradingValues);
             DichotomyStepResult ptEsDichotomyResult = DichotomyStepResult.fromNetworkValidationResult(raoResultMap.get(Border.PT_ES), isSecureMap.get(Border.PT_ES), parallelDichotomiesResult.getPtEsResult().getRaoSuccessResponse(), counterTradingValues);

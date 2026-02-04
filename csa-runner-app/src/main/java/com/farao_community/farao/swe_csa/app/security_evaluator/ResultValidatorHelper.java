@@ -18,11 +18,16 @@ import com.powsybl.openrao.data.crac.api.Crac;
 import com.powsybl.openrao.data.crac.api.RemedialAction;
 import com.powsybl.openrao.data.crac.api.State;
 import com.powsybl.openrao.data.crac.api.cnec.Cnec;
+import com.powsybl.openrao.data.crac.api.cnec.CnecValue;
 import com.powsybl.openrao.data.crac.api.networkaction.NetworkAction;
 import com.powsybl.openrao.data.crac.api.usagerule.OnConstraint;
+import com.powsybl.openrao.data.crac.impl.AngleCnecValue;
+import com.powsybl.openrao.data.crac.impl.FlowCnecValue;
+import com.powsybl.openrao.data.crac.impl.VoltageCnecValue;
 import com.powsybl.openrao.data.raoresult.api.RaoResult;
 import com.powsybl.openrao.monitoring.MonitoringInput;
 import com.powsybl.openrao.monitoring.redispatching.RedispatchAction;
+import com.powsybl.openrao.monitoring.results.CnecResult;
 import com.powsybl.openrao.monitoring.results.MonitoringResult;
 import org.slf4j.Logger;
 
@@ -228,6 +233,24 @@ public final class ResultValidatorHelper {
                 businessLogger.info("Redispatching {} MW in {} [end]", value, key);
             }
         }));
+    }
+
+    public static Map<Border, MonitoringResult> makeFailedMonitoringResultForStateWithNaNCnecResults(ParallelRaoMonitoringInput parallelInput, State state, Set<Border> impactedBorders, String failureReason, Logger businessLogger) {
+        Unit unit = parallelInput.getUnit();
+        PhysicalParameter physicalParameter = parallelInput.getPhysicalParameter();
+        CnecValue nanValue = switch (physicalParameter) {
+            case ANGLE -> new AngleCnecValue(Double.NaN);
+            case VOLTAGE -> new VoltageCnecValue(Double.NaN, Double.NaN);
+            default -> new FlowCnecValue(Double.NaN, Double.NaN);
+        };
+        Map<Border, MonitoringResult> result = new HashMap<>();
+        impactedBorders.forEach(border -> {
+            Crac crac = parallelInput.getCracForBorder(border);
+            Set<CnecResult> cnecResults = crac.getCnecs(state).stream().map(cnec -> new CnecResult(cnec, unit, nanValue, Double.NaN, Cnec.SecurityStatus.FAILURE)).collect(Collectors.toSet());
+            result.put(border, new MonitoringResult(physicalParameter, cnecResults, Map.of(state, Collections.emptySet()), Cnec.SecurityStatus.FAILURE));
+        });
+        businessLogger.warn(failureReason);
+        return result;
     }
 
 }

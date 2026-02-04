@@ -2,6 +2,7 @@ package com.farao_community.farao.swe_csa.app.security_evaluator;
 
 import com.powsybl.iidm.network.Country;
 import com.powsybl.openrao.data.crac.api.RemedialAction;
+
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;

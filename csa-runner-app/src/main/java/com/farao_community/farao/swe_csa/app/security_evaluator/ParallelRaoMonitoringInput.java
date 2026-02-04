@@ -1,0 +1,84 @@
+package com.farao_community.farao.swe_csa.app.security_evaluator;
+
+import com.powsybl.glsk.commons.ZonalData;
+import com.powsybl.iidm.modification.scalable.Scalable;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.openrao.commons.PhysicalParameter;
+import com.powsybl.openrao.commons.Unit;
+import com.powsybl.openrao.data.crac.api.Crac;
+import com.powsybl.openrao.data.raoresult.api.RaoResult;
+import com.powsybl.openrao.monitoring.MonitoringInput;
+
+import java.util.EnumMap;
+import java.util.Map;
+import java.util.Set;
+
+public final class ParallelRaoMonitoringInput {
+    public record CracRaoResultPair(Crac crac, RaoResult raoResult) {}
+    private final Network network;
+    private final Map<Border, CracRaoResultPair> inputs;
+    private final PhysicalParameter physicalParameter;
+    private final ZonalData<Scalable> scalableZonalData;
+    Map<PhysicalParameter, Unit> parameterToUnitMap = new EnumMap<>(Map.of(PhysicalParameter.ANGLE, Unit.DEGREE, PhysicalParameter.VOLTAGE, Unit.KILOVOLT, PhysicalParameter.FLOW, Unit.AMPERE));
+
+    public ParallelRaoMonitoringInput(Network network, Map<Border, CracRaoResultPair> inputs,
+                                      PhysicalParameter physicalParameter,
+                                      ZonalData<Scalable> scalableZonalData) {
+        this.network = network;
+        this.inputs = Map.copyOf(inputs);
+        this.physicalParameter = physicalParameter;
+        this.scalableZonalData = scalableZonalData;
+    }
+
+    public CracRaoResultPair getCracRaoResultPair(Border border) {
+        CracRaoResultPair input = inputs.get(border);
+        if (input == null) {
+            throw new IllegalArgumentException("No Crac-RaoResult pair input defined for border " + border);
+        }
+        return input;
+    }
+
+    public Crac getCracForBorder(Border border) {
+        return getCracRaoResultPair(border).crac();
+    }
+
+    public RaoResult getRaoResultForBorder(Border border) {
+        return getCracRaoResultPair(border).raoResult();
+    }
+
+    public Network getNetwork() {
+        return network;
+    }
+
+    public PhysicalParameter getPhysicalParameter() {
+        return physicalParameter;
+    }
+
+    public ZonalData<Scalable> getZonalScalableData() {
+        return scalableZonalData;
+    }
+
+    public Set<Border> getBorders() {
+        return inputs.keySet();
+    }
+
+    public Map<Border, CracRaoResultPair> asMap() {
+        return inputs;
+    }
+
+    public MonitoringInput getMonitoringInputForBorder(Border border) {
+        CracRaoResultPair input = inputs.get(border);
+        if (physicalParameter == PhysicalParameter.VOLTAGE) {
+            return MonitoringInput.buildWithVoltage(network, input.crac(), input.raoResult()).build();
+        } else if (physicalParameter == PhysicalParameter.ANGLE) {
+            return MonitoringInput.buildWithAngle(network, input.crac(), input.raoResult(), scalableZonalData).build();
+        } else {
+            throw new IllegalArgumentException("Unsupported physical parameter type for monitoring: " + physicalParameter.toString());
+        }
+    }
+
+    public Unit getUnit() {
+        return parameterToUnitMap.get(physicalParameter);
+    }
+}
+

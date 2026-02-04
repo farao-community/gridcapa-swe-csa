@@ -4,10 +4,12 @@ import com.farao_community.farao.swe_csa.app.FileImporter;
 import com.farao_community.farao.swe_csa.app.dichotomy.CounterTradingValues;
 import com.farao_community.farao.swe_csa.app.dichotomy.DichotomyStepResult;
 import com.farao_community.farao.swe_csa.app.dichotomy.ParallelDichotomiesResult;
+import com.farao_community.farao.swe_csa.app.security_evaluator.ParallelRaoMonitoringInput.CracRaoResultPair;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openrao.commons.PhysicalParameter;
 import com.powsybl.openrao.data.crac.api.Crac;
 import com.powsybl.openrao.data.crac.api.cnec.Cnec;
 import com.powsybl.openrao.data.raoresult.api.RaoResult;
@@ -22,7 +24,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -50,12 +51,12 @@ class SweCsaRaoResultValidatorTest {
         String loadFlowProvider =  LoadFlowAndSensitivityParameters.getLoadFlowProvider(raoParameters);
         LoadFlowParameters loadFlowParameters = LoadFlowAndSensitivityParameters.getSensitivityWithLoadFlowParameters(raoParameters).getLoadFlowParameters();
         int numberOfLoadFlowsInParallel = 1;
-        List<BorderContext> borderContexts = List.of(
-                new BorderContext(Border.FR_ES, frEsCrac, frEsRaoResult),
-                new BorderContext(Border.PT_ES, ptEsCrac, ptEsRaoResult)
+        Map<Border, CracRaoResultPair> monitoringInputMap = Map.of(
+                Border.FR_ES, new CracRaoResultPair(frEsCrac, frEsRaoResult),
+                Border.PT_ES, new CracRaoResultPair(ptEsCrac, ptEsRaoResult)
         );
-
-        TwoBordersFlowCnecSecurityChecker twoBordersFlowCnecSecurityChecker = new TwoBordersFlowCnecSecurityChecker(network, borderContexts, numberOfLoadFlowsInParallel, LOGGER, loadFlowProvider, loadFlowParameters);
+        ParallelRaoMonitoringInput parallelInput = new ParallelRaoMonitoringInput(network, monitoringInputMap, PhysicalParameter.FLOW, null);
+        TwoBordersFlowCnecSecurityChecker twoBordersFlowCnecSecurityChecker = new TwoBordersFlowCnecSecurityChecker(parallelInput, numberOfLoadFlowsInParallel, LOGGER, loadFlowProvider, loadFlowParameters);
 
         Map<Border, MonitoringResult> flowSecurityCheck = twoBordersFlowCnecSecurityChecker.check();
         Map<Border, Boolean> flowSecurityPair = flowSecurityCheck.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getStatus() == Cnec.SecurityStatus.SECURE));

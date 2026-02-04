@@ -1,11 +1,12 @@
 package com.farao_community.farao.swe_csa.app.security_evaluator;
 
+import com.farao_community.farao.swe_csa.app.security_evaluator.ParallelRaoMonitoringInput.CracRaoResultPair;
+import com.farao_community.farao.swe_csa.app.security_evaluator.cnec_evaluator.CnecEvaluator;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openrao.commons.OpenRaoException;
 import com.powsybl.openrao.commons.PhysicalParameter;
 import com.powsybl.openrao.commons.Unit;
-import com.powsybl.openrao.data.crac.api.Crac;
 import com.powsybl.openrao.data.crac.api.State;
 import com.powsybl.openrao.data.crac.api.cnec.Cnec;
 import com.powsybl.openrao.monitoring.results.MonitoringResult;
@@ -18,24 +19,24 @@ import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static com.farao_community.farao.swe_csa.app.security_evaluator.ResultValidatorHelper.*;
+import static com.farao_community.farao.swe_csa.app.security_evaluator.ResultValidatorHelper.applyOptimalRemedialActions;
+import static com.farao_community.farao.swe_csa.app.security_evaluator.ResultValidatorHelper.applyOptimalRemedialActionsOnContingencyState;
 
 public class TwoBordersFlowCnecSecurityChecker {
-    private final Network network;
-    private final List<BorderContext> borders;
-    private final Integer numberOfLoadFlowsInParallel;
+    private final ParallelRaoMonitoringInput monitoringInput;
+    private final int numberOfLoadFlowsInParallel;
     private final Logger businessLogger;
-    private final String loadFlowProvider;
-    private final LoadFlowParameters loadFlowParameters;
+    private final CnecEvaluator cnecEvaluator;
 
-    public TwoBordersFlowCnecSecurityChecker(Network network, List<BorderContext> borders, int parallelism, Logger logger, String loadFlowProvider, LoadFlowParameters loadFlowParams
-    ) {
-        this.network = network;
-        this.borders = borders;
+    public TwoBordersFlowCnecSecurityChecker(ParallelRaoMonitoringInput monitoringInput,
+                                             int parallelism,
+                                             Logger logger,
+                                             String loadFlowProvider,
+                                             LoadFlowParameters loadFlowParams) {
+        this.monitoringInput = monitoringInput;
         this.numberOfLoadFlowsInParallel = parallelism;
         this.businessLogger = logger;
-        this.loadFlowProvider = loadFlowProvider;
-        this.loadFlowParameters = loadFlowParams;
+        this.cnecEvaluator = CnecEvaluator.getEvaluator(monitoringInput, businessLogger, loadFlowProvider, loadFlowParams);
     }
 
     /**
@@ -47,16 +48,21 @@ public class TwoBordersFlowCnecSecurityChecker {
      */
     public Map<Border, MonitoringResult>  check() {
         businessLogger.info("----- Monitoring flow CNECs for borders [start]");
-        PhysicalParameter parameter = PhysicalParameter.FLOW;
-        Unit unit = Unit.AMPERE;
+        PhysicalParameter parameter = monitoringInput.getPhysicalParameter();
+        Unit unit = monitoringInput.getUnit();
+        Set<Border> borders = monitoringInput.getBorders();
 
-        // all borders start as secure
+        // Initialize all borders start as secure
         Map<Border, MonitoringResult> securityResultPerBorder = new EnumMap<>(Border.class);
-        borders.forEach(ctx -> securityResultPerBorder.put(ctx.border(),
-                new MonitoringResult(parameter, Collections.emptySet(), Collections.emptyMap(), Cnec.SecurityStatus.SECURE)));
+        borders.forEach(border ->
+                securityResultPerBorder.put(border,
+                        new MonitoringResult(parameter, Collections.emptySet(), Collections.emptyMap(), Cnec.SecurityStatus.SECURE)
+                )
+        );
 
         // if no flow cnecs then return true
-        boolean noFlowCnecs = borders.stream().allMatch(ctx -> ctx.crac().getCnecs(parameter).isEmpty());
+        boolean noFlowCnecs = monitoringInput.getBorders().stream()
+                .allMatch(border -> monitoringInput.getCracForBorder(border).getCnecs(parameter).isEmpty());
         if (noFlowCnecs) {
             businessLogger.warn("No Flow CNECs defined for any border.");
             businessLogger.info("----- Monitoring flow CNECs for borders [end]");
@@ -64,17 +70,33 @@ public class TwoBordersFlowCnecSecurityChecker {
         }
 
         // Preventive evaluation
-        Map<Border, State> preventiveStateMap = borders.stream().collect(Collectors.toMap(BorderContext::border, ctx -> ctx.crac().getPreventiveState()));
-        if (preventiveStateMap.values().stream().anyMatch(Objects::nonNull)) {
-            borders.forEach(ctx -> applyOptimalRemedialActions(preventiveStateMap.get(ctx.border()), network, ctx.raoResult()));
+        Map<Border, State> preventiveStateMap = borders.stream()
+                .collect(Collectors.toMap(
+                        border -> border,
+                        border -> monitoringInput.getCracForBorder(border).getPreventiveState()
+                ));
 
-            Map<Border, Set<Cnec>> preventiveCnecsMap = borders.stream().collect(Collectors.toMap(BorderContext::border, ctx -> ctx.crac().getCnecs(parameter, preventiveStateMap.get(ctx.border()))));
-            Map<Border, MonitoringResult> preventiveMonitoringResultMap = checkMargins(preventiveStateMap.values().stream().toList().getFirst(), preventiveCnecsMap, network);
-            preventiveMonitoringResultMap.forEach((border, monitoringResult) -> {
-                if (monitoringResult != null) {
-                    securityResultPerBorder.get(border).combine(monitoringResult);
-                }
-            });
+        if (preventiveStateMap.values().stream().anyMatch(Objects::nonNull)) {
+            borders.forEach(border -> applyOptimalRemedialActions(preventiveStateMap.get(border),
+                    monitoringInput.getNetwork(), monitoringInput.getRaoResultForBorder(border)));
+
+            Map<Border, Set<Cnec>> preventiveCnecsMap = borders.stream()
+                    .collect(Collectors.toMap(
+                            border -> border,
+                            border -> monitoringInput.getCracForBorder(border).getCnecs(parameter,
+                                    preventiveStateMap.get(border))
+                    ));
+
+            State anyPreventiveState = preventiveStateMap.values().stream()
+                    .filter(Objects::nonNull)
+                    .findFirst()
+                    .orElse(null);
+
+            Map<Border, MonitoringResult> preventiveResults = cnecEvaluator.evaluate(anyPreventiveState, preventiveCnecsMap, monitoringInput.getNetwork());
+
+            preventiveResults.forEach((border, result) ->
+                    securityResultPerBorder.get(border).combine(result)
+            );
         }
 
         // If all borders failed already, stop
@@ -83,18 +105,18 @@ public class TwoBordersFlowCnecSecurityChecker {
         }
 
         // Contingency states evaluation
-        Map<State, EnumSet<Border>> contingencyStates = BorderStateMapper.mapContingencyStates(borders, parameter);
+        Map<State, EnumSet<Border>> contingencyStates = BorderStateMapper.mapContingencyStates(monitoringInput, parameter);
         if (contingencyStates.isEmpty()) {
             businessLogger.info("No contingency states present for network security evaluation.");
             businessLogger.info("----- Monitoring flow CNECs for borders [end]");
             return securityResultPerBorder;
         }
-        try (AbstractNetworkPool networkPool = AbstractNetworkPool.create(network, network.getVariantManager().getWorkingVariantId(), Math.min(numberOfLoadFlowsInParallel, contingencyStates.size()), true)) {
-            List<ForkJoinTask<Map<Border, Void>>> tasks = contingencyStates.entrySet().stream()
+        try (AbstractNetworkPool networkPool = AbstractNetworkPool.create(monitoringInput.getNetwork(), monitoringInput.getNetwork().getVariantManager().getWorkingVariantId(), Math.min(numberOfLoadFlowsInParallel, contingencyStates.size()), true)) {
+            List<ForkJoinTask<Void>> tasks = contingencyStates.entrySet().stream()
                     .map(entry -> submitParallelEvaluation(networkPool, entry.getKey(),
-                            entry.getValue(), securityResultPerBorder, parameter))
+                            entry.getValue(), securityResultPerBorder))
                     .toList();
-            for (ForkJoinTask<Map<Border, Void>> task : tasks) {
+            for (ForkJoinTask<Void> task : tasks) {
                 try {
                     task.get();
                 } catch (ExecutionException e) {
@@ -105,121 +127,54 @@ public class TwoBordersFlowCnecSecurityChecker {
             networkPool.shutdownAndAwaitTermination(24, TimeUnit.HOURS);
         } catch (Exception e) {
             Thread.currentThread().interrupt();
-            borders.forEach(ctx -> securityResultPerBorder.get(ctx.border()).combine(new MonitoringResult(parameter, Collections.emptySet(),
-                    Collections.emptyMap(), Cnec.SecurityStatus.FAILURE)));
+            borders.forEach(border -> securityResultPerBorder.get(border).combine(new MonitoringResult(parameter, Collections.emptySet(), Collections.emptyMap(), Cnec.SecurityStatus.FAILURE)));
             return securityResultPerBorder;
         }
         businessLogger.info("----- Monitoring flow CNECs for borders [end]");
         return securityResultPerBorder;
     }
 
-    private ForkJoinTask<Map<Border, Void>> submitParallelEvaluation(AbstractNetworkPool networkPool,
-                                                                                 State state,
-                                                                                 EnumSet<Border> impactedBorders,
-                                                                                 Map<Border, MonitoringResult> securityResultPerBorder,
-                                                                                 PhysicalParameter parameter) {
-        return networkPool.submit(() -> evaluateState(networkPool, state, impactedBorders,
-                securityResultPerBorder, parameter));
+    private ForkJoinTask<Void> submitParallelEvaluation(AbstractNetworkPool networkPool,
+                                                        State state,
+                                                        Set<Border> impactedBorders,
+                                                        Map<Border, MonitoringResult> securityResultPerBorder) {
+        return networkPool.submit(() ->
+                evaluateState(networkPool, state, impactedBorders, securityResultPerBorder)
+        );
     }
 
-    private Map<Border, Void> evaluateState(AbstractNetworkPool networkPool,
-                                                        State state,
-                                                        EnumSet<Border> impactedBorders,
-                                                        Map<Border, MonitoringResult> securityResultPerBorder,
-                                                        PhysicalParameter parameter) throws InterruptedException {
+    private Void evaluateState(AbstractNetworkPool networkPool,
+                               State state,
+                               Set<Border> impactedBorders,
+                               Map<Border, MonitoringResult> securityResultPerBorder) throws InterruptedException {
         Network networkClone = networkPool.getAvailableNetwork();
         try {
             // Apply contingency for the given state
             if (!ResultValidatorHelper.applyContingency(state, networkClone)) {
-                Map<Border, MonitoringResult> faileMonitonringResultMap = new EnumMap<>(Border.class);
-                borders.forEach(ctx -> securityResultPerBorder.put(ctx.border(),
-                        new MonitoringResult(parameter, Collections.emptySet(), Collections.emptyMap(), Cnec.SecurityStatus.FAILURE)));
-                securityResultPerBorder.forEach((border, result) -> result.combine(faileMonitonringResultMap.get(border)));
+                impactedBorders.forEach(border -> securityResultPerBorder.get(border)
+                        .combine(new MonitoringResult(monitoringInput.getPhysicalParameter(), Collections.emptySet(),
+                                Collections.emptyMap(), Cnec.SecurityStatus.FAILURE)));
                 return null;
             }
             // Apply remedial actions for all impacted borders
             for (Border border : impactedBorders) {
-                BorderContext ctx = BorderContext.find(borders, border);
-                State borderState = ctx.crac().getState(state.getContingency().orElseThrow(), state.getInstant());
+                CracRaoResultPair input = monitoringInput.getCracRaoResultPair(border);
+                State borderState = input.crac().getState(state.getContingency().orElseThrow(), state.getInstant());
                 if (borderState != null) {
-                    applyOptimalRemedialActionsOnContingencyState(borderState, networkClone, ctx.crac(), ctx.raoResult());
+                    applyOptimalRemedialActionsOnContingencyState(borderState, networkClone, input.crac(), input.raoResult());
                 }
             }
             // Evaluate security for each impacted border
-            Map<Border, Set<Cnec>> impactedCnecMap = impactedBorders.stream()
-                    .collect(Collectors.toMap(
-                            border -> border,
-                            border -> BorderContext.find(borders, border)
-                                    .crac()
-                                    .getCnecs(parameter, state)
-                    ));
+            Map<Border, Set<Cnec>> impactedCnecsMap = impactedBorders.stream().collect(Collectors.toMap(border -> border,
+                            border -> monitoringInput.getCracForBorder(border).getCnecs(monitoringInput.getPhysicalParameter(), state)));
 
-            Map<Border, MonitoringResult> monitoringResults =
-                    checkMargins(state, impactedCnecMap, networkClone);
-            monitoringResults.forEach((border, currentStateMonitoringResult) -> securityResultPerBorder.get(border).combine(currentStateMonitoringResult));
+            Map<Border, MonitoringResult> monitoringResults = cnecEvaluator.evaluate(state, impactedCnecsMap, networkClone);
+            monitoringResults.forEach((border, result) -> securityResultPerBorder.get(border).combine(result));
             return null;
 
         } finally {
             networkPool.releaseUsedNetwork(networkClone);
         }
     }
-
-    public Map<Border, MonitoringResult> checkMargins(
-            State state,
-            Map<Border, Set<Cnec>> impactedCnecMap,
-            Network network) {
-        Map<Border, MonitoringResult> result = new EnumMap<>(Border.class);
-        Unit unit = Unit.AMPERE;
-
-        // If state is null -> all borders secure?
-        if (state == null) {
-            impactedCnecMap.keySet().forEach(border ->
-                    result.put(border, new MonitoringResult(
-                            PhysicalParameter.FLOW,
-                            Collections.emptySet(),
-                            Collections.emptyMap(),
-                            Cnec.SecurityStatus.SECURE
-                    ))
-            );
-            return result;
-        }
-
-        // Load-flow
-        if (!computeLoadFlow(network, loadFlowProvider, loadFlowParameters)) {
-            businessLogger.warn("Load-flow computation failed during security evaluation.");
-            impactedCnecMap.keySet().forEach(border ->
-                    result.put(border, new MonitoringResult(
-                            PhysicalParameter.FLOW,
-                            Collections.emptySet(),
-                            Collections.emptyMap(),
-                            Cnec.SecurityStatus.FAILURE
-                    ))
-            );
-            return result;
-        }
-
-        // Evaluate margins per border
-        for (Map.Entry<Border, Set<Cnec>> entry : impactedCnecMap.entrySet()) {
-            Border border = entry.getKey();
-            Set<Cnec> cnecs = entry.getValue();
-
-            boolean anyUnsecure = cnecs.stream()
-                    .anyMatch(cnec -> cnec.computeMargin(network, unit) < 0.0);
-
-            Cnec.SecurityStatus status = anyUnsecure
-                    ? Cnec.SecurityStatus.FAILURE
-                    : Cnec.SecurityStatus.SECURE;
-
-            result.put(border, new MonitoringResult(
-                    PhysicalParameter.FLOW,
-                    Collections.emptySet(),
-                    Collections.emptyMap(),
-                    status
-            ));
-        }
-
-        return result;
-    }
-
 }
 
