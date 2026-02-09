@@ -3,6 +3,7 @@ package com.farao_community.farao.swe_csa.app.security_evaluator;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openrao.commons.PhysicalParameter;
 import com.powsybl.openrao.commons.Unit;
 import com.powsybl.openrao.data.crac.api.Crac;
@@ -13,21 +14,25 @@ import java.util.EnumMap;
 import java.util.Map;
 import java.util.Set;
 
-public final class ParallelRaoMonitoringInput {
+public final class MultiBorderMonitoringInput {
     public record CracRaoResultPair(Crac crac, RaoResult raoResult) {}
     private final Network network;
     private final Map<Border, CracRaoResultPair> inputs;
     private final PhysicalParameter physicalParameter;
     private final ZonalData<Scalable> scalableZonalData;
+    private final String loadFlowProvider;
+    private final LoadFlowParameters loadFlowParameters;
+
     Map<PhysicalParameter, Unit> parameterToUnitMap = new EnumMap<>(Map.of(PhysicalParameter.ANGLE, Unit.DEGREE, PhysicalParameter.VOLTAGE, Unit.KILOVOLT, PhysicalParameter.FLOW, Unit.AMPERE));
 
-    public ParallelRaoMonitoringInput(Network network, Map<Border, CracRaoResultPair> inputs,
-                                      PhysicalParameter physicalParameter,
-                                      ZonalData<Scalable> scalableZonalData) {
+    public MultiBorderMonitoringInput(Network network, Map<Border, CracRaoResultPair> inputs, PhysicalParameter physicalParameter,
+                                      ZonalData<Scalable> scalableZonalData, String loadFlowProvider, LoadFlowParameters loadFlowParameters) {
         this.network = network;
         this.inputs = Map.copyOf(inputs);
         this.physicalParameter = physicalParameter;
         this.scalableZonalData = scalableZonalData;
+        this.loadFlowProvider = loadFlowProvider;
+        this.loadFlowParameters = loadFlowParameters;
     }
 
     public CracRaoResultPair getCracRaoResultPair(Border border) {
@@ -56,6 +61,14 @@ public final class ParallelRaoMonitoringInput {
 
     public ZonalData<Scalable> getZonalScalableData() {
         return scalableZonalData;
+    }
+
+    public String getLoadFlowProvider() {
+        return loadFlowProvider;
+    }
+
+    public LoadFlowParameters getLoadFlowParameters() {
+        return loadFlowParameters;
     }
 
     public Set<Border> getBorders() {

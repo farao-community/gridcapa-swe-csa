@@ -2,7 +2,7 @@ package com.farao_community.farao.swe_csa.app.security_evaluator.cnec_evaluator;
 
 import com.farao_community.farao.swe_csa.app.security_evaluator.AppliedNetworkActionsResult;
 import com.farao_community.farao.swe_csa.app.security_evaluator.Border;
-import com.farao_community.farao.swe_csa.app.security_evaluator.ParallelRaoMonitoringInput;
+import com.farao_community.farao.swe_csa.app.security_evaluator.MultiBorderMonitoringInput;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Network;
@@ -23,78 +23,83 @@ import java.util.stream.Collectors;
 import static com.farao_community.farao.swe_csa.app.security_evaluator.ResultValidatorHelper.*;
 
 public class MarginEvaluatorWithRA implements CnecEvaluator {
-    private final ParallelRaoMonitoringInput parallelInput;
-    private final Logger businessLogger;
+    private final MultiBorderMonitoringInput multiBorderMonitoringInput;
     private final String loadFlowProvider;
     private final LoadFlowParameters loadFlowParameters;
+    private final Logger businessLogger;
 
-    public MarginEvaluatorWithRA(ParallelRaoMonitoringInput parallelInput, Logger businessLogger, String loadFlowProvider, LoadFlowParameters loadFlowParameters) {
-        this.parallelInput = parallelInput;
+    public MarginEvaluatorWithRA(MultiBorderMonitoringInput multiBorderMonitoringInput, Logger businessLogger) {
+        this.multiBorderMonitoringInput = multiBorderMonitoringInput;
+        this.loadFlowProvider = multiBorderMonitoringInput.getLoadFlowProvider();
+        this.loadFlowParameters = multiBorderMonitoringInput.getLoadFlowParameters();
         this.businessLogger = businessLogger;
-        this.loadFlowProvider = loadFlowProvider;
-        this.loadFlowParameters = loadFlowParameters;
     }
 
     @Override
-    public Map<Border, MonitoringResult> evaluate(State state, Map<Border, Set<Cnec>> impactedCnecMap, Network network) {
-        PhysicalParameter physicalParameter = parallelInput.getPhysicalParameter();
-        Set<Border> impactedBorders = impactedCnecMap.keySet();
-        Unit unit = parallelInput.getUnit();
+    public Map<Border, MonitoringResult> evaluate( Network network, State state, Map<Border, Set<Cnec>> cnecsToEvaluatePerBorder) {
+        PhysicalParameter physicalParameter = multiBorderMonitoringInput.getPhysicalParameter();
+        Set<Border> borders = cnecsToEvaluatePerBorder.keySet();
+        Unit unit = multiBorderMonitoringInput.getUnit();
 
-        businessLogger.info("-- '{}' Monitoring at state '{}' for two borders [start]", physicalParameter, state);
-        boolean lfSuccess = computeLoadFlow(network, loadFlowProvider, loadFlowParameters);
-        if (!lfSuccess) {
-            return makeFailedMonitoringResultForStateWithNaNCnecResults(parallelInput, state, impactedBorders, "Load-flow computation failed at state " + state, businessLogger);
+        // If state is null -> all borders secure
+        if (state == null) {
+            Map<Border, MonitoringResult> resultPerBorder = new EnumMap<>(Border.class);
+            cnecsToEvaluatePerBorder.keySet().forEach(border -> resultPerBorder.put(border, new MonitoringResult(physicalParameter, Collections.emptySet(), Collections.emptyMap(), Cnec.SecurityStatus.SECURE)));
+            return resultPerBorder;
+        }
+        // Load-flow
+        if (!computeLoadFlow(network, loadFlowProvider, loadFlowParameters)) {
+            String failureReason = String.format("Load-flow computation failed during %s monitoring at state %s. Skipping this state.", physicalParameter, state);
+            businessLogger.warn(failureReason);
+            return makeFailedMonitoringResultForStateWithNaNCnecResults(multiBorderMonitoringInput, state, borders, failureReason, businessLogger);
         }
 
-        Map<Border, Set<CnecResult>> cnecResultsMap = impactedBorders.stream().collect(Collectors.toMap(border -> border, border -> new HashSet<>()));
-        Map<Border, List<AppliedNetworkActionsResult>> appliedActionsMap = impactedBorders.stream().collect(Collectors.toMap(border -> border, border -> new ArrayList<>()));
+        Map<Border, Set<CnecResult>> cnecResultsPerBorder = borders.stream().collect(Collectors.toMap(border -> border, border -> new HashSet<>()));
+        Map<Border, List<AppliedNetworkActionsResult>> appliedActionsPerBorder = borders.stream().collect(Collectors.toMap(border -> border, border -> new ArrayList<>()));
 
-
-        impactedBorders.forEach(border -> {
-            MonitoringInput input = parallelInput.getMonitoringInputForBorder(border);
-            processMonitoringCnecs(impactedCnecMap.get(border), state, input, cnecResultsMap.get(border), appliedActionsMap.get(border), network, unit, physicalParameter);
-        });
+        // process cnecs for each border
+        for (Border border : borders) {
+            MonitoringInput input = multiBorderMonitoringInput.getMonitoringInputForBorder(border);
+            processMonitoringCnecs(cnecsToEvaluatePerBorder.get(border), state, input, cnecResultsPerBorder.get(border), appliedActionsPerBorder.get(border), network, unit, physicalParameter);
+        }
 
         // Redispatch for ANGLE
         if (physicalParameter == PhysicalParameter.ANGLE) {
-            ZonalData<Scalable> scalable = parallelInput.getZonalScalableData();
-            appliedActionsMap.values().forEach(list -> redispatchNetworkActions(network, list, scalable, businessLogger));
+            ZonalData<Scalable> scalable = multiBorderMonitoringInput.getZonalScalableData();
+            appliedActionsPerBorder.values().forEach(list -> redispatchNetworkActions(network, list, scalable, businessLogger));
         }
 
-
-        boolean anyActionsApplied = appliedActionsMap.values().stream().flatMap(List::stream).anyMatch(r -> !r.getAppliedNetworkActions().isEmpty());
+        boolean anyActionsApplied = appliedActionsPerBorder.values().stream().flatMap(List::stream).anyMatch(r -> !r.getAppliedNetworkActions().isEmpty());
         if (anyActionsApplied) {
-            lfSuccess = computeLoadFlow(network, loadFlowProvider, loadFlowParameters);
-            if (!lfSuccess) {
-                businessLogger.warn("Load-flow computation failed at state {} after applying RAs. Skipping this state.", state);
-                return impactedBorders.stream().collect(Collectors.toMap(
-                        border -> border,
-                        border -> new MonitoringResult(physicalParameter, cnecResultsMap.get(border), Map.of(state, Collections.emptySet()), Cnec.SecurityStatus.FAILURE)));
+            if (!computeLoadFlow(network, loadFlowProvider, loadFlowParameters)) {
+                String failureReason = String.format("Load-flow computation failed during %s monitoring at state %s after applying RAs. Skipping this state.", physicalParameter, state);
+                businessLogger.warn(failureReason);
+                makeFailedMonitoringResultForStateWithNaNCnecResults(multiBorderMonitoringInput, state, borders, failureReason, businessLogger);
             }
-            // Recompute CNEC results
-            cnecResultsMap.values().forEach(Set::clear);
-            impactedCnecMap.forEach((border, cnecs) ->
-                    cnecs.forEach(cnec -> {
-                        CnecResult result = new CnecResult(cnec, unit, cnec.computeValue(network, unit), cnec.computeMargin(network, unit), cnec.computeSecurityStatus(network, unit));
-                        cnecResultsMap.get(border).add(result);
-                    })
-            );
+            // Recompute CNEC result for each border
+            cnecResultsPerBorder.values().forEach(Set::clear);
+            for (Map.Entry<Border, Set<Cnec>> entry : cnecsToEvaluatePerBorder.entrySet()) {
+                Border border = entry.getKey();
+                Set<Cnec> cnecs = entry.getValue();
+                for (Cnec cnec : cnecs) {
+                    CnecResult result = new CnecResult(cnec, unit, cnec.computeValue(network, unit), cnec.computeMargin(network, unit), cnec.computeSecurityStatus(network, unit));
+                    cnecResultsPerBorder.get(border).add(result);
+                }
+            }
         }
 
         Map<Border, Cnec.SecurityStatus> statusMap = new HashMap<>();
-        cnecResultsMap.forEach((border, results) -> {
+        cnecResultsPerBorder.forEach((border, results) -> {
             boolean anyUnsecure = results.stream().anyMatch(r -> r.getMargin() < 0);
             Cnec.SecurityStatus status = anyUnsecure ?
-                    MonitoringResult.combineStatuses(results.stream().map(CnecResult::getCnecSecurityStatus).toArray(Cnec.SecurityStatus[]::new)) : Cnec.SecurityStatus.SECURE;
+                    MonitoringResult.combineStatuses(results.stream().map(CnecResult::getCnecSecurityStatus).toArray(Cnec.SecurityStatus[]::new)) :
+                    Cnec.SecurityStatus.SECURE;
             statusMap.put(border, status);
+            businessLogger.info("Border [{}] – {} margins at state '{}' -> security status: {}", border, physicalParameter, state, status);
         });
-
-        businessLogger.info("-- '{}' Monitoring at state '{}' [end]", physicalParameter, state);
-
-        return impactedBorders.stream().collect(Collectors.toMap(
+        return borders.stream().collect(Collectors.toMap(
                 border -> border,
-                border -> new MonitoringResult(physicalParameter, cnecResultsMap.get(border), Map.of(state, appliedActionsMap.get(border).stream().flatMap(r -> r.getAppliedNetworkActions().stream()).collect(Collectors.toSet())), statusMap.get(border))
+                border -> new MonitoringResult(physicalParameter, cnecResultsPerBorder.get(border), Map.of(state, appliedActionsPerBorder.get(border).stream().flatMap(r -> r.getAppliedNetworkActions().stream()).collect(Collectors.toSet())), statusMap.get(border))
         ));
     }
 
@@ -102,7 +107,6 @@ public class MarginEvaluatorWithRA implements CnecEvaluator {
         cnecs.forEach(cnec -> {
             if (cnec.computeMargin(network, unit) < 0) {
                 Set<NetworkAction> availableNetworkActions = getNetworkActionsAssociatedToCnec(state, monitoringInput.getCrac(), cnec, physicalParameter);
-
                 if (!availableNetworkActions.isEmpty()) {
                     AppliedNetworkActionsResult result = applyNetworkActions(network, availableNetworkActions, cnec.getId(), monitoringInput);
                     if (!result.getAppliedNetworkActions().isEmpty()) {

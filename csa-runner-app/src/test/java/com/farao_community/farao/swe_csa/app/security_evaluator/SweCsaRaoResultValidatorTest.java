@@ -4,7 +4,7 @@ import com.farao_community.farao.swe_csa.app.FileImporter;
 import com.farao_community.farao.swe_csa.app.dichotomy.CounterTradingValues;
 import com.farao_community.farao.swe_csa.app.dichotomy.DichotomyStepResult;
 import com.farao_community.farao.swe_csa.app.dichotomy.ParallelDichotomiesResult;
-import com.farao_community.farao.swe_csa.app.security_evaluator.ParallelRaoMonitoringInput.CracRaoResultPair;
+import com.farao_community.farao.swe_csa.app.security_evaluator.MultiBorderMonitoringInput.CracRaoResultPair;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Network;
@@ -55,10 +55,11 @@ class SweCsaRaoResultValidatorTest {
                 Border.FR_ES, new CracRaoResultPair(frEsCrac, frEsRaoResult),
                 Border.PT_ES, new CracRaoResultPair(ptEsCrac, ptEsRaoResult)
         );
-        ParallelRaoMonitoringInput parallelInput = new ParallelRaoMonitoringInput(network, monitoringInputMap, PhysicalParameter.FLOW, null);
-        TwoBordersFlowCnecSecurityChecker twoBordersFlowCnecSecurityChecker = new TwoBordersFlowCnecSecurityChecker(parallelInput, numberOfLoadFlowsInParallel, LOGGER, loadFlowProvider, loadFlowParameters);
+        MultiBorderMonitoringInput parallelInput = new MultiBorderMonitoringInput(network, monitoringInputMap, PhysicalParameter.FLOW, null, loadFlowProvider, loadFlowParameters);
+        MultiBorderMonitoring flowCnecSecurityChecker = new MultiBorderMonitoring(parallelInput,
+                numberOfLoadFlowsInParallel, LOGGER);
 
-        Map<Border, MonitoringResult> flowSecurityCheck = twoBordersFlowCnecSecurityChecker.check();
+        Map<Border, MonitoringResult> flowSecurityCheck = flowCnecSecurityChecker.run();
         Map<Border, Boolean> flowSecurityPair = flowSecurityCheck.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getStatus() == Cnec.SecurityStatus.SECURE));
         assertEquals(true, flowSecurityPair.get(Border.FR_ES));
         assertEquals(false, flowSecurityPair.get(Border.PT_ES));

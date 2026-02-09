@@ -235,7 +235,7 @@ public final class ResultValidatorHelper {
         }));
     }
 
-    public static Map<Border, MonitoringResult> makeFailedMonitoringResultForStateWithNaNCnecResults(ParallelRaoMonitoringInput parallelInput, State state, Set<Border> impactedBorders, String failureReason, Logger businessLogger) {
+    public static Map<Border, MonitoringResult> makeFailedMonitoringResultForStateWithNaNCnecResults(MultiBorderMonitoringInput parallelInput, State state, Set<Border> impactedBorders, String failureReason, Logger businessLogger) {
         Unit unit = parallelInput.getUnit();
         PhysicalParameter physicalParameter = parallelInput.getPhysicalParameter();
         CnecValue nanValue = switch (physicalParameter) {

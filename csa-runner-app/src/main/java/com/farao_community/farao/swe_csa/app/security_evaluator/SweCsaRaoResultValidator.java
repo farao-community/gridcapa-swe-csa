@@ -4,7 +4,7 @@ import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
 import com.farao_community.farao.swe_csa.app.dichotomy.CounterTradingValues;
 import com.farao_community.farao.swe_csa.app.dichotomy.DichotomyStepResult;
 import com.farao_community.farao.swe_csa.app.dichotomy.ParallelDichotomiesResult;
-import com.farao_community.farao.swe_csa.app.security_evaluator.ParallelRaoMonitoringInput.CracRaoResultPair;
+import com.farao_community.farao.swe_csa.app.security_evaluator.MultiBorderMonitoringInput.CracRaoResultPair;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Network;
@@ -22,8 +22,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static com.farao_community.farao.swe_csa.app.security_evaluator.MonitoringForTwoBorders.updateRaoResultsWithAngleMonitoringForTwoBorders;
-import static com.farao_community.farao.swe_csa.app.security_evaluator.MonitoringForTwoBorders.updateRaoResultsWithVoltageMonitoringForTwoBorders;
+import static com.farao_community.farao.swe_csa.app.security_evaluator.MultiBorderMonitoring.updateRaoResultsWithAngleMonitoringForTwoBorders;
+import static com.farao_community.farao.swe_csa.app.security_evaluator.MultiBorderMonitoring.updateRaoResultsWithVoltageMonitoringForTwoBorders;
 
 public class SweCsaRaoResultValidator {
 
@@ -59,8 +59,8 @@ public class SweCsaRaoResultValidator {
                 Border.PT_ES, new CracRaoResultPair(ptEsCrac, parallelDichotomiesResult.getPtEsResult().getRaoResult())
         );
 
-        ParallelRaoMonitoringInput parallelInput =
-                new ParallelRaoMonitoringInput(network, monitoringInputMap, PhysicalParameter.FLOW, null);
+        MultiBorderMonitoringInput parallelInput =
+                new MultiBorderMonitoringInput(network, monitoringInputMap, PhysicalParameter.FLOW, null, loadFlowProvider, loadFlowParameters);
 
         Map<Border, RaoResult> raoResultMap = Map.of(
                 Border.FR_ES, parallelDichotomiesResult.getFrEsResult().getRaoResult(),
@@ -69,8 +69,8 @@ public class SweCsaRaoResultValidator {
 
         try {
             // Check if all the flowCnecs in two borders are secure after applying all RAs from two borders
-            MonitoringForTwoBorders checker = new MonitoringForTwoBorders(parallelInput, Runtime.getRuntime().availableProcessors(), businessLogger, loadFlowProvider, loadFlowParameters);
-            Map<Border, MonitoringResult> flowSecurityCheck = checker.runMonitoringForTwoBorders();
+            MultiBorderMonitoring checker = new MultiBorderMonitoring(parallelInput, Runtime.getRuntime().availableProcessors(), businessLogger);
+            Map<Border, MonitoringResult> flowSecurityCheck = checker.run();
             Map<Border, Boolean> isSecureMap = flowSecurityCheck.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getStatus() == Cnec.SecurityStatus.SECURE));
 
             // If angleCnecs exist, Angle monitoring
@@ -78,8 +78,8 @@ public class SweCsaRaoResultValidator {
             boolean anyAngleCnecs = parallelInput.getBorders().stream().anyMatch(b -> !parallelInput.getCracForBorder(b).getAngleCnecs().isEmpty());
 
             if (anyFlowSecure && anyAngleCnecs) {
-                ParallelRaoMonitoringInput angleInput = new ParallelRaoMonitoringInput(network, parallelInput.asMap(), PhysicalParameter.ANGLE, parallelInput.getZonalScalableData());
-                raoResultMap = updateRaoResultsWithAngleMonitoringForTwoBorders(angleInput, loadFlowProvider, loadFlowParameters, businessLogger);
+                MultiBorderMonitoringInput angleInput = new MultiBorderMonitoringInput(network, parallelInput.asMap(), PhysicalParameter.ANGLE, parallelInput.getZonalScalableData(), loadFlowProvider, loadFlowParameters);
+                raoResultMap = updateRaoResultsWithAngleMonitoringForTwoBorders(angleInput, businessLogger);
                 Map<Border, RaoResult> updatedAngleResults = raoResultMap;
                 isSecureMap.replaceAll((border, oldSecure) -> oldSecure && Optional.ofNullable(updatedAngleResults.get(border)).map(r -> r.isSecure(PhysicalParameter.FLOW, PhysicalParameter.ANGLE)).orElse(false));
                 if (isSecureMap.values().stream().allMatch(Boolean::booleanValue)) {
@@ -96,8 +96,8 @@ public class SweCsaRaoResultValidator {
             // If voltageCnecs exist, Voltage monitoring
             boolean anyVoltageCnecs = parallelInput.getBorders().stream().anyMatch(b -> !parallelInput.getCracForBorder(b).getVoltageCnecs().isEmpty());
             if (isSecureMap.values().stream().anyMatch(Boolean::booleanValue) && anyVoltageCnecs) {
-                ParallelRaoMonitoringInput voltageInput = new ParallelRaoMonitoringInput(network, monitoringInputMap, PhysicalParameter.VOLTAGE, null);
-                raoResultMap = updateRaoResultsWithVoltageMonitoringForTwoBorders(voltageInput, loadFlowProvider, loadFlowParameters, businessLogger);
+                MultiBorderMonitoringInput voltageInput = new MultiBorderMonitoringInput(network, monitoringInputMap, PhysicalParameter.VOLTAGE, null, loadFlowProvider, loadFlowParameters);
+                raoResultMap = updateRaoResultsWithVoltageMonitoringForTwoBorders(voltageInput, businessLogger);
                 Map<Border, RaoResult> updatedVoltageResults = raoResultMap;
                 isSecureMap.replaceAll((border, oldSecure) -> oldSecure && Optional.ofNullable(updatedVoltageResults.get(border)).map(r -> r.isSecure(PhysicalParameter.FLOW, PhysicalParameter.VOLTAGE)).orElse(false));
                 if (isSecureMap.values().stream().allMatch(Boolean::booleanValue)) {

@@ -1,7 +1,6 @@
 package com.farao_community.farao.swe_csa.app.security_evaluator;
 
-import com.farao_community.farao.swe_csa.app.security_evaluator.ParallelRaoMonitoringInput.CracRaoResultPair;
-import com.powsybl.openrao.commons.PhysicalParameter;
+import com.farao_community.farao.swe_csa.app.security_evaluator.MultiBorderMonitoringInput.CracRaoResultPair;
 import com.powsybl.openrao.data.crac.api.State;
 import com.powsybl.openrao.data.crac.api.cnec.Cnec;
 
@@ -18,12 +17,12 @@ public class BorderStateMapper {
      * Builds a map of State → set of Borders that contain that state.
      * Preventive states are excluded.
      */
-    public static Map<State, EnumSet<Border>> mapContingencyStates(ParallelRaoMonitoringInput monitoringInput, PhysicalParameter parameter) {
+    public static Map<State, EnumSet<Border>> mapContingencyStates(MultiBorderMonitoringInput monitoringInput) {
         Map<State, EnumSet<Border>> merged = new HashMap<>();
 
         for (Border border : monitoringInput.getBorders()) {
             CracRaoResultPair input = monitoringInput.getCracRaoResultPair(border);
-            input.crac().getCnecs(parameter).stream()
+            input.crac().getCnecs(monitoringInput.getPhysicalParameter()).stream()
                     .map(Cnec::getState)
                     .filter(state -> !state.isPreventive())
                     .forEach(state -> merged.computeIfAbsent(state, k -> EnumSet.noneOf(Border.class)).add(border));

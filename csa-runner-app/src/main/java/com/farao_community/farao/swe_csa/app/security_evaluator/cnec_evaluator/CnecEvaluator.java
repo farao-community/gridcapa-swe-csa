@@ -1,7 +1,7 @@
 package com.farao_community.farao.swe_csa.app.security_evaluator.cnec_evaluator;
 
 import com.farao_community.farao.swe_csa.app.security_evaluator.Border;
-import com.farao_community.farao.swe_csa.app.security_evaluator.ParallelRaoMonitoringInput;
+import com.farao_community.farao.swe_csa.app.security_evaluator.MultiBorderMonitoringInput;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openrao.commons.PhysicalParameter;
@@ -14,13 +14,13 @@ import java.util.Map;
 import java.util.Set;
 
 public interface CnecEvaluator {
-    Map<Border, MonitoringResult> evaluate(State state, Map<Border, Set<Cnec>> impactedCnecMap, Network network);
+    Map<Border, MonitoringResult> evaluate(Network network, State state, Map<Border, Set<Cnec>> cnecsToEvaluatePerBorder);
 
-    static CnecEvaluator getEvaluator( ParallelRaoMonitoringInput parallelInput, Logger businessLogger, String loadFlowProvider, LoadFlowParameters loadFlowParameters) {
+    static CnecEvaluator getEvaluator(MultiBorderMonitoringInput multiBorderMonitoringInput, Logger businessLogger) {
 
-        return switch (parallelInput.getPhysicalParameter()) {
-            case PhysicalParameter.FLOW -> new MarginEvaluator(parallelInput, businessLogger, loadFlowProvider, loadFlowParameters);
-            case PhysicalParameter.ANGLE, PhysicalParameter.VOLTAGE -> new MarginEvaluatorWithRA(parallelInput, businessLogger, loadFlowProvider, loadFlowParameters);
+        return switch (multiBorderMonitoringInput.getPhysicalParameter()) {
+            case PhysicalParameter.FLOW -> new MarginEvaluator(multiBorderMonitoringInput, businessLogger);
+            case PhysicalParameter.ANGLE, PhysicalParameter.VOLTAGE -> new MarginEvaluatorWithRA(multiBorderMonitoringInput, businessLogger);
         };
     }
 
