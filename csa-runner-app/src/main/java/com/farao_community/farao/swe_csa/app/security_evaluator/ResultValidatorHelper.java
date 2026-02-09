@@ -220,8 +220,6 @@ public final class ResultValidatorHelper {
         }).map(NetworkAction.class::cast).collect(Collectors.toSet());
     }
 
-
-
     public static void redispatchNetworkActions(Network network, List<AppliedNetworkActionsResult> appliedNetworkActionsResults, ZonalData<Scalable> scalableZonalData, Logger businessLogger) {
         appliedNetworkActionsResults.forEach(appliedNetworkActionsResult -> appliedNetworkActionsResult.getPowerToBeRedispatched().forEach((key, value) -> {
             businessLogger.info("Redispatching {} MW in {} [start]", value, key);

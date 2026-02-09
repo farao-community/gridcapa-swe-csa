@@ -29,12 +29,11 @@
     "id" : "CO-Es-1",
     "name" : "CO-Es-1",
     "networkElementsIds" : [ "EES1AA11 EES2AA11 1" ]
-  },
-    {
-      "id" : "CO-Fr-Es-2",
-      "name" : "CO-Fr-Es-2",
-      "networkElementsIds" : [ "EES1AA11 FFR5AA11 1" ]
-    }],
+  },{
+    "id" : "CO-Fr-Es-2",
+    "name" : "CO-Fr-Es-2",
+    "networkElementsIds" : [ "EES1AA11 FFR5AA11 1" ]
+  }],
   "flowCnecs" : [ {
     "id" : "Flow-Cnec-Fr-Es-1-auto",
     "name" : "Flow-Cnec-Fr-Es-1-auto",
@@ -295,7 +294,7 @@
       "min" : -100.0,
       "max" : 100.0
     } ]
-  } ],
+  }],
   "voltageCnecs" : [ {
     "id" : "Voltage-Cnec-Fr-Es-1-preventive",
     "name" : "Voltage-Cnec-Fr-Es-1-preventive",

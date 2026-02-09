@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.Set;
 
 public final class MultiBorderMonitoringInput {
-    public record CracRaoResultPair(Crac crac, RaoResult raoResult) {}
+    public record CracRaoResultPair(Crac crac, RaoResult raoResult) { }
     private final Network network;
     private final Map<Border, CracRaoResultPair> inputs;
     private final PhysicalParameter physicalParameter;

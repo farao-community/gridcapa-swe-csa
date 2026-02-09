@@ -126,7 +126,6 @@ public class MultiBorderMonitoring {
 
         businessLogger.info("----- {} monitoring [end]", physicalParameter);
 
-
         monitoringResultMap.forEach((border, monitoringResult) -> {
             if (physicalParameter == PhysicalParameter.VOLTAGE || physicalParameter == PhysicalParameter.ANGLE) {
                 monitoringResult.printConstraints().forEach(msg -> businessLogger.info("Border [{}] {}", border, msg));
@@ -137,7 +136,6 @@ public class MultiBorderMonitoring {
         });
         return monitoringResultMap;
     }
-
 
     private void printFlowConstraints(Border border, MonitoringResult monitoringResult) {
         if (Objects.equals(monitoringResult.getStatus(), Cnec.SecurityStatus.FAILURE)) {
@@ -160,7 +158,6 @@ public class MultiBorderMonitoring {
             businessLogger.info("Border [{}] CNEC {} margin={} status={}", border, cnec.getId(), cnec.getMargin(), cnec.getCnecSecurityStatus());
         }
     }
-
 
     private ForkJoinTask<Void> submitParallelMonitoring(AbstractNetworkPool networkPool, State state, Set<Border> impactedBorders, Map<Border, MonitoringResult> monitoringResultMap) {
         return networkPool.submit(() ->

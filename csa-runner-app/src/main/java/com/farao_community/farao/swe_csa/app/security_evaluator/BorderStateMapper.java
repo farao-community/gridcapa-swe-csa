@@ -8,7 +8,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 
-public class BorderStateMapper {
+public final class BorderStateMapper {
 
     private BorderStateMapper() {
     }

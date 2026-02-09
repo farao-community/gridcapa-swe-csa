@@ -145,7 +145,38 @@
     } ]
   } ],
   "angleCnecs" : [ ],
-  "voltageCnecs" : [ ],
+  "voltageCnecs" : [ {
+    "id" : "Voltage-Cnec-Pt-Es-1-preventive",
+    "name" : "Voltage-Cnec-Pt-Es-1-preventive",
+    "networkElementId" : "PPT2AA1",
+    "operator" : "REN",
+    "border" : "ES-PT",
+    "instant" : "preventive",
+    "optimized" : false,
+    "monitored" : true,
+    "reliabilityMargin" : 0.0,
+    "thresholds" : [ {
+      "unit" : "kilovolt",
+      "min" : -3.0,
+      "max" : 3.0
+    } ]
+  }, {
+    "id" : "Voltage-Cnec-Pt-Es-1-curative 3",
+    "name" : "Voltage-Cnec-Pt-Es-1-curative 3",
+    "networkElementId" : "PPT2AA1",
+    "operator" : "REN",
+    "border" : "ES-PT",
+    "instant" : "curative 3",
+    "contingencyId" : "CO-Es-1",
+    "optimized" : false,
+    "monitored" : true,
+    "reliabilityMargin" : 0.0,
+    "thresholds" : [ {
+      "unit" : "kilovolt",
+      "min" : -3.0,
+      "max" : 3.0
+    } ]
+  }],
   "pstRangeActions" : [ {
     "id" : "Pst-action-pt-es",
     "name" : "Pst-action-pt-es",
@@ -208,6 +239,20 @@
       "usageMethod" : "available"
     }, {
       "instant" : "curative 3",
+      "usageMethod" : "available"
+    } ],
+    "switchActions" : [ {
+      "networkElementId" : "PPT3AA11 PPT4AA11 1",
+      "actionType" : "open"
+    } ],
+    "speed" : 300
+  }, {
+    "id" : "Network-action-pt-es-2",
+    "name" : "Network-action-pt-es-2",
+    "operator" : "REN",
+    "onConstraintUsageRules" : [ {
+      "instant" : "curative 3",
+      "cnecId" : "Voltage-Cnec-Pt-Es-1-curative 3",
       "usageMethod" : "available"
     } ],
     "switchActions" : [ {

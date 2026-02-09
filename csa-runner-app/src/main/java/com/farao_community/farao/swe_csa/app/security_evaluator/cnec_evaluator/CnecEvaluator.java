@@ -3,7 +3,6 @@ package com.farao_community.farao.swe_csa.app.security_evaluator.cnec_evaluator;
 import com.farao_community.farao.swe_csa.app.security_evaluator.Border;
 import com.farao_community.farao.swe_csa.app.security_evaluator.MultiBorderMonitoringInput;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openrao.commons.PhysicalParameter;
 import com.powsybl.openrao.data.crac.api.State;
 import com.powsybl.openrao.data.crac.api.cnec.Cnec;

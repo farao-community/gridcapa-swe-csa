@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 import static com.farao_community.farao.swe_csa.app.security_evaluator.ResultValidatorHelper.computeLoadFlow;
 import static com.farao_community.farao.swe_csa.app.security_evaluator.ResultValidatorHelper.makeFailedMonitoringResultForStateWithNaNCnecResults;
 
-public class MarginEvaluator implements CnecEvaluator{
+public class MarginEvaluator implements CnecEvaluator {
     private final MultiBorderMonitoringInput multiBorderMonitoringInput;
     private final String loadFlowProvider;
     private final LoadFlowParameters loadFlowParameters;
@@ -33,7 +33,7 @@ public class MarginEvaluator implements CnecEvaluator{
     }
 
     @Override
-    public Map<Border, MonitoringResult> evaluate( Network network, State state, Map<Border, Set<Cnec>> cnecsToEvaluatePerBorder) {
+    public Map<Border, MonitoringResult> evaluate(Network network, State state, Map<Border, Set<Cnec>> cnecsToEvaluatePerBorder) {
         PhysicalParameter physicalParameter = multiBorderMonitoringInput.getPhysicalParameter();
         Set<Border> borders = cnecsToEvaluatePerBorder.keySet();
         Map<Border, MonitoringResult> resultPerBorder = new EnumMap<>(Border.class);

@@ -52,8 +52,6 @@ public class SweCsaRaoResultValidator {
         Objects.requireNonNull(parallelDichotomiesResult.getFrEsResult().getRaoResult(), "RaoResult of the border FR_ES is null");
         Objects.requireNonNull(parallelDichotomiesResult.getPtEsResult().getRaoResult(), "RaoResult of the border PT_ES is null");
 
-
-
         Map<Border, CracRaoResultPair> monitoringInputMap = Map.of(
                 Border.FR_ES, new CracRaoResultPair(frEsCrac, parallelDichotomiesResult.getFrEsResult().getRaoResult()),
                 Border.PT_ES, new CracRaoResultPair(ptEsCrac, parallelDichotomiesResult.getPtEsResult().getRaoResult())

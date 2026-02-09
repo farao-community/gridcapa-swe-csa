@@ -36,7 +36,7 @@ public class MarginEvaluatorWithRA implements CnecEvaluator {
     }
 
     @Override
-    public Map<Border, MonitoringResult> evaluate( Network network, State state, Map<Border, Set<Cnec>> cnecsToEvaluatePerBorder) {
+    public Map<Border, MonitoringResult> evaluate(Network network, State state, Map<Border, Set<Cnec>> cnecsToEvaluatePerBorder) {
         PhysicalParameter physicalParameter = multiBorderMonitoringInput.getPhysicalParameter();
         Set<Border> borders = cnecsToEvaluatePerBorder.keySet();
         Unit unit = multiBorderMonitoringInput.getUnit();
