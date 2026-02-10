@@ -239,7 +239,67 @@
     }
   }],
   "angleCnecResults" : [ ],
-  "voltageCnecResults" : [ ],
+  "voltageCnecResults" : [ {
+    "voltageCnecId" : "Voltage-Cnec-Pt-Es-1-preventive",
+    "initial" : {
+      "kilovolt" : {
+        "minVoltage" : -3.0,
+        "maxVoltage" : 3.0,
+        "margin" : 1.0
+      }
+    },
+    "preventive" : {
+      "kilovolt" : {
+        "margin" : -3.0,
+        "minVoltage" : 3.0,
+        "maxVoltage" : 1.0
+      }
+    }
+  }, {
+    "voltageCnecId" : "Voltage-Cnec-Pt-Es-1-curative 3",
+    "initial" : {
+      "kilovolt" : {
+        "margin" : -3.0,
+        "minVoltage" : 3.0,
+        "maxVoltage" : 1.0
+      }
+    },
+    "preventive" : {
+      "kilovolt" : {
+        "margin" : -3.0,
+        "minVoltage" : 3.0,
+        "maxVoltage" : 1.0
+      }
+    },
+    "auto" : {
+      "kilovolt" : {
+        "margin" : -3.0,
+        "minVoltage" : 3.0,
+        "maxVoltage" : 1.0
+      }
+    },
+    "curative 1" : {
+      "kilovolt" : {
+        "margin" : -3.0,
+        "minVoltage" : 3.0,
+        "maxVoltage" : 1.0
+      }
+    },
+    "curative 2" : {
+      "kilovolt" : {
+        "margin" : -3.0,
+        "minVoltage" : 3.0,
+        "maxVoltage" : 1.0
+      }
+    },
+    "curative 3" : {
+      "kilovolt" : {
+        "margin" : -3.0,
+        "minVoltage" : 3.0,
+        "maxVoltage" : 1.0
+      }
+    }
+  }],
   "networkActionResults" : [ {
     "networkActionId" : "Network-action-pt-es",
     "activatedStates" : [ {

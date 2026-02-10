@@ -40,7 +40,7 @@ class SweCsaRaoResultValidatorTest {
     @Autowired
     FileImporter fileImporter;
 
-    private final Logger LOGGER = LoggerFactory.getLogger(SweCsaRaoResultValidatorTest.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SweCsaRaoResultValidatorTest.class);
     private Network network;
     private Crac frEsCrac;
     private Crac ptEsCrac;
@@ -77,15 +77,19 @@ class SweCsaRaoResultValidatorTest {
 
     }
 
-    @Test
-    void twoBordersFlowCnecSecurityCheckerOKTest() {
+    private MultiBorderMonitoring getFlowCnecSecurityChecker() {
         int numberOfLoadFlowsInParallel = 1;
         Map<Border, CracRaoResultPair> monitoringInputMap = Map.of(
                 Border.FR_ES, new CracRaoResultPair(frEsCrac, frEsRaoResult),
                 Border.PT_ES, new CracRaoResultPair(ptEsCrac, ptEsRaoResult)
         );
         MultiBorderMonitoringInput parallelInput = new MultiBorderMonitoringInput(network, monitoringInputMap, PhysicalParameter.FLOW, null, loadFlowProvider, loadFlowParameters);
-        MultiBorderMonitoring flowCnecSecurityChecker = new MultiBorderMonitoring(parallelInput, numberOfLoadFlowsInParallel, LOGGER);
+        return new MultiBorderMonitoring(parallelInput, numberOfLoadFlowsInParallel, LOGGER);
+    }
+
+    @Test
+    void twoBordersFlowCnecSecurityCheckerOKTest() {
+        MultiBorderMonitoring flowCnecSecurityChecker = getFlowCnecSecurityChecker();
 
         Map<Border, MonitoringResult> flowSecurityCheck = flowCnecSecurityChecker.run();
         Map<Border, Boolean> flowSecurityPair = flowSecurityCheck.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getStatus() == Cnec.SecurityStatus.SECURE));
@@ -101,13 +105,7 @@ class SweCsaRaoResultValidatorTest {
     @Test
     void twoBordersFlowCnecSecurityCheckerWithDivergedLfTest() {
         network.getGeneratorStream().forEach(generator -> generator.setTargetP(-0.2));
-        int numberOfLoadFlowsInParallel = 1;
-        Map<Border, CracRaoResultPair> monitoringInputMap = Map.of(
-                Border.FR_ES, new CracRaoResultPair(frEsCrac, frEsRaoResult),
-                Border.PT_ES, new CracRaoResultPair(ptEsCrac, ptEsRaoResult)
-        );
-        MultiBorderMonitoringInput parallelInput = new MultiBorderMonitoringInput(network, monitoringInputMap, PhysicalParameter.FLOW, null, loadFlowProvider, loadFlowParameters);
-        MultiBorderMonitoring flowCnecSecurityChecker = new MultiBorderMonitoring(parallelInput, numberOfLoadFlowsInParallel, LOGGER);
+        MultiBorderMonitoring flowCnecSecurityChecker = getFlowCnecSecurityChecker();
 
         Map<Border, MonitoringResult> flowSecurityCheck = flowCnecSecurityChecker.run();
         Map<Border, Boolean> flowSecurityPair = flowSecurityCheck.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getStatus() == Cnec.SecurityStatus.SECURE));
