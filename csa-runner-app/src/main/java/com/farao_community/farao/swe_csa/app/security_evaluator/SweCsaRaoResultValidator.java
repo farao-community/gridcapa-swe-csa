@@ -58,7 +58,7 @@ public class SweCsaRaoResultValidator {
         );
 
         MultiBorderMonitoringInput parallelInput =
-                new MultiBorderMonitoringInput(network, monitoringInputMap, PhysicalParameter.FLOW, null, loadFlowProvider, loadFlowParameters);
+                new MultiBorderMonitoringInput(network, monitoringInputMap, PhysicalParameter.FLOW, scalableZonalDataFilteredForSweCountries, loadFlowProvider, loadFlowParameters);
 
         Map<Border, RaoResult> raoResultMap = Map.of(
                 Border.FR_ES, parallelDichotomiesResult.getFrEsResult().getRaoResult(),

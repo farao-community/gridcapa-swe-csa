@@ -238,7 +238,59 @@
       }
     }
   }],
-  "angleCnecResults" : [ ],
+  "angleCnecResults" : [ {
+    "angleCnecId" : "Angle-Cnec-Pt-Es-1-preventive",
+    "initial" : {
+      "degree" : {
+        "angle" : 3135.0,
+        "margin" : 3131.0
+      }
+    },
+    "preventive" : {
+      "degree" : {
+        "angle" : 3235.0,
+        "margin" : 3231.0
+      }
+    }
+  }, {
+    "angleCnecId" : "Angle-Cnec-Pt-Es-1-curative 3",
+    "initial" : {
+      "degree" : {
+        "angle" : 3135.0,
+        "margin" : 3131.0
+      }
+    },
+    "preventive" : {
+      "degree" : {
+        "angle" : 3235.0,
+        "margin" : 3231.0
+      }
+    },
+    "auto" : {
+      "degree" : {
+        "angle" : 3235.0,
+        "margin" : 3231.0
+      }
+    },
+    "curative 1" : {
+      "degree" : {
+        "angle" : 3235.0,
+        "margin" : 3231.0
+      }
+    },
+    "curative 2" : {
+      "degree" : {
+        "angle" : 3235.0,
+        "margin" : 3231.0
+      }
+    },
+    "curative 3" : {
+      "degree" : {
+        "angle" : 3235.0,
+        "margin" : 3231.0
+      }
+    }
+  }],
   "voltageCnecResults" : [ {
     "voltageCnecId" : "Voltage-Cnec-Pt-Es-1-preventive",
     "initial" : {
@@ -250,7 +302,7 @@
     },
     "preventive" : {
       "kilovolt" : {
-        "margin" : -3.0,
+        "margin" : 3.0,
         "minVoltage" : 3.0,
         "maxVoltage" : 1.0
       }
@@ -259,64 +311,49 @@
     "voltageCnecId" : "Voltage-Cnec-Pt-Es-1-curative 3",
     "initial" : {
       "kilovolt" : {
-        "margin" : -3.0,
+        "margin" : 3.0,
         "minVoltage" : 3.0,
         "maxVoltage" : 1.0
       }
     },
     "preventive" : {
       "kilovolt" : {
-        "margin" : -3.0,
+        "margin" : 3.0,
         "minVoltage" : 3.0,
         "maxVoltage" : 1.0
       }
     },
     "auto" : {
       "kilovolt" : {
-        "margin" : -3.0,
+        "margin" : 3.0,
         "minVoltage" : 3.0,
         "maxVoltage" : 1.0
       }
     },
     "curative 1" : {
       "kilovolt" : {
-        "margin" : -3.0,
+        "margin" : 3.0,
         "minVoltage" : 3.0,
         "maxVoltage" : 1.0
       }
     },
     "curative 2" : {
       "kilovolt" : {
-        "margin" : -3.0,
+        "margin" : 3.0,
         "minVoltage" : 3.0,
         "maxVoltage" : 1.0
       }
     },
     "curative 3" : {
       "kilovolt" : {
-        "margin" : -3.0,
+        "margin" : 3.0,
         "minVoltage" : 3.0,
         "maxVoltage" : 1.0
       }
     }
   }],
-  "networkActionResults" : [ {
-    "networkActionId" : "Network-action-pt-es",
-    "activatedStates" : [ {
-      "instant" : "curative 2",
-      "contingency" : "CO-Es-1"
-    } ]
-  } ],
+  "networkActionResults" : [],
   "rangeActionResults" : [ {
-    "rangeActionId" : "Pst-action-pt-es",
-    "initialTap" : 0,
-    "activatedStates" : [ {
-      "instant" : "curative 1",
-      "contingency" : "CO-Es-1",
-      "tap" : 16
-    }]
-  },
-    {
       "rangeActionId" : "CT-Pt-Es",
       "initialSetpoint" : 0.0
     },

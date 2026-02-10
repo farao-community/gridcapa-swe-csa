@@ -264,9 +264,9 @@
   "angleCnecs" : [ {
     "id" : "Angle-Cnec-Fr-Es-1-preventive",
     "name" : "Angle-Cnec-Fr-Es-1-preventive",
-    "exportingNetworkElementId" : "EES2AA11",
-    "importingNetworkElementId" : "EES2AA12",
-    "operator" : "REE",
+    "exportingNetworkElementId" : "FFR1AA11",
+    "importingNetworkElementId" : "FFR2AA11",
+    "operator" : "RTE",
     "border" : "ES-FR",
     "instant" : "preventive",
     "optimized" : false,
@@ -274,15 +274,15 @@
     "reliabilityMargin" : 0.0,
     "thresholds" : [ {
       "unit" : "degree",
-      "min" : -100.0,
-      "max" : 100.0
+      "min" : -10.0,
+      "max" : 10.0
     } ]
   }, {
     "id" : "Angle-Cnec-Fr-Es-1-curative 3",
     "name" : "Angle-Cnec-Fr-Es-1-curative 3",
-    "exportingNetworkElementId" : "EES2AA11",
-    "importingNetworkElementId" : "EES2AA12",
-    "operator" : "REE",
+    "exportingNetworkElementId" : "FFR1AA11",
+    "importingNetworkElementId" : "FFR2AA11",
+    "operator" : "RTE",
     "border" : "ES-FR",
     "instant" : "curative 3",
     "contingencyId" : "CO-Fr-Es-2",
@@ -291,8 +291,8 @@
     "reliabilityMargin" : 0.0,
     "thresholds" : [ {
       "unit" : "degree",
-      "min" : -100.0,
-      "max" : 100.0
+      "min" : -10.0,
+      "max" : 10.0
     } ]
   } ],
   "voltageCnecs" : [ {
@@ -382,18 +382,30 @@
     "name" : "Network-action-fr-es",
     "operator" : "RTE",
     "onInstantUsageRules" : [ {
-      "instant" : "curative 1",
+      "instant" : "preventive",
       "usageMethod" : "available"
-    }, {
-      "instant" : "curative 2",
-      "usageMethod" : "available"
-    }, {
-      "instant" : "curative 3",
-      "usageMethod" : "available"
-    } ],
+    }],
     "switchActions" : [ {
       "networkElementId" : "EES1AA11 EES4AA11 1",
       "actionType" : "open"
+    } ],
+    "speed" : 300
+  },{
+    "id" : "Network-action-fr-es-2",
+    "name" : "Network-action-fr-es-2",
+    "operator" : "RTE",
+    "onConstraintUsageRules" : [ {
+      "instant" : "preventive",
+      "cnecId" : "Voltage-Cnec-Fr-Es-1-preventive",
+      "usageMethod" : "available"
+    },{
+      "instant" : "curative 3",
+      "cnecId" : "Voltage-Cnec-Fr-Es-1-curative 3",
+      "usageMethod" : "available"
+    }],
+    "generatorActions" : [ {
+      "networkElementId" : "FFR1AA11_generator",
+      "activePowerValue" : 1000.0
     } ],
     "speed" : 300
   }]

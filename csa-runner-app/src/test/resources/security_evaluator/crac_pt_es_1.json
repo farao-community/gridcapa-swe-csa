@@ -144,7 +144,40 @@
       "side" : 1
     } ]
   } ],
-  "angleCnecs" : [ ],
+  "angleCnecs" : [ {
+    "id" : "Angle-Cnec-Pt-Es-1-preventive",
+    "name" : "Angle-Cnec-Pt-Es-1-preventive",
+    "exportingNetworkElementId" : "PPT1AA11",
+    "importingNetworkElementId" : "PPT2AA11",
+    "operator" : "REE",
+    "border" : "ES-PT",
+    "instant" : "preventive",
+    "optimized" : false,
+    "monitored" : true,
+    "reliabilityMargin" : 0.0,
+    "thresholds" : [ {
+      "unit" : "degree",
+      "min" : -1.0,
+      "max" : 1.0
+    } ]
+  }, {
+    "id" : "Angle-Cnec-Pt-Es-1-curative 3",
+    "name" : "Angle-Cnec-Pt-Es-1-curative 3",
+    "exportingNetworkElementId" : "PPT1AA11",
+    "importingNetworkElementId" : "PPT2AA11",
+    "operator" : "REE",
+    "border" : "ES-PT",
+    "instant" : "curative 3",
+    "contingencyId" : "CO-Es-1",
+    "optimized" : false,
+    "monitored" : true,
+    "reliabilityMargin" : 0.0,
+    "thresholds" : [ {
+      "unit" : "degree",
+      "min" : -1.0,
+      "max" : 1.0
+    } ]
+  }],
   "voltageCnecs" : [ {
     "id" : "Voltage-Cnec-Pt-Es-1-preventive",
     "name" : "Voltage-Cnec-Pt-Es-1-preventive",
@@ -182,16 +215,12 @@
     "name" : "Pst-action-pt-es",
     "operator" : "REE",
     "onConstraintUsageRules" : [ {
-      "instant" : "curative 1",
-      "cnecId" : "Flow-Cnec-Pt-Es-curative 1",
-      "usageMethod" : "available"
-    }, {
-      "instant" : "curative 2",
-      "cnecId" : "Flow-Cnec-Pt-Es-curative 2",
+      "instant" : "preventive",
+      "cnecId" : "Voltage-Cnec-Pt-Es-1-preventive",
       "usageMethod" : "available"
     }, {
       "instant" : "curative 3",
-      "cnecId" : "Flow-Cnec-Pt-Es-curative 3",
+      "cnecId" : "Voltage-Cnec-Pt-Es-1-curative 3",
       "usageMethod" : "available"
     } ],
     "networkElementId" : "EES2AA11 EES3AA11 1",
@@ -227,18 +256,17 @@
     "exportingCountry" : "PT",
     "importingCountry" : "ES"
   }],
-  "networkActions" : [ {
-    "id" : "Network-action-pt-es",
-    "name" : "Network-action-pt-es",
+  "networkActions" : [{
+    "id" : "Network-action-pt-es-1",
+    "name" : "Network-action-pt-es-1",
     "operator" : "REN",
-    "onInstantUsageRules" : [ {
-      "instant" : "curative 1",
+    "onConstraintUsageRules" : [ {
+      "instant" : "preventive",
+      "cnecId" : "Voltage-Cnec-Pt-Es-1-preventive",
       "usageMethod" : "available"
-    }, {
-      "instant" : "curative 2",
-      "usageMethod" : "available"
-    }, {
+    },{
       "instant" : "curative 3",
+      "cnecId" : "Voltage-Cnec-Pt-Es-1-curative 3",
       "usageMethod" : "available"
     } ],
     "switchActions" : [ {
@@ -249,15 +277,15 @@
   }, {
     "id" : "Network-action-pt-es-2",
     "name" : "Network-action-pt-es-2",
-    "operator" : "REN",
+    "operator" : "RTE",
     "onConstraintUsageRules" : [ {
-      "instant" : "curative 3",
-      "cnecId" : "Voltage-Cnec-Pt-Es-1-curative 3",
+      "instant" : "preventive",
+      "cnecId" : "Voltage-Cnec-Pt-Es-1-preventive",
       "usageMethod" : "available"
-    } ],
-    "switchActions" : [ {
-      "networkElementId" : "PPT3AA11 PPT4AA11 1",
-      "actionType" : "open"
+    }],
+    "generatorActions" : [ {
+      "networkElementId" : "PPT3AA11_generator",
+      "activePowerValue" : 1000.0
     } ],
     "speed" : 300
   }]

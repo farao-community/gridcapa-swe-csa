@@ -543,8 +543,7 @@
   "networkActionResults" : [ {
     "networkActionId" : "Network-action-fr-es",
     "activatedStates" : [ {
-      "instant" : "curative 2",
-      "contingency" : "CO-Fr-Es-2"
+      "instant" : "preventive"
     } ]
   } ],
   "rangeActionResults" : [ {
