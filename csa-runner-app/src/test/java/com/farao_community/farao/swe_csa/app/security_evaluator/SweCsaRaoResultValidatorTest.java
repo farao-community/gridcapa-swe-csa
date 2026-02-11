@@ -148,12 +148,12 @@ class SweCsaRaoResultValidatorTest {
 
         // Assert
         assertSecurity(validatedParallelDichotomiesResult, true, false);
-        assertTrue(validatedParallelDichotomiesResult.getFrEsResult().getRaoResult().isSecure());
+        assertTrue(validatedParallelDichotomiesResult.getFrEsResult().getRaoResult().isSecure(PhysicalParameter.FLOW, PhysicalParameter.VOLTAGE, PhysicalParameter.ANGLE));
 
         // Pt-Es is not secure
         RaoResult validatedPtEsRaoResult = validatedParallelDichotomiesResult.getPtEsResult().getRaoResult();
         assertNotNull(validatedPtEsRaoResult);
-        assertFalse(validatedPtEsRaoResult.isSecure());
+        assertFalse(validatedPtEsRaoResult.isSecure(PhysicalParameter.FLOW, PhysicalParameter.ANGLE, PhysicalParameter.VOLTAGE));
 
         State stateCoCurative3 = ptEsCrac.getState("CO-Es-1", ptEsCrac.getInstant("curative 3"));
         List<NetworkAction> ptEsActivatedNetworkActionsAtCurative3 = validatedPtEsRaoResult.getActivatedNetworkActionsDuringState(stateCoCurative3).stream().toList();
@@ -266,6 +266,8 @@ class SweCsaRaoResultValidatorTest {
         // Fr-Es is not secure
         RaoResult validatedFrEsRaoResult = validatedParallelDichotomiesResult.getFrEsResult().getRaoResult();
         assertNotNull(validatedFrEsRaoResult);
+        assertTrue(validatedFrEsRaoResult.isSecure(PhysicalParameter.FLOW));
+        assertFalse(validatedFrEsRaoResult.isSecure(PhysicalParameter.ANGLE));
         double newCnecMargin = validatedFrEsRaoResult.getMargin(frEsCrac.getInstant("curative 3"), frEsCrac.getAngleCnec("New-Angle-Cnec-Fr-Es"), Unit.DEGREE);
         assertTrue(newCnecMargin < 0);
     }
@@ -288,6 +290,9 @@ class SweCsaRaoResultValidatorTest {
         // Fr-Es is not secure
         RaoResult validatedFrEsRaoResult = validatedParallelDichotomiesResult.getFrEsResult().getRaoResult();
         assertNotNull(validatedFrEsRaoResult);
+        assertTrue(validatedFrEsRaoResult.isSecure(PhysicalParameter.FLOW));
+        assertTrue(validatedFrEsRaoResult.isSecure(PhysicalParameter.ANGLE));
+        assertFalse(validatedFrEsRaoResult.isSecure(PhysicalParameter.VOLTAGE));
         double newCnecMargin = validatedFrEsRaoResult.getMargin(frEsCrac.getInstant("curative 3"), frEsCrac.getVoltageCnec("New-Voltage-Cnec-Fr-Es"), Unit.KILOVOLT);
         assertTrue(newCnecMargin < 0);
     }
