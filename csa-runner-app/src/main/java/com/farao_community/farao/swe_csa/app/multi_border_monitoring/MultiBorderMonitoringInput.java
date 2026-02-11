@@ -1,4 +1,4 @@
-package com.farao_community.farao.swe_csa.app.security_evaluator;
+package com.farao_community.farao.swe_csa.app.multi_border_monitoring;
 
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;

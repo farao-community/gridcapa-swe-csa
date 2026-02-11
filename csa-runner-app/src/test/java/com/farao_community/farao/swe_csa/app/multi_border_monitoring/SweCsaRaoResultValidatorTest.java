@@ -1,14 +1,15 @@
-package com.farao_community.farao.swe_csa.app.security_evaluator;
+package com.farao_community.farao.swe_csa.app.multi_border_monitoring;
 
 import com.farao_community.farao.swe_csa.app.FileImporter;
 import com.farao_community.farao.swe_csa.app.dichotomy.CounterTradingValues;
 import com.farao_community.farao.swe_csa.app.dichotomy.DichotomyStepResult;
 import com.farao_community.farao.swe_csa.app.dichotomy.ParallelDichotomiesResult;
-import com.farao_community.farao.swe_csa.app.security_evaluator.MultiBorderMonitoringInput.CracRaoResultPair;
+import com.farao_community.farao.swe_csa.app.multi_border_monitoring.MultiBorderMonitoringInput.CracRaoResultPair;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openrao.commons.PhysicalParameter;
 import com.powsybl.openrao.commons.Unit;
 import com.powsybl.openrao.data.crac.api.Crac;
@@ -18,7 +19,6 @@ import com.powsybl.openrao.data.crac.api.networkaction.NetworkAction;
 import com.powsybl.openrao.data.crac.api.rangeaction.RangeAction;
 import com.powsybl.openrao.data.raoresult.api.RaoResult;
 import com.powsybl.openrao.data.raoresult.io.json.RaoResultJsonImporter;
-import com.powsybl.openrao.monitoring.results.MonitoringResult;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
 import com.powsybl.openrao.raoapi.parameters.extensions.LoadFlowAndSensitivityParameters;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,8 +31,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
@@ -83,7 +83,11 @@ class SweCsaRaoResultValidatorTest {
 
     }
 
-    private MultiBorderMonitoring getFlowCnecSecurityChecker() {
+    private MultiBorderMonitoring getFlowCnecSecurityChecker(Integer maxNrIterations) {
+        if (maxNrIterations != null) {
+            OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters().setMaxNewtonRaphsonIterations(maxNrIterations);
+            loadFlowParameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
+        }
         int numberOfLoadFlowsInParallel = 1;
         Map<Border, CracRaoResultPair> monitoringInputMap = Map.of(
                 Border.FR_ES, new CracRaoResultPair(frEsCrac, frEsRaoResult),
@@ -103,13 +107,10 @@ class SweCsaRaoResultValidatorTest {
 
     @Test
     void twoBordersFlowCnecSecurityCheckerOKTest() {
-        MultiBorderMonitoring flowCnecSecurityChecker = getFlowCnecSecurityChecker();
-
-        Map<Border, MonitoringResult> flowSecurityCheck = flowCnecSecurityChecker.run();
-        Map<Border, Boolean> flowSecurityPair = flowSecurityCheck.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getStatus() == Cnec.SecurityStatus.SECURE));
-
-        assertTrue(flowSecurityPair.get(Border.FR_ES));
-        assertFalse(flowSecurityPair.get(Border.PT_ES));
+        MultiBorderMonitoring flowCnecSecurityChecker = getFlowCnecSecurityChecker(30);
+        MultiBorderMonitoringResult flowSecurityCheck = flowCnecSecurityChecker.run();
+        assertThat(flowSecurityCheck.getMonitoringResultForBorder(Border.FR_ES).getStatus()).isEqualTo(Cnec.SecurityStatus.SECURE);
+        assertThat(flowSecurityCheck.getMonitoringResultForBorder(Border.PT_ES).getStatus()).isEqualTo(Cnec.SecurityStatus.HIGH_CONSTRAINT);
     }
 
     /**
@@ -118,14 +119,10 @@ class SweCsaRaoResultValidatorTest {
      * */
     @Test
     void twoBordersFlowCnecSecurityCheckerWithDivergedLfTest() {
-        network.getGeneratorStream().forEach(generator -> generator.setTargetP(-0.2));
-        MultiBorderMonitoring flowCnecSecurityChecker = getFlowCnecSecurityChecker();
-
-        Map<Border, MonitoringResult> flowSecurityCheck = flowCnecSecurityChecker.run();
-        Map<Border, Boolean> flowSecurityPair = flowSecurityCheck.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getStatus() == Cnec.SecurityStatus.SECURE));
-
-        assertFalse(flowSecurityPair.get(Border.FR_ES));
-        assertFalse(flowSecurityPair.get(Border.PT_ES));
+        MultiBorderMonitoring flowCnecSecurityChecker = getFlowCnecSecurityChecker(1);
+        MultiBorderMonitoringResult flowSecurityCheck = flowCnecSecurityChecker.run();
+        assertThat(flowSecurityCheck.getMonitoringResultForBorder(Border.FR_ES).getStatus()).isEqualTo(Cnec.SecurityStatus.FAILURE);
+        assertThat(flowSecurityCheck.getMonitoringResultForBorder(Border.PT_ES).getStatus()).isEqualTo(Cnec.SecurityStatus.FAILURE);
     }
 
     /**

@@ -1,4 +1,4 @@
-package com.farao_community.farao.swe_csa.app.security_evaluator;
+package com.farao_community.farao.swe_csa.app.multi_border_monitoring;
 
 import com.powsybl.action.*;
 import com.powsybl.computation.ComputationManager;
@@ -36,8 +36,8 @@ import java.util.stream.Collectors;
 
 import static com.powsybl.openrao.commons.logs.OpenRaoLoggerProvider.BUSINESS_WARNS;
 
-public final class ResultValidatorHelper {
-    private ResultValidatorHelper() {
+public final class MonitoringUtils {
+    private MonitoringUtils() {
     }
 
     public static boolean applyContingency(State state, Network networkClone) {
@@ -249,6 +249,24 @@ public final class ResultValidatorHelper {
         });
         businessLogger.warn(failureReason);
         return result;
+    }
+
+    /**
+     * Builds a map of State -> set of Borders that contain that state.
+     * Preventive states are excluded.
+     */
+    public static Map<State, EnumSet<Border>> mapContingencyStates(MultiBorderMonitoringInput monitoringInput) {
+        Map<State, EnumSet<Border>> merged = new HashMap<>();
+
+        for (Border border : monitoringInput.getBorders()) {
+            MultiBorderMonitoringInput.CracRaoResultPair input = monitoringInput.getCracRaoResultPair(border);
+            input.crac().getCnecs(monitoringInput.getPhysicalParameter()).stream()
+                    .map(Cnec::getState)
+                    .filter(state -> !state.isPreventive())
+                    .forEach(state -> merged.computeIfAbsent(state, k -> EnumSet.noneOf(Border.class)).add(border));
+        }
+
+        return merged;
     }
 
 }

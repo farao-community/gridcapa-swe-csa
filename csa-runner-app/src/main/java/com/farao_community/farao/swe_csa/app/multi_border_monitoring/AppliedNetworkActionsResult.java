@@ -1,4 +1,4 @@
-package com.farao_community.farao.swe_csa.app.security_evaluator;
+package com.farao_community.farao.swe_csa.app.multi_border_monitoring;
 
 import com.powsybl.iidm.network.Country;
 import com.powsybl.openrao.data.crac.api.RemedialAction;
