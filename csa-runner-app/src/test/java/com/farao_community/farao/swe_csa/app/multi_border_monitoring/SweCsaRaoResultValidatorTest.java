@@ -88,7 +88,7 @@ class SweCsaRaoResultValidatorTest {
             OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters().setMaxNewtonRaphsonIterations(maxNrIterations);
             loadFlowParameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
         }
-        int numberOfLoadFlowsInParallel = 1;
+        int numberOfLoadFlowsInParallel = 4;
         Map<Border, CracRaoResultPair> monitoringInputMap = Map.of(
                 Border.FR_ES, new CracRaoResultPair(frEsCrac, frEsRaoResult),
                 Border.PT_ES, new CracRaoResultPair(ptEsCrac, ptEsRaoResult)

@@ -7,12 +7,14 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openrao.commons.PhysicalParameter;
 import com.powsybl.openrao.commons.Unit;
 import com.powsybl.openrao.data.crac.api.Crac;
+import com.powsybl.openrao.data.crac.api.State;
+import com.powsybl.openrao.data.crac.api.cnec.Cnec;
 import com.powsybl.openrao.data.raoresult.api.RaoResult;
 import com.powsybl.openrao.monitoring.MonitoringInput;
 
-import java.util.EnumMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public final class MultiBorderMonitoringInput {
     public record CracRaoResultPair(Crac crac, RaoResult raoResult) { }
@@ -88,6 +90,40 @@ public final class MultiBorderMonitoringInput {
         } else {
             throw new IllegalArgumentException("Unsupported physical parameter type for monitoring: " + physicalParameter.toString());
         }
+    }
+
+    public Map<Border, Set<Cnec>> getCnecsPerBorder() {
+        return inputs.keySet().stream().collect(Collectors.toMap(Function.identity(), border -> getCracForBorder(border).getCnecs(physicalParameter)));
+    }
+
+    public boolean hasAnyCnecs() {
+        return inputs.keySet().stream().map(border -> getCracForBorder(border).getCnecs(physicalParameter)).anyMatch(set -> !set.isEmpty());
+    }
+
+    public Map<Border, State> getPreventiveStates() {
+        return inputs.keySet().stream().collect(Collectors.toMap(Function.identity(), b -> getCracForBorder(b).getPreventiveState()));
+    }
+
+    public boolean hasAnyPreventiveState() {
+        return getPreventiveStates().values().stream().anyMatch(Objects::nonNull);
+    }
+
+    public Map<Border, Set<Cnec>> getPreventiveCnecs() {
+        return getPreventiveCnecs(getPreventiveStates());
+    }
+
+    public Map<Border, Set<Cnec>> getPreventiveCnecs(Map<Border, State> preventiveStates) {
+        return preventiveStates.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey,
+                e -> getCracForBorder(e.getKey()).getCnecs(physicalParameter, e.getValue())));
+    }
+
+    public Map<Border, Set<Cnec>> getCnecsForBorders(Collection<Border> borders, State state) {
+        return borders.stream().collect(Collectors.toMap(Function.identity(),
+                        border -> new HashSet<>(getCracForBorder(border).getCnecs(physicalParameter, state))));
+    }
+
+    public State getAnyPreventiveState() {
+        return getPreventiveStates().values().stream() .filter(Objects::nonNull) .findAny() .orElse(null);
     }
 
     public Unit getUnit() {

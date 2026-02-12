@@ -48,9 +48,8 @@ public class MarginEvaluator implements CnecEvaluator {
         // Load-flow
         if (!computeLoadFlow(network, loadFlowProvider, loadFlowParameters)) {
             String failureReason = String.format("Load-flow computation failed during %s monitoring at state %s. Skipping this state.", physicalParameter, state);
-            businessLogger.warn(failureReason);
-            Map<Border, MonitoringResult> failed = makeFailedMonitoringResultForStateWithNaNCnecResults( multiBorderMonitoringInput, state, borders, failureReason, businessLogger );
-            return new MultiBorderMonitoringResult(failed);
+            Map<Border, MonitoringResult> failedResults = makeFailedMonitoringResultForStateWithNaNCnecResults( multiBorderMonitoringInput, state, borders, failureReason, businessLogger );
+            return new MultiBorderMonitoringResult(failedResults);
         }
         // Evaluate margins per border
         for (Map.Entry<Border, Set<Cnec>> entry : cnecsToEvaluatePerBorder.entrySet()) {

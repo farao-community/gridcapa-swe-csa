@@ -35,127 +35,95 @@ public class MultiBorderMonitoring {
     }
 
     public MultiBorderMonitoringResult run() {
-
-        PhysicalParameter physicalParameter = monitoringInput.getPhysicalParameter();
         Network network = monitoringInput.getNetwork();
         Set<Border> borders = monitoringInput.getBorders();
-        MultiBorderMonitoringResult monitoringResult = new MultiBorderMonitoringResult(borders.stream().collect(Collectors.toMap(
-                border -> border, border -> new MonitoringResult(physicalParameter, Collections.emptySet(), Collections.emptyMap(), Cnec.SecurityStatus.SECURE))));
+        PhysicalParameter physicalParameter = monitoringInput.getPhysicalParameter();
+
+        // Start with secure results for all borders
+        MultiBorderMonitoringResult monitoringResult = MultiBorderMonitoringResult.createSecureResults(borders, physicalParameter);
+
+        // If no CNECs are present for the given physical parameter then end monitoring
         businessLogger.info("{} monitoring for borders {} [start]", physicalParameter, borders);
-
-        Map<Border, Set<Cnec>> cnecsMap = borders.stream()
-                .collect(Collectors.toMap(border -> border, border -> monitoringInput.getCracForBorder(border).getCnecs(physicalParameter)));
-
-        if (cnecsMap.values().stream().allMatch(Set::isEmpty)) {
+        if (!monitoringInput.hasAnyCnecs()) {
             businessLogger.warn("No Cnecs of type '{}' defined.", physicalParameter);
             businessLogger.info("{} monitoring for borders {} [end]", physicalParameter, borders);
             return monitoringResult;
         }
 
-        // Preventive states
-        Map<Border, State> preventiveStateMap = borders.stream()
-                .collect(Collectors.toMap(border -> border, border -> monitoringInput.getCracForBorder(border).getPreventiveState()));
-
-        if (preventiveStateMap.values().stream().anyMatch(Objects::nonNull)) {
-            borders.forEach(border -> applyOptimalRemedialActions(preventiveStateMap.get(border), network, monitoringInput.getRaoResultForBorder(border)));
-            Map<Border, Set<Cnec>> preventiveCnecsMap = borders.stream()
-                    .collect(Collectors.toMap(border -> border,
-                            border -> monitoringInput.getCracForBorder(border).getCnecs(physicalParameter, preventiveStateMap.get(border))));
-            State anyPreventiveState = preventiveStateMap.values().stream()
-                    .filter(Objects::nonNull)
-                    .findFirst()
-                    .orElse(null);
-            MultiBorderMonitoringResult preventiveResults = cnecEvaluator.evaluate(network, anyPreventiveState, preventiveCnecsMap);
+        // Preventive evaluation
+        Map<Border, State> preventiveStatesPerBorder = monitoringInput.getPreventiveStates();
+        if (monitoringInput.hasAnyPreventiveState()) {
+            // Apply optimized RAs
+            borders.forEach(border -> applyOptimalRemedialActions(preventiveStatesPerBorder.get(border), network, monitoringInput.getRaoResultForBorder(border)));
+            // Monitor preventive CNECs
+            Map<Border, Set<Cnec>> preventiveCnecsPerBorder = monitoringInput.getPreventiveCnecs(preventiveStatesPerBorder);
+            MultiBorderMonitoringResult preventiveResults = cnecEvaluator.evaluate(network, monitoringInput.getAnyPreventiveState(), preventiveCnecsPerBorder);
+            // Update monitoring results
             preventiveResults.getAllResults().forEach(monitoringResult::combine);
         }
 
-        // Contingency states
-        Map<State, EnumSet<Border>> contingencyStates = MonitoringUtils.mapContingencyStates(monitoringInput);
+        // End monitoring if preventive monitoring failed for all borders
         if (monitoringResult.allFailed()) {
             return monitoringResult;
         }
 
-        if (!contingencyStates.isEmpty()) {
-            try (AbstractNetworkPool networkPool = AbstractNetworkPool.create(network, network.getVariantManager().getWorkingVariantId(),
-                    Math.min(numberOfLoadFlowsInParallel, contingencyStates.size()), true)) {
-                List<ForkJoinTask<Void>> tasks = contingencyStates.entrySet().stream()
+        // Contingency evaluation
+        Map<State, EnumSet<Border>> contingencyStatesPerBorder = MonitoringUtils.mapContingencyStates(monitoringInput);
+        if (!contingencyStatesPerBorder.isEmpty()) {
+            try (AbstractNetworkPool networkPool = AbstractNetworkPool.create(network, network.getVariantManager().getWorkingVariantId(), Math.min(numberOfLoadFlowsInParallel, contingencyStatesPerBorder.size()), true)) {
+                List<ForkJoinTask<Void>> tasks = contingencyStatesPerBorder.entrySet().stream()
                         .map(entry -> submitParallelMonitoring(networkPool, entry.getKey(), entry.getValue(), monitoringResult))
                         .toList();
-
-                for (ForkJoinTask<Void> task : tasks) {
-                    try {
-                        task.get();
-                    } catch (ExecutionException e) {
-                        throw new OpenRaoException(e);
-                    }
-                }
+                tasks.forEach(this::waitFor);
                 networkPool.shutdownAndAwaitTermination(24, TimeUnit.HOURS);
             } catch (Exception e) {
                 Thread.currentThread().interrupt();
                 monitoringResult.getAllResults().values().forEach(MonitoringResult::setStatusToFailure);
             }
         }
-
         businessLogger.info("{} monitoring for borders {} [end]", physicalParameter, borders);
 
-        monitoringResult.getAllResults().forEach((border, result) -> {
-            if (physicalParameter == PhysicalParameter.VOLTAGE || physicalParameter == PhysicalParameter.ANGLE) {
-                result.printConstraints().forEach(msg -> businessLogger.info("Border [{}] {}", border, msg));
-            } else {
-                printFlowConstraints(border, result);
-            }
-        });
+        // log monitoring results
+        MonitoringUtils.printResults(monitoringResult, physicalParameter, businessLogger);
         return monitoringResult;
-    }
-
-    private void printFlowConstraints(Border border, MonitoringResult monitoringResult) {
-        if (Objects.equals(monitoringResult.getStatus(), Cnec.SecurityStatus.FAILURE)) {
-            businessLogger.info("Border [{}] {} monitoring failed due to a load flow divergence or an inconsistency in the crac or in the parameters.",
-                    border, monitoringResult.getPhysicalParameter());
-            return;
-        }
-
-        List<CnecResult> unsecureCnecs = monitoringResult.getCnecResults().stream()
-                .filter(r -> r.getMargin() < 0)
-                .sorted(Comparator.comparing(CnecResult::getId))
-                .toList();
-
-        if (unsecureCnecs.isEmpty()) {
-            businessLogger.info("Border [{}] All {} CNECs are secure.", border, monitoringResult.getPhysicalParameter());
-            return;
-        }
-        businessLogger.info("Border [{}] Some {} CNECs are not secure:", border, monitoringResult.getPhysicalParameter());
-        for (CnecResult cnec : unsecureCnecs) {
-            businessLogger.info("Border [{}] CNEC {} margin={} status={}", border, cnec.getId(), cnec.getMargin(), cnec.getCnecSecurityStatus());
-        }
     }
 
     private ForkJoinTask<Void> submitParallelMonitoring(AbstractNetworkPool networkPool, State state, Set<Border> impactedBorders, MultiBorderMonitoringResult monitoringResult) {
         return networkPool.submit(() -> monitorContingencyState(networkPool, state, impactedBorders, monitoringResult));
     }
 
-
     private Void monitorContingencyState(AbstractNetworkPool networkPool, State state, Set<Border> impactedBorders, MultiBorderMonitoringResult monitoringResult) throws InterruptedException {
         Network networkClone = networkPool.getAvailableNetwork();
         try {
+            // Apply contingency
             Contingency contingency = state.getContingency().orElseThrow();
             if (!MonitoringUtils.applyContingency(state, networkClone)) {
-                businessLogger.warn("Unable to apply contingency {}", contingency.getId());
-                Map<Border, MonitoringResult> failed = MonitoringUtils.makeFailedMonitoringResultForStateWithNaNCnecResults(monitoringInput, state, impactedBorders, "Unable to apply contingency " + contingency.getId(), businessLogger);
-                failed.forEach(monitoringResult::combine);
+                Map<Border, MonitoringResult> failedResults = MonitoringUtils.makeFailedMonitoringResultForStateWithNaNCnecResults(monitoringInput, state, impactedBorders, "Unable to apply contingency " + contingency.getId(), businessLogger);
+                failedResults.forEach(monitoringResult::combine);
                 return null;
             }
-            impactedBorders.forEach(border ->
-                    applyOptimalRemedialActionsOnContingencyState(state, networkClone, monitoringInput.getCracForBorder(border), monitoringInput.getRaoResultForBorder(border)));
-
-            Map<Border, Set<Cnec>> impactedCnecMap = impactedBorders.stream()
-                    .collect(Collectors.toMap(border -> border,
-                            border -> new HashSet<>(monitoringInput.getCracForBorder(border).getCnecs(monitoringInput.getPhysicalParameter(), state))));
-            MultiBorderMonitoringResult currentStateResults = cnecEvaluator.evaluate(networkClone, state, impactedCnecMap);
+            // Apply optimized RAs
+            impactedBorders.forEach(border -> applyOptimalRemedialActionsOnContingencyState(state, networkClone, monitoringInput.getCracForBorder(border), monitoringInput.getRaoResultForBorder(border)));
+            // Monitors CNECs
+            Map<Border, Set<Cnec>> cnecsToEvaluatePerBorder = monitoringInput.getCnecsForBorders(impactedBorders, state);
+            MultiBorderMonitoringResult currentStateResults = cnecEvaluator.evaluate(networkClone, state, cnecsToEvaluatePerBorder);
+            // Update monitoring results
             currentStateResults.getAllResults().forEach(monitoringResult::combine);
             return null;
         } finally {
             networkPool.releaseUsedNetwork(networkClone);
         }
     }
+
+    private void waitFor(ForkJoinTask<Void> task) {
+        try {
+            task.get();
+        } catch (ExecutionException e) {
+            throw new OpenRaoException(e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new OpenRaoException(e);
+        }
+    }
+
 }

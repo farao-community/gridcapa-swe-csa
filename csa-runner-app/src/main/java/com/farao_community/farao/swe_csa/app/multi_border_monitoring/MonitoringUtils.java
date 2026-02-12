@@ -269,4 +269,37 @@ public final class MonitoringUtils {
         return merged;
     }
 
+    public static void printResults(MultiBorderMonitoringResult monitoringResult, PhysicalParameter physicalParameter, Logger businessLogger) {
+        monitoringResult.getAllResults().forEach((border, result) -> {
+            if (physicalParameter == PhysicalParameter.VOLTAGE || physicalParameter == PhysicalParameter.ANGLE) {
+                result.printConstraints().forEach(msg -> businessLogger.info("Border [{}] {}", border, msg));
+            } else {
+                printFlowConstraints(border, result, businessLogger);
+            }
+        });
+    }
+
+    private static void printFlowConstraints(Border border, MonitoringResult monitoringResult, Logger businessLogger) {
+        if (Objects.equals(monitoringResult.getStatus(), Cnec.SecurityStatus.FAILURE)) {
+            businessLogger.info("Border [{}] {} monitoring failed due to a load flow divergence or an inconsistency in the crac or in the parameters.",
+                    border, monitoringResult.getPhysicalParameter());
+            return;
+        }
+
+        List<CnecResult> unsecureCnecs = monitoringResult.getCnecResults().stream()
+                .filter(r -> r.getMargin() < 0)
+                .sorted(Comparator.comparing(CnecResult::getId))
+                .toList();
+
+        if (unsecureCnecs.isEmpty()) {
+            businessLogger.info("Border [{}] All {} CNECs are secure.", border, monitoringResult.getPhysicalParameter());
+            return;
+        }
+        businessLogger.info("Border [{}] Some {} CNECs are not secure:", border, monitoringResult.getPhysicalParameter());
+        for (CnecResult cnec : unsecureCnecs) {
+            businessLogger.info("Border [{}] CNEC {} margin={} status={}", border, cnec.getId(), cnec.getMargin(), cnec.getCnecSecurityStatus());
+        }
+    }
+
+
 }
