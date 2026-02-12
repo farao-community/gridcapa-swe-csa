@@ -4,7 +4,7 @@ import com.farao_community.farao.swe_csa.app.FileImporter;
 import com.farao_community.farao.swe_csa.app.dichotomy.CounterTradingValues;
 import com.farao_community.farao.swe_csa.app.dichotomy.DichotomyStepResult;
 import com.farao_community.farao.swe_csa.app.dichotomy.ParallelDichotomiesResult;
-import com.farao_community.farao.swe_csa.app.multi_border_monitoring.MultiBorderMonitoringInput.CracRaoResultPair;
+import com.farao_community.farao.swe_csa.app.multi_border_monitoring.MultiBorderMonitoringInput.BorderMonitoringInput;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Network;
@@ -29,19 +29,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
-class SweCsaRaoResultValidatorTest {
+class SweCsaMonitoringTest {
 
     @Autowired
     FileImporter fileImporter;
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(SweCsaRaoResultValidatorTest.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SweCsaMonitoringTest.class);
     private Network network;
     private Crac frEsCrac;
     private Crac ptEsCrac;
@@ -71,7 +71,7 @@ class SweCsaRaoResultValidatorTest {
     }
 
     private ParallelDichotomiesResult runRaoResultValidation() {
-        SweCsaRaoResultValidator sweCsaRaoResultValidator = new SweCsaRaoResultValidator(loadFlowProvider, loadFlowParameters, LOGGER);
+        SweCsaMonitoring sweCsaMonitoring = new SweCsaMonitoring(loadFlowProvider, loadFlowParameters, LOGGER);
 
         CounterTradingValues counterTradingValue = new CounterTradingValues(100, -100);
         DichotomyStepResult frEsDichotomyStepResult = DichotomyStepResult.fromNetworkValidationResult(frEsRaoResult, true, null, counterTradingValue);
@@ -79,7 +79,7 @@ class SweCsaRaoResultValidatorTest {
 
         // ParallelDichotomiesResult inverse the order of ptEs and frEs
         ParallelDichotomiesResult parallelDichotomiesResult = new ParallelDichotomiesResult(ptEsDichotomyStepResult, frEsDichotomyStepResult, counterTradingValue);
-        return sweCsaRaoResultValidator.validateNetworkForTwoBorders(network, parallelDichotomiesResult, frEsCrac, ptEsCrac, zonalScalable);
+        return sweCsaMonitoring.validateNetworkForTwoBorders(network, parallelDichotomiesResult, frEsCrac, ptEsCrac, zonalScalable);
 
     }
 
@@ -88,14 +88,15 @@ class SweCsaRaoResultValidatorTest {
             OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters().setMaxNewtonRaphsonIterations(maxNrIterations);
             loadFlowParameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
         }
-        int numberOfLoadFlowsInParallel = 4;
-        Map<Border, CracRaoResultPair> monitoringInputMap = Map.of(
-                Border.FR_ES, new CracRaoResultPair(frEsCrac, frEsRaoResult),
-                Border.PT_ES, new CracRaoResultPair(ptEsCrac, ptEsRaoResult)
-        );
-        MultiBorderMonitoringInput parallelInput = new MultiBorderMonitoringInput(network, monitoringInputMap, PhysicalParameter.FLOW, null, loadFlowProvider, loadFlowParameters);
+        int numberOfLoadFlowsInParallel = Runtime.getRuntime().availableProcessors();
+        Set<BorderMonitoringInput> monitoringInputs = Set.of(
+                new MultiBorderMonitoringInput.BorderMonitoringInput(Border.FR_ES, frEsCrac, frEsRaoResult),
+                new MultiBorderMonitoringInput.BorderMonitoringInput(Border.PT_ES, ptEsCrac, ptEsRaoResult));
+        MultiBorderMonitoringInput parallelInput =
+                new MultiBorderMonitoringInput(network, monitoringInputs, PhysicalParameter.FLOW, null, loadFlowProvider, loadFlowParameters);
         return new MultiBorderMonitoring(parallelInput, numberOfLoadFlowsInParallel, LOGGER);
     }
+
 
     private void assertSecurity(ParallelDichotomiesResult validatedParallelDichotomiesResult, Boolean isFrEsSecure, Boolean isPtEsSecure) {
         assertNotNull(validatedParallelDichotomiesResult);

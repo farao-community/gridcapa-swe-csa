@@ -257,10 +257,9 @@ public final class MonitoringUtils {
      */
     public static Map<State, EnumSet<Border>> mapContingencyStates(MultiBorderMonitoringInput monitoringInput) {
         Map<State, EnumSet<Border>> merged = new HashMap<>();
-
         for (Border border : monitoringInput.getBorders()) {
-            MultiBorderMonitoringInput.CracRaoResultPair input = monitoringInput.getCracRaoResultPair(border);
-            input.crac().getCnecs(monitoringInput.getPhysicalParameter()).stream()
+            Crac crac = monitoringInput.getCracForBorder(border);
+            crac.getCnecs(monitoringInput.getPhysicalParameter()).stream()
                     .map(Cnec::getState)
                     .filter(state -> !state.isPreventive())
                     .forEach(state -> merged.computeIfAbsent(state, k -> EnumSet.noneOf(Border.class)).add(border));

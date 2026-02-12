@@ -17,40 +17,45 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public final class MultiBorderMonitoringInput {
-    public record CracRaoResultPair(Crac crac, RaoResult raoResult) { }
+
+    public record BorderMonitoringInput(Border border, Crac crac, RaoResult raoResult) { }
+
     private final Network network;
-    private final Map<Border, CracRaoResultPair> inputs;
+    private final Set<BorderMonitoringInput> inputs;
     private final PhysicalParameter physicalParameter;
     private final ZonalData<Scalable> scalableZonalData;
     private final String loadFlowProvider;
     private final LoadFlowParameters loadFlowParameters;
 
-    Map<PhysicalParameter, Unit> parameterToUnitMap = new EnumMap<>(Map.of(PhysicalParameter.ANGLE, Unit.DEGREE, PhysicalParameter.VOLTAGE, Unit.KILOVOLT, PhysicalParameter.FLOW, Unit.AMPERE));
+    private final Map<PhysicalParameter, Unit> parameterToUnitMap = new EnumMap<>(Map.of(
+                    PhysicalParameter.ANGLE, Unit.DEGREE,
+                    PhysicalParameter.VOLTAGE, Unit.KILOVOLT,
+                    PhysicalParameter.FLOW, Unit.AMPERE));
 
-    public MultiBorderMonitoringInput(Network network, Map<Border, CracRaoResultPair> inputs, PhysicalParameter physicalParameter,
+    public MultiBorderMonitoringInput(Network network, Set<BorderMonitoringInput> inputs, PhysicalParameter physicalParameter,
                                       ZonalData<Scalable> scalableZonalData, String loadFlowProvider, LoadFlowParameters loadFlowParameters) {
         this.network = network;
-        this.inputs = Map.copyOf(inputs);
+        this.inputs = Set.copyOf(inputs);
         this.physicalParameter = physicalParameter;
         this.scalableZonalData = scalableZonalData;
         this.loadFlowProvider = loadFlowProvider;
         this.loadFlowParameters = loadFlowParameters;
     }
 
-    public CracRaoResultPair getCracRaoResultPair(Border border) {
-        CracRaoResultPair input = inputs.get(border);
-        if (input == null) {
-            throw new IllegalArgumentException("No Crac-RaoResult pair input defined for border " + border);
-        }
-        return input;
+    private BorderMonitoringInput getInput(Border border) {
+        return inputs.stream()
+                .filter(i -> i.border().equals(border))
+                .findFirst()
+                .orElseThrow(() ->
+                        new IllegalArgumentException("No input defined for border " + border));
     }
 
     public Crac getCracForBorder(Border border) {
-        return getCracRaoResultPair(border).crac();
+        return getInput(border).crac();
     }
 
     public RaoResult getRaoResultForBorder(Border border) {
-        return getCracRaoResultPair(border).raoResult();
+        return getInput(border).raoResult();
     }
 
     public Network getNetwork() {
@@ -74,34 +79,33 @@ public final class MultiBorderMonitoringInput {
     }
 
     public Set<Border> getBorders() {
-        return inputs.keySet();
+        return inputs.stream().map(BorderMonitoringInput::border).collect(Collectors.toSet());
     }
 
-    public Map<Border, CracRaoResultPair> asMap() {
+    public Set<BorderMonitoringInput> getInputs() {
         return inputs;
     }
 
     public MonitoringInput getMonitoringInputForBorder(Border border) {
-        CracRaoResultPair input = inputs.get(border);
-        if (physicalParameter == PhysicalParameter.VOLTAGE) {
-            return MonitoringInput.buildWithVoltage(network, input.crac(), input.raoResult()).build();
-        } else if (physicalParameter == PhysicalParameter.ANGLE) {
-            return MonitoringInput.buildWithAngle(network, input.crac(), input.raoResult(), scalableZonalData).build();
-        } else {
-            throw new IllegalArgumentException("Unsupported physical parameter type for monitoring: " + physicalParameter.toString());
-        }
+        BorderMonitoringInput input = getInput(border);
+        return switch (physicalParameter) {
+            case VOLTAGE -> MonitoringInput.buildWithVoltage(network, input.crac(), input.raoResult()).build();
+            case ANGLE -> MonitoringInput.buildWithAngle(network, input.crac(), input.raoResult(), scalableZonalData).build();
+            default -> throw new IllegalArgumentException("Unsupported physical parameter: " + physicalParameter);
+        };
     }
 
     public Map<Border, Set<Cnec>> getCnecsPerBorder() {
-        return inputs.keySet().stream().collect(Collectors.toMap(Function.identity(), border -> getCracForBorder(border).getCnecs(physicalParameter)));
+        return inputs.stream().collect(Collectors.toMap(BorderMonitoringInput::border,
+                i -> i.crac().getCnecs(physicalParameter)));
     }
 
     public boolean hasAnyCnecs() {
-        return inputs.keySet().stream().map(border -> getCracForBorder(border).getCnecs(physicalParameter)).anyMatch(set -> !set.isEmpty());
+        return inputs.stream().map(i -> i.crac().getCnecs(physicalParameter)).anyMatch(set -> !set.isEmpty());
     }
 
     public Map<Border, State> getPreventiveStates() {
-        return inputs.keySet().stream().collect(Collectors.toMap(Function.identity(), b -> getCracForBorder(b).getPreventiveState()));
+        return inputs.stream().collect(Collectors.toMap(BorderMonitoringInput::border, i -> i.crac().getPreventiveState()));
     }
 
     public boolean hasAnyPreventiveState() {
@@ -119,15 +123,19 @@ public final class MultiBorderMonitoringInput {
 
     public Map<Border, Set<Cnec>> getCnecsForBorders(Collection<Border> borders, State state) {
         return borders.stream().collect(Collectors.toMap(Function.identity(),
-                        border -> new HashSet<>(getCracForBorder(border).getCnecs(physicalParameter, state))));
+                border -> new HashSet<>(getCracForBorder(border).getCnecs(physicalParameter, state))));
     }
 
     public State getAnyPreventiveState() {
-        return getPreventiveStates().values().stream() .filter(Objects::nonNull) .findAny() .orElse(null);
+        return getPreventiveStates().values().stream()
+                .filter(Objects::nonNull)
+                .findAny()
+                .orElse(null);
     }
 
     public Unit getUnit() {
         return parameterToUnitMap.get(physicalParameter);
     }
 }
+
 
