@@ -79,7 +79,7 @@ class SweCsaMonitoringTest {
 
         // ParallelDichotomiesResult inverse the order of ptEs and frEs
         ParallelDichotomiesResult parallelDichotomiesResult = new ParallelDichotomiesResult(ptEsDichotomyStepResult, frEsDichotomyStepResult, counterTradingValue);
-        return sweCsaMonitoring.validateNetworkForTwoBorders(network, parallelDichotomiesResult, frEsCrac, ptEsCrac, zonalScalable);
+        return sweCsaMonitoring.validateNetworkForSweBorders(network, parallelDichotomiesResult, frEsCrac, ptEsCrac, zonalScalable);
 
     }
 

@@ -42,7 +42,7 @@ public class SweCsaMonitoring {
         this.businessLogger = businessLogger;
     }
 
-    public ParallelDichotomiesResult validateNetworkForTwoBorders(Network network, ParallelDichotomiesResult parallelDichotomiesResult, Crac frEsCrac, Crac ptEsCrac, ZonalData<Scalable> zonalData) {
+    public ParallelDichotomiesResult validateNetworkForSweBorders(Network network, ParallelDichotomiesResult parallelDichotomiesResult, Crac frEsCrac, Crac ptEsCrac, ZonalData<Scalable> zonalData) {
         MonitoringContext monitoringContext = initializeMonitoringContext(parallelDichotomiesResult, frEsCrac, ptEsCrac);
         try {
             monitoringContext = runFlowMonitoring(network, zonalData, monitoringContext);
