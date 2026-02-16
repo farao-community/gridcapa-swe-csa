@@ -116,12 +116,12 @@ public class SweCsaRaoValidator {
 
     private void logBorderOverload(RaoResult raoResult, Crac crac, String borderName) {
         if (raoResult.isSecure(PhysicalParameter.FLOW)) {
-            businessLogger.info("There is no overload on '{}' border", borderName);
+            businessLogger.info("There is no overload on '{}' border during parallel RAO", borderName);
         } else {
-            businessLogger.info("There is overloads on '{}' border, network is not secure", borderName);
+            businessLogger.info("There is overloads on '{}' border, network is not secure during parallel RAO", borderName);
             Set<FlowCnec> flowCnecs = getBorderFlowCnecs(crac, borderName);
             Pair<String, Double> flowCnecSmallestMargin = getFlowCnecSmallestMargin(raoResult, flowCnecs);
-            businessLogger.info("On the '{}' border, the most limiting CNEC is {}, with a margin of {}", borderName, flowCnecSmallestMargin.getLeft(), flowCnecSmallestMargin.getRight());
+            businessLogger.info("On the '{}' border, the most limiting CNEC during parallel RAO is {}, with a margin of {}", borderName, flowCnecSmallestMargin.getLeft(), flowCnecSmallestMargin.getRight());
 
         }
     }

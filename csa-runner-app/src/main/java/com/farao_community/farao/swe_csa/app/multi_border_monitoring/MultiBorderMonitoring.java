@@ -59,7 +59,7 @@ public class MultiBorderMonitoring {
             Map<Border, Set<Cnec>> preventiveCnecsPerBorder = monitoringInput.getPreventiveCnecs(preventiveStatesPerBorder);
             MultiBorderMonitoringResult preventiveResults = cnecEvaluator.evaluate(network, monitoringInput.getAnyPreventiveState(), preventiveCnecsPerBorder);
             // Update monitoring results
-            preventiveResults.getAllResults().forEach(monitoringResult::combine);
+            preventiveResults.getResultsForAllBorders().forEach(monitoringResult::combine);
         }
 
         // End monitoring if preventive monitoring failed for all borders
@@ -78,7 +78,7 @@ public class MultiBorderMonitoring {
                 networkPool.shutdownAndAwaitTermination(24, TimeUnit.HOURS);
             } catch (Exception e) {
                 Thread.currentThread().interrupt();
-                monitoringResult.getAllResults().values().forEach(MonitoringResult::setStatusToFailure);
+                monitoringResult.getResultsForAllBorders().values().forEach(MonitoringResult::setStatusToFailure);
             }
         }
         businessLogger.info("{} monitoring for borders {} [end]", physicalParameter, borders);
@@ -108,7 +108,7 @@ public class MultiBorderMonitoring {
             Map<Border, Set<Cnec>> cnecsToEvaluatePerBorder = monitoringInput.getCnecsForBorders(impactedBorders, state);
             MultiBorderMonitoringResult currentStateResults = cnecEvaluator.evaluate(networkClone, state, cnecsToEvaluatePerBorder);
             // Update monitoring results
-            currentStateResults.getAllResults().forEach(monitoringResult::combine);
+            currentStateResults.getResultsForAllBorders().forEach(monitoringResult::combine);
             return null;
         } finally {
             networkPool.releaseUsedNetwork(networkClone);

@@ -22,7 +22,7 @@ public class MultiBorderMonitoringResult {
         return resultPerBorder.get(border);
     }
 
-    public Map<Border, MonitoringResult> getAllResults() {
+    public Map<Border, MonitoringResult> getResultsForAllBorders() {
         return resultPerBorder;
     }
 

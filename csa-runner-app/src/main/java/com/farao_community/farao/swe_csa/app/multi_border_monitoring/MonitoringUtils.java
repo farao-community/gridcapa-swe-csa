@@ -269,7 +269,7 @@ public final class MonitoringUtils {
     }
 
     public static void printResults(MultiBorderMonitoringResult monitoringResult, PhysicalParameter physicalParameter, Logger businessLogger) {
-        monitoringResult.getAllResults().forEach((border, result) -> {
+        monitoringResult.getResultsForAllBorders().forEach((border, result) -> {
             if (physicalParameter == PhysicalParameter.VOLTAGE || physicalParameter == PhysicalParameter.ANGLE) {
                 result.printConstraints().forEach(msg -> businessLogger.info("Border [{}] {}", border, msg));
             } else {
