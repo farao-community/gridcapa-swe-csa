@@ -185,10 +185,8 @@ class SweCsaMonitoringTest {
     @Test
     void sweCsaRaoResultValidatorWithDivergedLf1Test() {
         // Extreme network to make LF failed
-        network.getGeneratorStream().forEach(generator -> generator.setTargetP(-0.2));
-
+        network.getGeneratorStream().forEach(generator -> generator.setTargetP(2e6));
         ParallelDichotomiesResult validatedParallelDichotomiesResult = runRaoResultValidation();
-
         // Assert
         assertSecurity(validatedParallelDichotomiesResult, false, false);
 
@@ -205,7 +203,6 @@ class SweCsaMonitoringTest {
         // "Network-action-pt-es-2" has onConstraintUsage with AngleCNEC at preventive and curative 3
         ptEsCrac = fileImporter.importCrac("taskId", Objects.requireNonNull(getClass().getResource("/security_evaluator/crac_pt_es_2.json")).toString(), network);
         ptEsRaoResult = new RaoResultJsonImporter().importData(getClass().getResourceAsStream("/security_evaluator/rao_result_pt_es.json"), ptEsCrac);
-
         ParallelDichotomiesResult validatedParallelDichotomiesResult = runRaoResultValidation();
 
         // Assert

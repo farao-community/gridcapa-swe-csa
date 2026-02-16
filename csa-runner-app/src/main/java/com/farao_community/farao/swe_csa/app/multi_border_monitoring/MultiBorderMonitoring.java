@@ -64,6 +64,7 @@ public class MultiBorderMonitoring {
 
         // End monitoring if preventive monitoring failed for all borders
         if (monitoringResult.allFailed()) {
+            MonitoringUtils.printResults(monitoringResult, physicalParameter, businessLogger);
             return monitoringResult;
         }
 
