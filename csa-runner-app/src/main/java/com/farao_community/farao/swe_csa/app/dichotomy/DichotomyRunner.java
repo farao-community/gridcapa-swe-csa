@@ -10,7 +10,9 @@ import com.farao_community.farao.swe_csa.api.exception.CsaInvalidDataException;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.api.resource.CsaResponse;
 import com.farao_community.farao.swe_csa.api.resource.Status;
-import com.farao_community.farao.swe_csa.app.*;
+import com.farao_community.farao.swe_csa.app.FileExporter;
+import com.farao_community.farao.swe_csa.app.FileImporter;
+import com.farao_community.farao.swe_csa.app.InterruptionService;
 import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
 import com.farao_community.farao.swe_csa.app.shift.ShiftDispatcher;
 import com.powsybl.glsk.commons.CountryEICode;
@@ -24,17 +26,18 @@ import com.powsybl.openrao.data.crac.api.rangeaction.CounterTradeRangeAction;
 import com.powsybl.openrao.data.raoresult.api.RaoResult;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
 import com.powsybl.openrao.raoapi.parameters.extensions.LoadFlowAndSensitivityParameters;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
+import java.time.Instant;
+import java.util.Map;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.stereotype.Service;
-
-import java.time.Instant;
-import java.util.Map;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 @Service
 public class DichotomyRunner {
@@ -70,10 +73,11 @@ public class DichotomyRunner {
         this.parallelDichotomiesRunner = parallelDichotomiesRunner;
     }
 
-    public FinalResult runDichotomy(CsaRequest csaRequest, String ptEsRaoResultDestinationPath, String frEsRaoResultDestinationPath) throws GlskLimitationException, ShiftingException {
+    @WithSpan("runDichotomy")
+    public FinalResult runDichotomy(CsaRequest csaRequest,  @SpanAttribute("ptEsRaoResultDestinationPath") String ptEsRaoResultDestinationPath,  @SpanAttribute("frEsRaoResultDestinationPath")  String frEsRaoResultDestinationPath) throws GlskLimitationException, ShiftingException {
         RaoParameters raoParameters = RaoParameters.load();
         Instant instant = Instant.parse(csaRequest.getBusinessTimestamp());
-        String raoParametersUrl = fileImporter.uploadRaoParameters(instant);
+        String raoParametersUrl = fileExporter.uploadRaoParameters(instant);
         Network network = fileImporter.importNetwork(csaRequest.getId(), csaRequest.getGridModelUri());
         Crac cracPtEs = fileImporter.importCrac(csaRequest.getId(), csaRequest.getPtEsCracFileUri(), network);
         Crac cracFrEs = fileImporter.importCrac(csaRequest.getId(), csaRequest.getFrEsCracFileUri(), network);
@@ -172,7 +176,8 @@ public class DichotomyRunner {
         }
     }
 
-    private FinalResult processDichotomy(CsaRequest csaRequest, String ptEsRaoResultDestinationPath, String frEsRaoResultDestinationPath, RaoParameters raoParameters, String raoParametersUrl, Network network, Crac cracPtEs, Crac cracFrEs, ZonalData<Scalable> scalableZonalDataFilteredForSweCountries, String initialVariant, SweCsaNetworkShifter networkShifter, Index index) {
+    @WithSpan("processDichotomy")
+    private FinalResult processDichotomy(CsaRequest csaRequest, @SpanAttribute("ptEsRaoResultDestinationPath") String ptEsRaoResultDestinationPath, @SpanAttribute("frEsRaoResultDestinationPath") String frEsRaoResultDestinationPath, RaoParameters raoParameters, String raoParametersUrl, Network network, Crac cracPtEs, Crac cracFrEs, ZonalData<Scalable> scalableZonalDataFilteredForSweCountries, String initialVariant, SweCsaNetworkShifter networkShifter, Index index) {
         boolean interrupted = false;
         while (index.exitConditionIsNotMetForPtEs() || index.exitConditionIsNotMetForFrEs()) {
             if (interruptionService.getTasksToInterrupt().remove(csaRequest.getId())) {
@@ -229,7 +234,8 @@ public class DichotomyRunner {
         return new FinalResult(getRaoResultStatusPair(index.getBestValidDichotomyStepResult().getPtEsResult().getRaoResult(), index, interrupted), getRaoResultStatusPair(index.getBestValidDichotomyStepResult().getFrEsResult().getRaoResult(), index, interrupted));
     }
 
-    private void uploadFinalResult(RaoParameters raoParameters, Network network, Crac crac, Index index, RaoResult raoResult, String uploadPath, String border) {
+    @WithSpan("uploadFinalResult")
+    private void uploadFinalResult(RaoParameters raoParameters, Network network, Crac crac, Index index, RaoResult raoResult, @SpanAttribute("uploadPath") String uploadPath,  @SpanAttribute("border") String border) {
         RaoResult finalRaoResult = raoResult;
         if (!crac.getVoltageCnecs().isEmpty()) {
             finalRaoResult = resultHelper.updateRaoResultWithVoltageMonitoring(network, crac, raoResult, raoParameters);

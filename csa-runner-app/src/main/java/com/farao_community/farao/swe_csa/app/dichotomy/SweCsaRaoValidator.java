@@ -12,9 +12,9 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
  */
 
 import com.farao_community.farao.rao_runner.api.exceptions.RaoRunnerException;
-import com.farao_community.farao.rao_runner.api.resource.RaoRequest;
 import com.farao_community.farao.rao_runner.api.resource.AbstractRaoResponse;
 import com.farao_community.farao.rao_runner.api.resource.RaoFailureResponse;
+import com.farao_community.farao.rao_runner.api.resource.RaoRequest;
 import com.farao_community.farao.rao_runner.api.resource.RaoSuccessResponse;
 import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
 import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
@@ -31,15 +31,16 @@ import com.powsybl.openrao.data.crac.api.cnec.FlowCnec;
 import com.powsybl.openrao.data.raoresult.api.RaoResult;
 import com.powsybl.openrao.data.raoresult.io.json.RaoResultJsonImporter;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
-import org.apache.commons.lang3.tuple.Pair;
-import org.slf4j.Logger;
-import org.slf4j.MDC;
-import org.springframework.stereotype.Service;
-
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import java.net.URI;
 import java.time.OffsetDateTime;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.MDC;
+import org.springframework.stereotype.Service;
 
 @Service
 public class SweCsaRaoValidator {
@@ -56,15 +57,17 @@ public class SweCsaRaoValidator {
         this.businessLogger = businessLogger;
     }
 
+    @WithSpan("validateNetworkForPortugueseBorder")
     public DichotomyStepResult validateNetworkForPortugueseBorder(Network network, Crac crac, String cracUri, ZonalData<Scalable> scalableZonalData, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
         return validateNetworkForBorder(network, crac, cracUri, csaRequest, raoParametersUrl, counterTradingValues, "PT-ES", scalableZonalData, raoParameters);
     }
 
+    @WithSpan("validateNetworkForFrenchBorder")
     public DichotomyStepResult validateNetworkForFrenchBorder(Network network, Crac crac, String cracUri, ZonalData<Scalable> scalableZonalData, RaoParameters raoParameters, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues) {
         return validateNetworkForBorder(network, crac, cracUri, csaRequest, raoParametersUrl, counterTradingValues, "FR-ES", scalableZonalData, raoParameters);
     }
 
-    private DichotomyStepResult validateNetworkForBorder(Network network, Crac crac, String cracUri, CsaRequest csaRequest, String raoParametersUrl, CounterTradingValues counterTradingValues, String border, ZonalData<Scalable> scalableZonalDataFilteredForSweCountries, RaoParameters raoParameters) {
+    private DichotomyStepResult validateNetworkForBorder(Network network, Crac crac,  @SpanAttribute("cracUri") String cracUri, CsaRequest csaRequest, @SpanAttribute("raoParametersUrl") String raoParametersUrl, CounterTradingValues counterTradingValues, @SpanAttribute("border") String border, ZonalData<Scalable> scalableZonalDataFilteredForSweCountries, RaoParameters raoParameters) {
         RaoRequest raoRequest = buildRaoRequest(counterTradingValues.print(), csaRequest.getBusinessTimestamp(), csaRequest.getId(), network, cracUri, raoParametersUrl, border);
 
         try {
@@ -145,7 +148,8 @@ public class SweCsaRaoValidator {
         return Pair.of(flowCnecId, smallestMargin);
     }
 
-    private RaoRequest buildRaoRequest(String stepFolder, String timestamp, String taskId, Network network, String cracUrl, String raoParametersUrl, String border) {
+    @WithSpan("buildRaoRequest")
+    private RaoRequest buildRaoRequest(@SpanAttribute("stepFolder") String stepFolder, @SpanAttribute("timestamp") String timestamp, @SpanAttribute("taskId") String taskId, Network network, @SpanAttribute("cracUrl") String cracUrl, @SpanAttribute("raoParametersUrl") String raoParametersUrl,  @SpanAttribute("border") String border) {
         String scaledNetworkPath = generateScaledNetworkPath(network, timestamp, stepFolder);
         String scaledNetworkPreSignedUrl = fileExporter.saveNetworkInArtifact(taskId, network, scaledNetworkPath);
         String raoResultDestination = generateBorderRaoResultPath(border, timestamp, stepFolder);

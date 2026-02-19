@@ -1,15 +1,15 @@
 package com.farao_community.farao.swe_csa.app.dichotomy;
 
 import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
-import org.slf4j.MDC;
-import org.springframework.stereotype.Service;
-
+import io.opentelemetry.context.Context;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
+import org.slf4j.MDC;
+import org.springframework.stereotype.Service;
 
 @Service
 public class ParallelDichotomiesRunner {
@@ -18,10 +18,11 @@ public class ParallelDichotomiesRunner {
         Map<String, String> contextMap = MDC.getCopyOfContextMap();
         ExecutorService executor = Executors.newFixedThreadPool(2);
         try {
+            final Context parentContext = Context.current();
             CompletableFuture<DichotomyStepResult> futurePtEs = CompletableFuture.supplyAsync(() -> {
                 MDC.setContextMap(contextMap);
                 MDC.put("eventPrefix", DichotomyDirection.PT_ES.toString());
-                try {
+                try (io.opentelemetry.context.Scope scope = parentContext.makeCurrent()) {
                     return supplierPtEs.get();
                 } finally {
                     MDC.remove("eventPrefix");
@@ -30,7 +31,7 @@ public class ParallelDichotomiesRunner {
             CompletableFuture<DichotomyStepResult> futureFrEs = CompletableFuture.supplyAsync(() -> {
                 MDC.setContextMap(contextMap);
                 MDC.put("eventPrefix", DichotomyDirection.FR_ES.toString());
-                try {
+                try (io.opentelemetry.context.Scope scope = parentContext.makeCurrent()) {
                     return supplierFrEs.get();
                 } finally {
                     MDC.remove("eventPrefix");

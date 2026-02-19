@@ -1,12 +1,14 @@
 package com.farao_community.farao.swe_csa.app.dichotomy;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+
 import com.farao_community.farao.rao_runner.api.resource.RaoFailureResponse;
 import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
 import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
-import com.farao_community.farao.swe_csa.app.FileExporter;
 import com.farao_community.farao.swe_csa.app.FileImporter;
-import com.farao_community.farao.swe_csa.app.s3.S3AdapterUtil;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.data.crac.api.Crac;
 import com.powsybl.openrao.data.crac.api.Instant;
@@ -14,21 +16,18 @@ import com.powsybl.openrao.data.crac.api.State;
 import com.powsybl.openrao.data.crac.api.cnec.FlowCnec;
 import com.powsybl.openrao.data.raoresult.api.RaoResult;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
-import org.apache.commons.lang3.tuple.Pair;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-
+import java.net.URISyntaxException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
+import org.apache.commons.lang3.tuple.Pair;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 class SweCsaRaoValidatorTest {
@@ -36,15 +35,15 @@ class SweCsaRaoValidatorTest {
     @Autowired
     FileImporter fileImporter;
 
-    @Mock
-    FileExporter fileExporter;
-
-    @Mock
+    @MockitoBean
     RaoRunnerClient raoRunnerClient;
+
+    @Autowired
+    SweCsaRaoValidator sweCsaRaoValidator;
 
     @Test
     void testGetBorderFlowCnecs() {
-        Network network = Network.read(getClass().getResource("/rao_inputs/network.xiidm").getPath());
+        Network network = Network.read(getResource("/rao_inputs/network.xiidm"));
         Crac crac = fileImporter.importCrac("taskId", Objects.requireNonNull(getClass().getResource("/rao_inputs/crac.json")).toString(), network);
 
         Set<FlowCnec> cnecsPtEs = SweCsaRaoValidator.getBorderFlowCnecs(crac, "PT-ES");
@@ -56,7 +55,6 @@ class SweCsaRaoValidatorTest {
 
     @Test
     void testGetFlowCnecShortestMargin() {
-        SweCsaRaoValidator sweCsaRaoValidator = new SweCsaRaoValidator(fileExporter, raoRunnerClient, LoggerFactory.getLogger(SweCsaRaoValidatorTest.class));
         RaoResult raoResult = Mockito.mock(RaoResult.class);
         Mockito.when(raoResult.getMargin(any(), (FlowCnec) any(), any()))
             .then(i -> {
@@ -92,12 +90,20 @@ class SweCsaRaoValidatorTest {
 
     @Test
     void testValidateNetworkRaoFailureResponse() {
-        Network network = Network.read(getClass().getResource("/rao_inputs/network.xiidm").getPath());
+        Network network = Network.read(getResource("/rao_inputs/network.xiidm"));
         Crac crac = fileImporter.importCrac("taskId", Objects.requireNonNull(getClass().getResource("/rao_inputs/crac.json")).toString(), network);
 
-        SweCsaRaoValidator sweCsaRaoValidator = new SweCsaRaoValidator(fileExporter, raoRunnerClient, LoggerFactory.getLogger(S3AdapterUtil.class));
         Mockito.when(raoRunnerClient.runRao(any())).thenReturn(new RaoFailureResponse.Builder().withId("id").withErrorMessage("errorMessage").build());
         assertThrows(CsaInternalException.class, () -> sweCsaRaoValidator.validateNetworkForPortugueseBorder(network, crac, "", null, new RaoParameters(),
             new CsaRequest("id", "2024-12-01T15:30:00Z", "", "", "", ""), "raoParametersUrl", new CounterTradingValues(0.0, 0.0)));
     }
+
+    private Path getResource(String res) {
+        try {
+            return Paths.get(getClass().getResource(res).toURI());
+        } catch (URISyntaxException e) {
+            throw new RuntimeException("Invalid resource", e);
+        }
+    }
+
 }

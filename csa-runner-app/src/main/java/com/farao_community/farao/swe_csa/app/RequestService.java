@@ -6,20 +6,19 @@ import com.farao_community.farao.swe_csa.api.exception.CsaInvalidDataException;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.api.resource.CsaResponse;
 import com.farao_community.farao.swe_csa.api.resource.Status;
-
 import com.farao_community.farao.swe_csa.app.dichotomy.DichotomyDirection;
-import com.farao_community.farao.swe_csa.app.dichotomy.FinalResult;
 import com.farao_community.farao.swe_csa.app.dichotomy.DichotomyRunner;
+import com.farao_community.farao.swe_csa.app.dichotomy.FinalResult;
 import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
-import org.slf4j.Logger;
-import org.slf4j.MDC;
-import org.springframework.cloud.stream.function.StreamBridge;
-import org.springframework.stereotype.Service;
-
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.MDC;
+import org.springframework.cloud.stream.function.StreamBridge;
+import org.springframework.stereotype.Service;
 
 @Service
 public class RequestService {
@@ -39,6 +38,7 @@ public class RequestService {
         this.interruptionService = interruptionService;
     }
 
+    @WithSpan("launchCsaRequest")
     public byte[] launchCsaRequest(byte[] req) {
         byte[] resultBytes;
         CsaRequest csaRequest = jsonApiConverter.fromJsonMessage(req, CsaRequest.class);
