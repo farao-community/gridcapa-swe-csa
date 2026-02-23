@@ -1,10 +1,20 @@
 package com.farao_community.farao.swe_csa.app.security_evaluator;
 
+import com.farao_community.farao.dichotomy.api.exceptions.GlskLimitationException;
+import com.farao_community.farao.dichotomy.api.exceptions.ShiftingException;
+import com.farao_community.farao.rao_runner.api.resource.AbstractRaoResponse;
+import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
+import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
+import com.farao_community.farao.swe_csa.api.resource.Status;
+import com.farao_community.farao.swe_csa.app.FileExporter;
 import com.farao_community.farao.swe_csa.app.FileImporter;
-import com.farao_community.farao.swe_csa.app.dichotomy.CounterTradingValues;
-import com.farao_community.farao.swe_csa.app.dichotomy.DichotomyStepResult;
-import com.farao_community.farao.swe_csa.app.dichotomy.ParallelDichotomiesResult;
+import com.farao_community.farao.swe_csa.app.InterruptionService;
+import com.farao_community.farao.swe_csa.app.dichotomy.*;
+import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
 import com.farao_community.farao.swe_csa.app.security_evaluator.MultiBorderMonitoringInput.CracRaoResultPair;
+import com.farao_community.farao.swe_csa.app.shift.SweCsaZonalData;
+import com.powsybl.contingency.ContingencyElementType;
+import com.powsybl.contingency.LineContingency;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Network;
@@ -21,25 +31,52 @@ import com.powsybl.openrao.data.raoresult.io.json.RaoResultJsonImporter;
 import com.powsybl.openrao.monitoring.results.MonitoringResult;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
 import com.powsybl.openrao.raoapi.parameters.extensions.LoadFlowAndSensitivityParameters;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.cloud.stream.function.StreamBridge;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 
 @SpringBootTest
 class SweCsaRaoResultValidatorTest {
 
     @Autowired
     FileImporter fileImporter;
+
+    @Mock
+    FileImporter dataCheckImporter;
+
+    @Mock
+    FileExporter fileExporter;
+
+    @Mock
+    RaoRunnerClient raoRunnerClient;
+
+    @Mock
+    StreamBridge streamBridge;
+
+    @Mock
+    S3ArtifactsAdapter s3ArtifactsAdapter;
+
+    @Mock
+    InterruptionService interruptionService;
+
+    @Autowired
+    ParallelDichotomiesRunner parallelDichotomiesRunner;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SweCsaRaoResultValidatorTest.class);
     private Network network;
@@ -59,7 +96,7 @@ class SweCsaRaoResultValidatorTest {
         frEsCrac = fileImporter.importCrac("taskId", Objects.requireNonNull(getClass().getResource("/security_evaluator/crac_fr_es_1.json")).toString(), network);
         // ptEsCrac: 1CO shared with frEs, 1 FlowAE, 1 Angle AE and 1 VoltageAE, 1 Pst linked to the AngleAE, 1 curative SwitchRA linked to the voltageAE, 1 GenerationRA linked to the VoltageAE
         ptEsCrac = fileImporter.importCrac("taskId", Objects.requireNonNull(getClass().getResource("/security_evaluator/crac_pt_es_1.json")).toString(), network);
-        zonalScalable = fileImporter.getZonalData("taskId", java.time.Instant.parse("2017-04-13T07:00:00Z"), Objects.requireNonNull(getClass().getResource("/security_evaluator/glsk-document-cim.xml")).toString(), network);
+        zonalScalable = SweCsaZonalData.getZonalData(network);
         // Results of flowCnecs, angleCnecs and VoltageCnecs, one NetworkRA activated at preventive, one PST activated at curative 1
         frEsRaoResult = new RaoResultJsonImporter().importData(getClass().getResourceAsStream("/security_evaluator/rao_result_fr_es.json"), frEsCrac);
         // Results of flowCnecs, angleCnecs and VoltageCnecs, no RA activated
@@ -81,6 +118,35 @@ class SweCsaRaoResultValidatorTest {
         ParallelDichotomiesResult parallelDichotomiesResult = new ParallelDichotomiesResult(ptEsDichotomyStepResult, frEsDichotomyStepResult, counterTradingValue);
         return sweCsaRaoResultValidator.validateNetworkForTwoBorders(network, parallelDichotomiesResult, frEsCrac, ptEsCrac, zonalScalable);
 
+    }
+
+    /**
+     * Check that the input data (network file, crac files) are coherent
+     * and do not create any issue when being used by DichotomyRunner
+     * */
+    @Test
+    void checkInputDataWithDichotomyRunnerTest() throws GlskLimitationException, ShiftingException {
+        Instant utcInstant = Instant.parse("2023-09-13T09:30:00Z");
+
+        Mockito.doNothing().when(s3ArtifactsAdapter).uploadFile(any(), any());
+        Mockito.doNothing().when(s3ArtifactsAdapter).uploadFile(any(), any());
+        Mockito.when(dataCheckImporter.uploadRaoParameters(utcInstant)).thenReturn("rao-parameters-url");
+        Mockito.when(dataCheckImporter.importNetwork("csa-task-id", "cgm-url")).thenReturn(network);
+        Mockito.when(dataCheckImporter.importCrac("csa-task-id", "pt-es-crac-url", network)).thenReturn(ptEsCrac);
+        Mockito.when(dataCheckImporter.importCrac("csa-task-id", "fr-es-crac-url", network)).thenReturn(frEsCrac);
+        Mockito.when(dataCheckImporter.getZonalData("csa-task-id", utcInstant, "glsk-url", network)).thenReturn(zonalScalable);
+        Mockito.when(fileExporter.saveNetworkInArtifact(Mockito.anyString(), Mockito.any(), Mockito.any())).thenReturn("scaled-network-url");
+        AbstractRaoResponse raoResponse = Mockito.mock(AbstractRaoResponse.class);
+        Mockito.when(raoRunnerClient.runRao(Mockito.any())).thenReturn(raoResponse);
+        SweCsaRaoValidator sweCsaRaoValidator = new SweCsaRaoValidatorMock(fileExporter, raoRunnerClient);
+        CsaRequest csaRequest = new CsaRequest("csa-task-id", "2023-09-13T09:30:00Z", "cgm-url", "glsk-url", "pt-es-crac-url", "fr-es-crac-url");
+
+        DichotomyRunner sweCsaDichotomyRunner = new DichotomyRunner(sweCsaRaoValidator, dataCheckImporter, fileExporter, interruptionService, streamBridge, s3ArtifactsAdapter, LoggerFactory.getLogger(com.farao_community.farao.swe_csa.app.security_evaluator.SweCsaRaoResultValidatorTest.class), parallelDichotomiesRunner);
+        sweCsaDichotomyRunner.setIndexPrecision(50);
+        sweCsaDichotomyRunner.setMaxDichotomiesByBorder(10);
+        FinalResult finalResult = sweCsaDichotomyRunner.runDichotomy(csaRequest, "pt-es-rao-result-path", "fr-es-rao-result-path");
+        Assertions.assertEquals(Status.FINISHED_SECURE, finalResult.ptEsResult().getRight());
+        Assertions.assertEquals(Status.FINISHED_SECURE, finalResult.frEsResult().getRight());
     }
 
     private MultiBorderMonitoring getFlowCnecSecurityChecker() {
@@ -142,7 +208,7 @@ class SweCsaRaoResultValidatorTest {
      * - During voltageMontioring: PST is not applied, Network actions only applied at curative 3 (not preventive)
      * */
     @Test
-    void sweCsaRaoResultValidatorOKTest() {
+    void sweCsaRaoResultValidatorOKTest1() {
 
         ParallelDichotomiesResult validatedParallelDichotomiesResult = runRaoResultValidation();
 
@@ -168,6 +234,63 @@ class SweCsaRaoResultValidatorTest {
         assertEquals(0, ptEsActivatedNetworkActionsAtPreventive.size());
 
         // PST linked to VoltageCNEC is not activated
+        List<RangeAction<?>> ptEsActivatedPstAtPreventive = validatedPtEsRaoResult.getActivatedRangeActionsDuringState(ptEsCrac.getPreventiveState()).stream().toList();
+        assertEquals(0, ptEsActivatedPstAtPreventive.size());
+
+        List<RangeAction<?>> ptEsActivatedPstAtCurative3 = validatedPtEsRaoResult.getActivatedRangeActionsDuringState(stateCoCurative3).stream().toList();
+        assertEquals(0, ptEsActivatedPstAtCurative3.size());
+
+        // "Network-action-fr-es-2" is not applied because its associated cnec "Voltage-Cnec-Fr-Es-1-curative 3" is not overloaded
+        List<String> frEsActivatedActionIds = validatedParallelDichotomiesResult.getFrEsResult().getRaoResult().getActivatedNetworkActionsDuringState(stateCoCurative3).stream().map(NetworkAction::getId).toList();
+        assertFalse(frEsActivatedActionIds.contains("Network-action-fr-es-2"));
+    }
+
+
+    /**
+     * Data description:
+     * - One common CO in two Cracs
+     * - Flow is secure for fr-es but not pt-es (given in raoResult.json files)
+     * - 2 Angle CNECs, 2 Voltage CNECs in fr-es Crac (one at preventive and one at curative 3 for each type)
+     * - pt-es Crac has 2 violated voltage CNECs, and 2 violated angle CNECs
+     * "Network-action-pt-es-1" linked the preventive VoltageCNEC and curative 3 voltageCNEC,
+     * "Network-action-pt-es-2", "Pst-action-pt-es" linked the preventive angleCNEC and curative 3 angleCNEC,
+     * Expected result:
+     * - Fr-Es secure
+     * - Pt-Es unsecure (flowCnecs unsecure, angleCnecs unsecure, voltageCNECs unsecure)
+     * - During angleMonitoring: "Network-action-pt-es-2" applied at curative 3 (not preventive) (note that the network redispatching is failed),
+     * "Pst-action-pt-es" is not applied
+     * - During voltageMontioring: "Network-action-pt-es-1" applied at curative 3 (not preventive)
+     * */
+    @Test
+    void sweCsaRaoResultValidatorOKWithAngleRAApplicationTest2() {
+        // "Network-action-pt-es-2" has onConstraintUsage with AngleCNEC at preventive and curative 3
+        ptEsCrac = fileImporter.importCrac("taskId", Objects.requireNonNull(getClass().getResource("/security_evaluator/crac_pt_es_2.json")).toString(), network);
+        ptEsRaoResult = new RaoResultJsonImporter().importData(getClass().getResourceAsStream("/security_evaluator/rao_result_pt_es.json"), ptEsCrac);
+        ParallelDichotomiesResult validatedParallelDichotomiesResult = runRaoResultValidation();
+
+        // Assert
+        assertSecurity(validatedParallelDichotomiesResult, true, false);
+        assertTrue(validatedParallelDichotomiesResult.getFrEsResult().getRaoResult().isSecure(PhysicalParameter.FLOW, PhysicalParameter.VOLTAGE, PhysicalParameter.ANGLE));
+
+        // Pt-Es is not secure
+        RaoResult validatedPtEsRaoResult = validatedParallelDichotomiesResult.getPtEsResult().getRaoResult();
+        assertNotNull(validatedPtEsRaoResult);
+        assertFalse(validatedPtEsRaoResult.isSecure(PhysicalParameter.FLOW, PhysicalParameter.ANGLE, PhysicalParameter.VOLTAGE));
+
+        State stateCoCurative3 = ptEsCrac.getState("CO-Es-1", ptEsCrac.getInstant("curative 3"));
+        List<NetworkAction> ptEsActivatedNetworkActionsAtCurative3 = validatedPtEsRaoResult.getActivatedNetworkActionsDuringState(stateCoCurative3).stream().toList();
+
+        // "Network-action-pt-es-1" linked to VoltageCNEC and "Network-action-pt-es-2" linked to AngleCNEC at curative 3 is activated
+        assertEquals(2, ptEsActivatedNetworkActionsAtCurative3.size());
+        List<String> ptEsActivatedActionIds = ptEsActivatedNetworkActionsAtCurative3.stream().map(NetworkAction::getId).toList();
+        assertTrue(ptEsActivatedActionIds.contains("Network-action-pt-es-1"));
+        assertTrue(ptEsActivatedActionIds.contains("Network-action-pt-es-2"));
+
+        // Network action linked to VoltageCNEC("Network-action-pt-es-1") and to AngleCNEC ("Network-action-pt-es-2") is not activated at preventive
+        List<NetworkAction> ptEsActivatedNetworkActionsAtPreventive = validatedPtEsRaoResult.getActivatedNetworkActionsDuringState(ptEsCrac.getPreventiveState()).stream().toList();
+        assertEquals(0, ptEsActivatedNetworkActionsAtPreventive.size());
+
+        // PST linked to AngleCNEC is not activated
         List<RangeAction<?>> ptEsActivatedPstAtPreventive = validatedPtEsRaoResult.getActivatedRangeActionsDuringState(ptEsCrac.getPreventiveState()).stream().toList();
         assertEquals(0, ptEsActivatedPstAtPreventive.size());
 
@@ -207,6 +330,7 @@ class SweCsaRaoResultValidatorTest {
         // "Network-action-pt-es-2" has onConstraintUsage with AngleCNEC at preventive and curative 3
         ptEsCrac = fileImporter.importCrac("taskId", Objects.requireNonNull(getClass().getResource("/security_evaluator/crac_pt_es_2.json")).toString(), network);
         ptEsRaoResult = new RaoResultJsonImporter().importData(getClass().getResourceAsStream("/security_evaluator/rao_result_pt_es.json"), ptEsCrac);
+        zonalScalable = fileImporter.getZonalData("taskId", java.time.Instant.parse("2017-04-13T07:00:00Z"), Objects.requireNonNull(getClass().getResource("/security_evaluator/non-valid-glsk-document-cim.xml")).toString(), network);
 
         ParallelDichotomiesResult validatedParallelDichotomiesResult = runRaoResultValidation();
 
@@ -295,6 +419,42 @@ class SweCsaRaoResultValidatorTest {
         assertFalse(validatedFrEsRaoResult.isSecure(PhysicalParameter.VOLTAGE));
         double newCnecMargin = validatedFrEsRaoResult.getMargin(frEsCrac.getInstant("curative 3"), frEsCrac.getVoltageCnec("New-Voltage-Cnec-Fr-Es"), Unit.KILOVOLT);
         assertTrue(newCnecMargin < 0);
+    }
+
+    /**
+     * frEsCrac contains an invalid CO, there are some flowCnecs linked to it
+     * This CO is not applied during the flow monitoring
+     * So the flow of frEs is not secure with a message:
+     * 'Border [FR-ES] FLOW monitoring failed due to a load flow divergence or an inconsistency in the crac or in the parameters'
+     * Note that: because the flow CNECs are linked to invalid CO so the raoResult is not coherent with CRAC
+     * */
+    @Test
+    void inValidCOOfFlowMonitoringTest() {
+        LineContingency lineContingency = new LineContingency("invalid_line", null);
+        frEsCrac.getContingency("CO-Fr-Es-2").addElement(lineContingency);
+        ParallelDichotomiesResult validatedParallelDichotomiesResult = runRaoResultValidation();
+        // Assert
+        assertSecurity(validatedParallelDichotomiesResult, false, false);
+    }
+
+    /**
+     * frEsCrac contains an invalid CO, and 'new_voltage_cnec' is linked to it
+     * This CO is not applied during the voltage monitoring
+     * So the voltage of frEs is not secure with a message:
+     * 'Border [FR-ES] VOLTAGE monitoring failed due to a load flow divergence or an inconsistency in the crac or in the parameters'
+     * */
+    @Test
+    void inValidCOOfVoltageMonitoringTest() {
+        // Create a 'new_voltage_cnec' linked to an invalid CO
+        frEsCrac.newContingency().withName("invalid_CO").withId("invalid_CO").withContingencyElement("invalid_CO_element", ContingencyElementType.LINE).add();
+        frEsCrac.newVoltageCnec().withNetworkElement("FFR1AA1").withInstant("curative 3").withContingency("invalid_CO").withOptimized(false)
+                .withMonitored(true).withId("new_voltage_cnec").newThreshold().withMax(300.0).withMin(-300.0).withUnit(Unit.KILOVOLT).add().withReliabilityMargin(0.0).add();
+        ParallelDichotomiesResult validatedParallelDichotomiesResult = runRaoResultValidation();
+
+        // Assert
+        assertSecurity(validatedParallelDichotomiesResult, false, false);
+        assertTrue(validatedParallelDichotomiesResult.getFrEsResult().getRaoResult().isSecure(PhysicalParameter.FLOW));
+        assertFalse(validatedParallelDichotomiesResult.getFrEsResult().getRaoResult().isSecure(PhysicalParameter.VOLTAGE));
     }
 
 }
