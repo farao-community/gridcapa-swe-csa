@@ -1,8 +1,9 @@
-package com.farao_community.farao.swe_csa.app.security_evaluator.cnec_evaluator;
+package com.farao_community.farao.swe_csa.app.multi_border_monitoring.cnec_evaluator;
 
-import com.farao_community.farao.swe_csa.app.security_evaluator.AppliedNetworkActionsResult;
-import com.farao_community.farao.swe_csa.app.security_evaluator.Border;
-import com.farao_community.farao.swe_csa.app.security_evaluator.MultiBorderMonitoringInput;
+import com.farao_community.farao.swe_csa.app.multi_border_monitoring.AppliedNetworkActionsResult;
+import com.farao_community.farao.swe_csa.app.multi_border_monitoring.Border;
+import com.farao_community.farao.swe_csa.app.multi_border_monitoring.MultiBorderMonitoringInput;
+import com.farao_community.farao.swe_csa.app.multi_border_monitoring.MultiBorderMonitoringResult;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Network;
@@ -20,7 +21,7 @@ import org.slf4j.Logger;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.farao_community.farao.swe_csa.app.security_evaluator.ResultValidatorHelper.*;
+import static com.farao_community.farao.swe_csa.app.multi_border_monitoring.MonitoringUtils.*;
 
 public class MarginEvaluatorWithRA implements CnecEvaluator {
     private final MultiBorderMonitoringInput multiBorderMonitoringInput;
@@ -36,7 +37,7 @@ public class MarginEvaluatorWithRA implements CnecEvaluator {
     }
 
     @Override
-    public Map<Border, MonitoringResult> evaluate(Network network, State state, Map<Border, Set<Cnec>> cnecsToEvaluatePerBorder) {
+    public MultiBorderMonitoringResult evaluate(Network network, State state, Map<Border, Set<Cnec>> cnecsToEvaluatePerBorder) {
         PhysicalParameter physicalParameter = multiBorderMonitoringInput.getPhysicalParameter();
         Set<Border> borders = cnecsToEvaluatePerBorder.keySet();
         Unit unit = multiBorderMonitoringInput.getUnit();
@@ -45,13 +46,13 @@ public class MarginEvaluatorWithRA implements CnecEvaluator {
         if (state == null) {
             Map<Border, MonitoringResult> resultPerBorder = new EnumMap<>(Border.class);
             cnecsToEvaluatePerBorder.keySet().forEach(border -> resultPerBorder.put(border, new MonitoringResult(physicalParameter, Collections.emptySet(), Collections.emptyMap(), Cnec.SecurityStatus.SECURE)));
-            return resultPerBorder;
+            return new MultiBorderMonitoringResult(resultPerBorder);
         }
         // Load-flow
         if (!computeLoadFlow(network, loadFlowProvider, loadFlowParameters)) {
             String failureReason = String.format("Load-flow computation failed during %s monitoring at state %s. Skipping this state.", physicalParameter, state);
-            businessLogger.warn(failureReason);
-            return makeFailedMonitoringResultForStateWithNaNCnecResults(multiBorderMonitoringInput, state, borders, failureReason, businessLogger);
+            Map<Border, MonitoringResult> failedResults = makeFailedMonitoringResultForStateWithNaNCnecResults( multiBorderMonitoringInput, state, borders, failureReason, businessLogger );
+            return new MultiBorderMonitoringResult(failedResults);
         }
 
         Map<Border, Set<CnecResult>> cnecResultsPerBorder = borders.stream().collect(Collectors.toMap(border -> border, border -> new HashSet<>()));
@@ -73,8 +74,8 @@ public class MarginEvaluatorWithRA implements CnecEvaluator {
         if (anyActionsApplied) {
             if (!computeLoadFlow(network, loadFlowProvider, loadFlowParameters)) {
                 String failureReason = String.format("Load-flow computation failed during %s monitoring at state %s after applying RAs. Skipping this state.", physicalParameter, state);
-                businessLogger.warn(failureReason);
-                makeFailedMonitoringResultForStateWithNaNCnecResults(multiBorderMonitoringInput, state, borders, failureReason, businessLogger);
+                Map<Border, MonitoringResult> failed = makeFailedMonitoringResultForStateWithNaNCnecResults( multiBorderMonitoringInput, state, borders, failureReason, businessLogger );
+                return new MultiBorderMonitoringResult(failed);
             }
             // Recompute CNEC result for each border
             cnecResultsPerBorder.values().forEach(Set::clear);
@@ -88,19 +89,17 @@ public class MarginEvaluatorWithRA implements CnecEvaluator {
             }
         }
 
-        Map<Border, Cnec.SecurityStatus> statusMap = new HashMap<>();
+        Map<Border, Cnec.SecurityStatus> securityStatusPerBorder = new HashMap<>();
         cnecResultsPerBorder.forEach((border, results) -> {
-            boolean anyUnsecure = results.stream().anyMatch(r -> r.getMargin() < 0);
-            Cnec.SecurityStatus status = anyUnsecure ?
-                    MonitoringResult.combineStatuses(results.stream().map(CnecResult::getCnecSecurityStatus).toArray(Cnec.SecurityStatus[]::new)) :
-                    Cnec.SecurityStatus.SECURE;
-            statusMap.put(border, status);
+            Cnec.SecurityStatus status = computeStatus(results);
+            securityStatusPerBorder.put(border, status);
             businessLogger.info("Border [{}] – {} margins at state '{}' -> security status: {}", border, physicalParameter, state, status);
         });
-        return borders.stream().collect(Collectors.toMap(
+        Map<Border, MonitoringResult> resultPerBorder = borders.stream().collect(Collectors.toMap(
                 border -> border,
-                border -> new MonitoringResult(physicalParameter, cnecResultsPerBorder.get(border), Map.of(state, appliedActionsPerBorder.get(border).stream().flatMap(r -> r.getAppliedNetworkActions().stream()).collect(Collectors.toSet())), statusMap.get(border))
+                border -> new MonitoringResult(physicalParameter, cnecResultsPerBorder.get(border), Map.of(state, appliedActionsPerBorder.get(border).stream().flatMap(r -> r.getAppliedNetworkActions().stream()).collect(Collectors.toSet())), securityStatusPerBorder.get(border))
         ));
+        return new MultiBorderMonitoringResult(resultPerBorder);
     }
 
     private void processMonitoringCnecs(Set<Cnec> cnecs, State state, MonitoringInput monitoringInput, Set<CnecResult> cnecResults, List<AppliedNetworkActionsResult> appliedActions, Network network, Unit unit, PhysicalParameter physicalParameter) {
@@ -118,4 +117,11 @@ public class MarginEvaluatorWithRA implements CnecEvaluator {
             cnecResults.add(cnecResult);
         });
     }
+
+    private Cnec.SecurityStatus computeStatus(Set<CnecResult> results) {
+        return results.stream().anyMatch(r -> r.getMargin() < 0)
+                ? MonitoringResult.combineStatuses(results.stream().map(CnecResult::getCnecSecurityStatus).toArray(Cnec.SecurityStatus[]::new))
+                : Cnec.SecurityStatus.SECURE;
+    }
+
 }

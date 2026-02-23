@@ -1,4 +1,4 @@
-package com.farao_community.farao.swe_csa.app.security_evaluator;
+package com.farao_community.farao.swe_csa.app.multi_border_monitoring;
 
 import com.farao_community.farao.dichotomy.api.exceptions.GlskLimitationException;
 import com.farao_community.farao.dichotomy.api.exceptions.ShiftingException;
@@ -15,10 +15,15 @@ import com.farao_community.farao.swe_csa.app.security_evaluator.MultiBorderMonit
 import com.farao_community.farao.swe_csa.app.shift.SweCsaZonalData;
 import com.powsybl.contingency.ContingencyElementType;
 import com.powsybl.contingency.LineContingency;
+import com.farao_community.farao.swe_csa.app.dichotomy.CounterTradingValues;
+import com.farao_community.farao.swe_csa.app.dichotomy.DichotomyStepResult;
+import com.farao_community.farao.swe_csa.app.dichotomy.ParallelDichotomiesResult;
+import com.farao_community.farao.swe_csa.app.multi_border_monitoring.MultiBorderMonitoringInput.BorderMonitoringInput;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openrao.commons.PhysicalParameter;
 import com.powsybl.openrao.commons.Unit;
 import com.powsybl.openrao.data.crac.api.Crac;
@@ -28,7 +33,6 @@ import com.powsybl.openrao.data.crac.api.networkaction.NetworkAction;
 import com.powsybl.openrao.data.crac.api.rangeaction.RangeAction;
 import com.powsybl.openrao.data.raoresult.api.RaoResult;
 import com.powsybl.openrao.data.raoresult.io.json.RaoResultJsonImporter;
-import com.powsybl.openrao.monitoring.results.MonitoringResult;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
 import com.powsybl.openrao.raoapi.parameters.extensions.LoadFlowAndSensitivityParameters;
 import org.junit.jupiter.api.Assertions;
@@ -44,15 +48,15 @@ import org.springframework.cloud.stream.function.StreamBridge;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
+import java.util.Set;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 
 @SpringBootTest
-class SweCsaRaoResultValidatorTest {
+class SweCsaMonitoringTest {
 
     @Autowired
     FileImporter fileImporter;
@@ -78,7 +82,7 @@ class SweCsaRaoResultValidatorTest {
     @Autowired
     ParallelDichotomiesRunner parallelDichotomiesRunner;
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(SweCsaRaoResultValidatorTest.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SweCsaMonitoringTest.class);
     private Network network;
     private Crac frEsCrac;
     private Crac ptEsCrac;
@@ -108,7 +112,7 @@ class SweCsaRaoResultValidatorTest {
     }
 
     private ParallelDichotomiesResult runRaoResultValidation() {
-        SweCsaRaoResultValidator sweCsaRaoResultValidator = new SweCsaRaoResultValidator(loadFlowProvider, loadFlowParameters, LOGGER);
+        SweCsaMonitoring sweCsaMonitoring = new SweCsaMonitoring(loadFlowProvider, loadFlowParameters, LOGGER);
 
         CounterTradingValues counterTradingValue = new CounterTradingValues(100, -100);
         DichotomyStepResult frEsDichotomyStepResult = DichotomyStepResult.fromNetworkValidationResult(frEsRaoResult, true, null, counterTradingValue);
@@ -116,8 +120,31 @@ class SweCsaRaoResultValidatorTest {
 
         // ParallelDichotomiesResult inverse the order of ptEs and frEs
         ParallelDichotomiesResult parallelDichotomiesResult = new ParallelDichotomiesResult(ptEsDichotomyStepResult, frEsDichotomyStepResult, counterTradingValue);
-        return sweCsaRaoResultValidator.validateNetworkForTwoBorders(network, parallelDichotomiesResult, frEsCrac, ptEsCrac, zonalScalable);
+        return sweCsaMonitoring.validateNetworkForSweBorders(network, parallelDichotomiesResult, frEsCrac, ptEsCrac, zonalScalable);
 
+    }
+
+    private MultiBorderMonitoring getFlowCnecSecurityChecker(Integer maxNrIterations) {
+        if (maxNrIterations != null) {
+            OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters().setMaxNewtonRaphsonIterations(maxNrIterations);
+            loadFlowParameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
+        }
+        int numberOfLoadFlowsInParallel = Runtime.getRuntime().availableProcessors();
+        Set<BorderMonitoringInput> monitoringInputs = Set.of(
+                new MultiBorderMonitoringInput.BorderMonitoringInput(Border.FR_ES, frEsCrac, frEsRaoResult),
+                new MultiBorderMonitoringInput.BorderMonitoringInput(Border.PT_ES, ptEsCrac, ptEsRaoResult));
+        MultiBorderMonitoringInput parallelInput =
+                new MultiBorderMonitoringInput(network, monitoringInputs, PhysicalParameter.FLOW, null, loadFlowProvider, loadFlowParameters);
+        return new MultiBorderMonitoring(parallelInput, numberOfLoadFlowsInParallel, LOGGER);
+    }
+
+
+    private void assertSecurity(ParallelDichotomiesResult validatedParallelDichotomiesResult, Boolean isFrEsSecure, Boolean isPtEsSecure) {
+        assertNotNull(validatedParallelDichotomiesResult);
+        assertNotNull(validatedParallelDichotomiesResult.getPtEsResult().getRaoResult());
+        assertNotNull(validatedParallelDichotomiesResult.getFrEsResult().getRaoResult());
+        assertEquals(isFrEsSecure, validatedParallelDichotomiesResult.getFrEsResult().isSecure());
+        assertEquals(isPtEsSecure, validatedParallelDichotomiesResult.getPtEsResult().isSecure());
     }
 
     /**
@@ -149,33 +176,12 @@ class SweCsaRaoResultValidatorTest {
         Assertions.assertEquals(Status.FINISHED_SECURE, finalResult.frEsResult().getRight());
     }
 
-    private MultiBorderMonitoring getFlowCnecSecurityChecker() {
-        int numberOfLoadFlowsInParallel = 1;
-        Map<Border, CracRaoResultPair> monitoringInputMap = Map.of(
-                Border.FR_ES, new CracRaoResultPair(frEsCrac, frEsRaoResult),
-                Border.PT_ES, new CracRaoResultPair(ptEsCrac, ptEsRaoResult)
-        );
-        MultiBorderMonitoringInput parallelInput = new MultiBorderMonitoringInput(network, monitoringInputMap, PhysicalParameter.FLOW, null, loadFlowProvider, loadFlowParameters);
-        return new MultiBorderMonitoring(parallelInput, numberOfLoadFlowsInParallel, LOGGER);
-    }
-
-    private void assertSecurity(ParallelDichotomiesResult validatedParallelDichotomiesResult, Boolean isFrEsSecure, Boolean isPtEsSecure) {
-        assertNotNull(validatedParallelDichotomiesResult);
-        assertNotNull(validatedParallelDichotomiesResult.getPtEsResult().getRaoResult());
-        assertNotNull(validatedParallelDichotomiesResult.getFrEsResult().getRaoResult());
-        assertEquals(isFrEsSecure, validatedParallelDichotomiesResult.getFrEsResult().isSecure());
-        assertEquals(isPtEsSecure, validatedParallelDichotomiesResult.getPtEsResult().isSecure());
-    }
-
     @Test
     void twoBordersFlowCnecSecurityCheckerOKTest() {
-        MultiBorderMonitoring flowCnecSecurityChecker = getFlowCnecSecurityChecker();
-
-        Map<Border, MonitoringResult> flowSecurityCheck = flowCnecSecurityChecker.run();
-        Map<Border, Boolean> flowSecurityPair = flowSecurityCheck.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getStatus() == Cnec.SecurityStatus.SECURE));
-
-        assertTrue(flowSecurityPair.get(Border.FR_ES));
-        assertFalse(flowSecurityPair.get(Border.PT_ES));
+        MultiBorderMonitoring flowCnecSecurityChecker = getFlowCnecSecurityChecker(30);
+        MultiBorderMonitoringResult flowSecurityCheck = flowCnecSecurityChecker.run();
+        assertThat(flowSecurityCheck.getMonitoringResultForBorder(Border.FR_ES).getStatus()).isEqualTo(Cnec.SecurityStatus.SECURE);
+        assertThat(flowSecurityCheck.getMonitoringResultForBorder(Border.PT_ES).getStatus()).isEqualTo(Cnec.SecurityStatus.HIGH_CONSTRAINT);
     }
 
     /**
@@ -184,14 +190,10 @@ class SweCsaRaoResultValidatorTest {
      * */
     @Test
     void twoBordersFlowCnecSecurityCheckerWithDivergedLfTest() {
-        network.getGeneratorStream().forEach(generator -> generator.setTargetP(-0.2));
-        MultiBorderMonitoring flowCnecSecurityChecker = getFlowCnecSecurityChecker();
-
-        Map<Border, MonitoringResult> flowSecurityCheck = flowCnecSecurityChecker.run();
-        Map<Border, Boolean> flowSecurityPair = flowSecurityCheck.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getStatus() == Cnec.SecurityStatus.SECURE));
-
-        assertFalse(flowSecurityPair.get(Border.FR_ES));
-        assertFalse(flowSecurityPair.get(Border.PT_ES));
+        MultiBorderMonitoring flowCnecSecurityChecker = getFlowCnecSecurityChecker(1);
+        MultiBorderMonitoringResult flowSecurityCheck = flowCnecSecurityChecker.run();
+        assertThat(flowSecurityCheck.getMonitoringResultForBorder(Border.FR_ES).getStatus()).isEqualTo(Cnec.SecurityStatus.FAILURE);
+        assertThat(flowSecurityCheck.getMonitoringResultForBorder(Border.PT_ES).getStatus()).isEqualTo(Cnec.SecurityStatus.FAILURE);
     }
 
     /**
@@ -310,10 +312,8 @@ class SweCsaRaoResultValidatorTest {
     @Test
     void sweCsaRaoResultValidatorWithDivergedLf1Test() {
         // Extreme network to make LF failed
-        network.getGeneratorStream().forEach(generator -> generator.setTargetP(-0.2));
-
+        network.getGeneratorStream().forEach(generator -> generator.setTargetP(2e6));
         ParallelDichotomiesResult validatedParallelDichotomiesResult = runRaoResultValidation();
-
         // Assert
         assertSecurity(validatedParallelDichotomiesResult, false, false);
 

@@ -1,4 +1,4 @@
-package com.farao_community.farao.swe_csa.app.security_evaluator;
+package com.farao_community.farao.swe_csa.app.multi_border_monitoring;
 
 import com.powsybl.action.*;
 import com.powsybl.computation.ComputationManager;
@@ -36,8 +36,8 @@ import java.util.stream.Collectors;
 
 import static com.powsybl.openrao.commons.logs.OpenRaoLoggerProvider.BUSINESS_WARNS;
 
-public final class ResultValidatorHelper {
-    private ResultValidatorHelper() {
+public final class MonitoringUtils {
+    private MonitoringUtils() {
     }
 
     public static boolean applyContingency(State state, Network networkClone) {
@@ -250,5 +250,55 @@ public final class ResultValidatorHelper {
         businessLogger.warn(failureReason);
         return result;
     }
+
+    /**
+     * Builds a map of State -> set of Borders that contain that state.
+     * Preventive states are excluded.
+     */
+    public static Map<State, EnumSet<Border>> mapContingencyStates(MultiBorderMonitoringInput monitoringInput) {
+        Map<State, EnumSet<Border>> merged = new HashMap<>();
+        for (Border border : monitoringInput.getBorders()) {
+            Crac crac = monitoringInput.getCracForBorder(border);
+            crac.getCnecs(monitoringInput.getPhysicalParameter()).stream()
+                    .map(Cnec::getState)
+                    .filter(state -> !state.isPreventive())
+                    .forEach(state -> merged.computeIfAbsent(state, k -> EnumSet.noneOf(Border.class)).add(border));
+        }
+
+        return merged;
+    }
+
+    public static void printResults(MultiBorderMonitoringResult monitoringResult, PhysicalParameter physicalParameter, Logger businessLogger) {
+        monitoringResult.getResultsForAllBorders().forEach((border, result) -> {
+            if (physicalParameter == PhysicalParameter.VOLTAGE || physicalParameter == PhysicalParameter.ANGLE) {
+                result.printConstraints().forEach(msg -> businessLogger.info("Border [{}] {}", border, msg));
+            } else {
+                printFlowConstraints(border, result, businessLogger);
+            }
+        });
+    }
+
+    private static void printFlowConstraints(Border border, MonitoringResult monitoringResult, Logger businessLogger) {
+        if (Objects.equals(monitoringResult.getStatus(), Cnec.SecurityStatus.FAILURE)) {
+            businessLogger.info("Border [{}] {} monitoring failed due to a load flow divergence or an inconsistency in the crac or in the parameters.",
+                    border, monitoringResult.getPhysicalParameter());
+            return;
+        }
+
+        List<CnecResult> unsecureCnecs = monitoringResult.getCnecResults().stream()
+                .filter(r -> r.getMargin() < 0)
+                .sorted(Comparator.comparing(CnecResult::getId))
+                .toList();
+
+        if (unsecureCnecs.isEmpty()) {
+            businessLogger.info("Border [{}] All {} CNECs are secure.", border, monitoringResult.getPhysicalParameter());
+            return;
+        }
+        businessLogger.info("Border [{}] Some {} CNECs are not secure:", border, monitoringResult.getPhysicalParameter());
+        for (CnecResult cnec : unsecureCnecs) {
+            businessLogger.info("Border [{}] CNEC {} margin={} status={}", border, cnec.getId(), cnec.getMargin(), cnec.getCnecSecurityStatus());
+        }
+    }
+
 
 }
