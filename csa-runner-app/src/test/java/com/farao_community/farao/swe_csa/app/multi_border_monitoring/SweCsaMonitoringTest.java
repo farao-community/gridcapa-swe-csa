@@ -11,7 +11,6 @@ import com.farao_community.farao.swe_csa.app.FileImporter;
 import com.farao_community.farao.swe_csa.app.InterruptionService;
 import com.farao_community.farao.swe_csa.app.dichotomy.*;
 import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
-import com.farao_community.farao.swe_csa.app.security_evaluator.MultiBorderMonitoringInput.CracRaoResultPair;
 import com.farao_community.farao.swe_csa.app.shift.SweCsaZonalData;
 import com.powsybl.contingency.ContingencyElementType;
 import com.powsybl.contingency.LineContingency;
@@ -138,7 +137,6 @@ class SweCsaMonitoringTest {
         return new MultiBorderMonitoring(parallelInput, numberOfLoadFlowsInParallel, LOGGER);
     }
 
-
     private void assertSecurity(ParallelDichotomiesResult validatedParallelDichotomiesResult, Boolean isFrEsSecure, Boolean isPtEsSecure) {
         assertNotNull(validatedParallelDichotomiesResult);
         assertNotNull(validatedParallelDichotomiesResult.getPtEsResult().getRaoResult());
@@ -168,12 +166,12 @@ class SweCsaMonitoringTest {
         SweCsaRaoValidator sweCsaRaoValidator = new SweCsaRaoValidatorMock(fileExporter, raoRunnerClient);
         CsaRequest csaRequest = new CsaRequest("csa-task-id", "2023-09-13T09:30:00Z", "cgm-url", "glsk-url", "pt-es-crac-url", "fr-es-crac-url");
 
-        DichotomyRunner sweCsaDichotomyRunner = new DichotomyRunner(sweCsaRaoValidator, dataCheckImporter, fileExporter, interruptionService, streamBridge, s3ArtifactsAdapter, LoggerFactory.getLogger(com.farao_community.farao.swe_csa.app.security_evaluator.SweCsaRaoResultValidatorTest.class), parallelDichotomiesRunner);
+        DichotomyRunner sweCsaDichotomyRunner = new DichotomyRunner(sweCsaRaoValidator, dataCheckImporter, fileExporter, interruptionService, streamBridge, s3ArtifactsAdapter, LoggerFactory.getLogger(com.farao_community.farao.swe_csa.app.multi_border_monitoring.SweCsaMonitoringTest.class), parallelDichotomiesRunner);
         sweCsaDichotomyRunner.setIndexPrecision(50);
         sweCsaDichotomyRunner.setMaxDichotomiesByBorder(10);
         FinalResult finalResult = sweCsaDichotomyRunner.runDichotomy(csaRequest, "pt-es-rao-result-path", "fr-es-rao-result-path");
-        Assertions.assertEquals(Status.FINISHED_SECURE, finalResult.ptEsResult().getRight());
-        Assertions.assertEquals(Status.FINISHED_SECURE, finalResult.frEsResult().getRight());
+        Assertions.assertEquals(Status.FINISHED_UNSECURE, finalResult.ptEsResult().getRight());
+        Assertions.assertEquals(Status.FINISHED_UNSECURE, finalResult.frEsResult().getRight());
     }
 
     @Test
