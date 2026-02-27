@@ -299,6 +299,4 @@ public final class MonitoringUtils {
             businessLogger.info("Border [{}] CNEC {} margin={} status={}", border, cnec.getId(), cnec.getMargin(), cnec.getCnecSecurityStatus());
         }
     }
-
-
 }

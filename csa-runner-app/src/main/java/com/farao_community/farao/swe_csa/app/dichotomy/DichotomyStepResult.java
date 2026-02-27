@@ -110,7 +110,7 @@ public final class DichotomyStepResult {
     }
 
     public boolean isFlowSecure() {
-        return this.getFlowMonitoringResult().getStatus().equals(Cnec.SecurityStatus.SECURE)? true : false;
+        return this.getFlowMonitoringResult().getStatus().equals(Cnec.SecurityStatus.SECURE);
     }
 }
 

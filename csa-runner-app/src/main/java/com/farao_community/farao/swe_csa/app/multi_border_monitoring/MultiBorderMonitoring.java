@@ -7,7 +7,6 @@ import com.powsybl.openrao.commons.OpenRaoException;
 import com.powsybl.openrao.commons.PhysicalParameter;
 import com.powsybl.openrao.data.crac.api.State;
 import com.powsybl.openrao.data.crac.api.cnec.Cnec;
-import com.powsybl.openrao.monitoring.results.CnecResult;
 import com.powsybl.openrao.monitoring.results.MonitoringResult;
 import com.powsybl.openrao.util.AbstractNetworkPool;
 import org.slf4j.Logger;
@@ -16,7 +15,6 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static com.farao_community.farao.swe_csa.app.multi_border_monitoring.MonitoringUtils.applyOptimalRemedialActions;
 import static com.farao_community.farao.swe_csa.app.multi_border_monitoring.MonitoringUtils.applyOptimalRemedialActionsOnContingencyState;

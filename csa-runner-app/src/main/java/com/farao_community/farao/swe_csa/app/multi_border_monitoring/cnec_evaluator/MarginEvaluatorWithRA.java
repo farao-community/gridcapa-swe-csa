@@ -51,7 +51,7 @@ public class MarginEvaluatorWithRA implements CnecEvaluator {
         // Load-flow
         if (!computeLoadFlow(network, loadFlowProvider, loadFlowParameters)) {
             String failureReason = String.format("Load-flow computation failed during %s monitoring at state %s. Skipping this state.", physicalParameter, state);
-            Map<Border, MonitoringResult> failedResults = makeFailedMonitoringResultForStateWithNaNCnecResults( multiBorderMonitoringInput, state, borders, failureReason, businessLogger );
+            Map<Border, MonitoringResult> failedResults = makeFailedMonitoringResultForStateWithNaNCnecResults(multiBorderMonitoringInput, state, borders, failureReason, businessLogger);
             return new MultiBorderMonitoringResult(failedResults);
         }
 
@@ -74,7 +74,7 @@ public class MarginEvaluatorWithRA implements CnecEvaluator {
         if (anyActionsApplied) {
             if (!computeLoadFlow(network, loadFlowProvider, loadFlowParameters)) {
                 String failureReason = String.format("Load-flow computation failed during %s monitoring at state %s after applying RAs. Skipping this state.", physicalParameter, state);
-                Map<Border, MonitoringResult> failed = makeFailedMonitoringResultForStateWithNaNCnecResults( multiBorderMonitoringInput, state, borders, failureReason, businessLogger );
+                Map<Border, MonitoringResult> failed = makeFailedMonitoringResultForStateWithNaNCnecResults(multiBorderMonitoringInput, state, borders, failureReason, businessLogger);
                 return new MultiBorderMonitoringResult(failed);
             }
             // Recompute CNEC result for each border

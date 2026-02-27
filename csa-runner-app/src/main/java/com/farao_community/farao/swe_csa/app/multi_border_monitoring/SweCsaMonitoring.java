@@ -30,7 +30,7 @@ public class SweCsaMonitoring {
                                      Map<Border, MonitoringResult> flowMonitoringPerBorder,
                                      Map<Border, MonitoringResult> angleMonitoringPerBorder,
                                      Map<Border, MonitoringResult> voltageMonitoringPerBorder
-    ) {}
+    ) { }
 
     private final String loadFlowProvider;
     private final LoadFlowParameters loadFlowParameters;
@@ -137,7 +137,6 @@ public class SweCsaMonitoring {
             businessLogger.info("{} monitoring unsecure for at least one border", label);
         }
     }
-
 
     private Set<BorderMonitoringInput> rebuildMonitoringInputs(Set<BorderMonitoringInput> borderMonitoringInput, Map<Border, RaoResult> updatedRaoResultPerBorder) {
         return borderMonitoringInput.stream()

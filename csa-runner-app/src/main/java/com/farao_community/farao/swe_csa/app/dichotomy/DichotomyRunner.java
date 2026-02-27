@@ -19,7 +19,6 @@ import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.openrao.commons.PhysicalParameter;
 import com.powsybl.openrao.data.crac.api.Crac;
 import com.powsybl.openrao.data.crac.api.rangeaction.CounterTradeRangeAction;
 import com.powsybl.openrao.data.raoresult.api.RaoResult;
@@ -246,7 +245,6 @@ public class DichotomyRunner {
         SweCsaMonitoring sweCsaMonitoring = new SweCsaMonitoring(LoadFlowAndSensitivityParameters.getLoadFlowProvider(raoParameters), LoadFlowAndSensitivityParameters.getSensitivityWithLoadFlowParameters(raoParameters).getLoadFlowParameters(), businessLogger);
         return sweCsaMonitoring.validateNetworkForSweBorders(network, parallelResult, cracFrEs, cracPtEs, scalableZonalData);
     }
-
 
     private Pair<RaoResult, Status> getRaoResultStatusPair(RaoResult raoResult, Index index, boolean interrupted) {
         Status status;
