@@ -195,7 +195,7 @@
     },
     "curative 3" : {
       "ampere" : {
-        "margin" : 925.83,
+        "margin" : -99.0,
         "side1" : {
           "flow" : -574.17
         }

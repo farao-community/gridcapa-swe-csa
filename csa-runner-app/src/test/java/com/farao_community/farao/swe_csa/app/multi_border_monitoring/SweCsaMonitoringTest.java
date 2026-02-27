@@ -307,7 +307,8 @@ class SweCsaMonitoringTest {
     /**
      * Data description:
      * - One common CO in two Cracs
-     * - Flow is secure two borders (given in raoResult.json files)
+     * - Flow is secure in FR-ES (given in rao_result_fr_es.json files)
+     * - Only "Flow-Cnec-Pt-Es-curative 3" is not secure at curative 3 in PT_ES (given in rao_result_pt_es_3.json)
      * - 2 Angle CNECs, 2 Voltage CNECs in fr-es Crac (one at preventive and one at curative 3 for each type)
      * - pt-es Crac has 2 secure voltage CNECs, and 1 secure angle CNEC at preventive and one violated angle CNEC at curative 3
      * "Network-action-pt-es-1" linked the secure voltageCNECs,
@@ -315,27 +316,26 @@ class SweCsaMonitoringTest {
      * Expected result:
      * - Fr-Es secure
      * - Pt-Es secure
+     * - During flowMonitoring: "Flow-Cnec-Pt-Es-curative 3" is secure by two RAs from FR_ES raoResult
      * - During angleMonitoring: only "Network-action-pt-es-2" applied at curative 3 to secure the pt_es angleCNEC at curative 3,
      * "Pst-action-pt-es" is not applied
      * - During voltageMontioring: "Network-action-pt-es-1" is not applied because all voltageCNECs are secure
-     *
      * */
     @Test
-    void sweCsaRaoResultValidatorOKWithTwoSecureBordersTest() {
+    void sweCsaRaoResultValidatorOKWithTwoSecureBordersTest1() {
         // "Network-action-pt-es-2" has onConstraintUsage with AngleCNEC at preventive and curative 3
         ptEsCrac = fileImporter.importCrac("taskId", Objects.requireNonNull(getClass().getResource("/security_evaluator/crac_pt_es_3.json")).toString(), network);
         ptEsRaoResult = new RaoResultJsonImporter().importData(getClass().getResourceAsStream("/security_evaluator/rao_result_pt_es_3.json"), ptEsCrac);
+        double flowPtEsCurative3Margin =  ptEsRaoResult.getMargin(ptEsCrac.getInstant("curative 3"), ptEsCrac.getFlowCnec("Flow-Cnec-Pt-Es-curative 3"), Unit.AMPERE);
+        assertTrue(flowPtEsCurative3Margin < 0);
         ParallelDichotomiesResult validatedParallelDichotomiesResult = runRaoResultValidation();
 
         // Assert
         assertSecurity(validatedParallelDichotomiesResult, true, true);
-        assertTrue(validatedParallelDichotomiesResult.getFrEsResult().getRaoResult().isSecure(PhysicalParameter.FLOW, PhysicalParameter.VOLTAGE, PhysicalParameter.ANGLE));
-        assertTrue(validatedParallelDichotomiesResult.getPtEsResult().getRaoResult().isSecure(PhysicalParameter.FLOW, PhysicalParameter.VOLTAGE, PhysicalParameter.ANGLE));
 
         // Pt-Es is not secure
         RaoResult validatedPtEsRaoResult = validatedParallelDichotomiesResult.getPtEsResult().getRaoResult();
         assertNotNull(validatedPtEsRaoResult);
-        assertTrue(validatedPtEsRaoResult.isSecure(PhysicalParameter.FLOW, PhysicalParameter.ANGLE, PhysicalParameter.VOLTAGE));
 
         State stateCoCurative3 = ptEsCrac.getState("CO-Es-1", ptEsCrac.getInstant("curative 3"));
         List<NetworkAction> ptEsActivatedNetworkActionsAtCurative3 = validatedPtEsRaoResult.getActivatedNetworkActionsDuringState(stateCoCurative3).stream().toList();

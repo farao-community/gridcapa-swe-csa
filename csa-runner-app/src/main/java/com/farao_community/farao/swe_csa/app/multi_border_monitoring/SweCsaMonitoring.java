@@ -123,7 +123,7 @@ public class SweCsaMonitoring {
         securityFlagPerBorder.forEach((border, wasSecure) -> {
             boolean nowSecure = wasSecure &&
                     Optional.ofNullable(updatedRaoResultPerBorder.get(border))
-                            .map(r -> r.isSecure(PhysicalParameter.FLOW, parameter))
+                            .map(r -> r.isSecure(parameter))
                             .orElse(false);
             newMap.put(border, nowSecure);
         });
