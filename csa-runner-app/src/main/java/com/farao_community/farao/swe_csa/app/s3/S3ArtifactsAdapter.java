@@ -1,17 +1,16 @@
 package com.farao_community.farao.swe_csa.app.s3;
 
+import com.farao_community.farao.swe_csa.app.utils.TmpFile;
 import io.minio.MinioClient;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
+import java.io.InputStream;
+import java.time.OffsetDateTime;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
-import java.io.InputStream;
-import java.time.OffsetDateTime;
-
 @Component
 public class S3ArtifactsAdapter {
-    private static final Logger LOGGER = LoggerFactory.getLogger(S3AdapterUtil.class);
 
     private final MinioClient minioClient;
     private final String bucket;
@@ -27,12 +26,21 @@ public class S3ArtifactsAdapter {
         S3AdapterUtil.createBucketIfDoesNotExist(minioClient, bucket);
     }
 
-    public void uploadFile(String pathDestination, InputStream sourceInputStream) {
-        createBucketIfDoesNotExist();
-        S3AdapterUtil.uploadFile(minioClient, basePath + "/" + pathDestination, sourceInputStream, bucket);
+    /**
+     * File content must be smaller than 5 MB. Just call if you are absolutely sure about that, otherwise call uploadFile passing TmpFile instead of InputStream
+     */
+    @WithSpan("uploadFileToS3")
+    public void uploadSmallFile(@SpanAttribute("pathDestination") String pathDestination, InputStream sourceInputStream) {
+        S3AdapterUtil.uploadFile(minioClient, basePath + "/" + pathDestination, sourceInputStream, bucket, -1);
     }
 
-    public String generatePreSignedUrl(String minioPath) {
+    @WithSpan("uploadFileToS3")
+    public void uploadFile(@SpanAttribute("pathDestination") String pathDestination, TmpFile source) {
+        S3AdapterUtil.uploadFile(minioClient, basePath + "/" + pathDestination, source.getReadStream(), bucket, source.getTempFile().length());
+    }
+
+    @WithSpan("generatePreSignedUrl")
+    public String generatePreSignedUrl(@SpanAttribute("minioPath")String minioPath) {
         return S3AdapterUtil.generatePreSignedUrl(minioClient, basePath + "/" + minioPath, bucket);
     }
 

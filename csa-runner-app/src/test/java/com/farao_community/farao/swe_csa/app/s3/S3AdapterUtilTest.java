@@ -5,16 +5,15 @@ import io.minio.BucketExistsArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatcher;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UncheckedIOException;
 
 class S3AdapterUtilTest {
     @Test
@@ -41,22 +40,19 @@ class S3AdapterUtilTest {
             MinioClient minioClient = Mockito.mock(MinioClient.class);
             Mockito.when(minioClient.bucketExists(Mockito.argThat(assertBucketExistsArgs()))).thenReturn(false);
 
-            S3AdapterUtil.uploadFile(minioClient, "/path", new ByteArrayInputStream("content".getBytes()), "bucket");
+            var content = "thisimycontent";
+            S3AdapterUtil.uploadFile(minioClient, "/path", new ByteArrayInputStream(content.getBytes()), "bucket", content.length());
             InOrder inOrder = Mockito.inOrder(minioClient);
 
             inOrder.verify(minioClient, Mockito.times(1))
-                .bucketExists(Mockito.argThat(
-                    assertBucketExistsArgs()
-                ));
+                .bucketExists(Mockito.argThat(assertBucketExistsArgs()));
+            inOrder.verify(minioClient, Mockito.times(1))
+                .makeBucket(Mockito.argThat(assertMakeBucketArgs()));
 
-            inOrder.verify(minioClient, Mockito.times(1))
-                .makeBucket(Mockito.argThat(
-                    assertMakeBucketArgs()
-                ));
-            inOrder.verify(minioClient, Mockito.times(1))
-                .putObject(Mockito.argThat(
-                    assertPutObjectArgs())
-                );
+            inOrder.verify(minioClient, Mockito.times(1)).putObject(Mockito.any());
+            inOrder.verify(minioClient, Mockito.times(1)).copyObject(Mockito.any());
+            inOrder.verify(minioClient, Mockito.times(1)).removeObject(Mockito.any());
+
         } catch (Exception e) {
             // should not happen
 
