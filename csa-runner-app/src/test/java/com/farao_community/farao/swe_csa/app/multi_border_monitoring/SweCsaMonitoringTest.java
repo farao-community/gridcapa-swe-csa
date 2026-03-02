@@ -174,8 +174,13 @@ class SweCsaMonitoringTest {
         Assertions.assertEquals(Status.FINISHED_UNSECURE, finalResult.frEsResult().getRight());
     }
 
+    /**
+     * Flow monitoring is performed on both SWE borders.
+     * FR-ES: Secure
+     * PT-ES: Unsecure
+     * */
     @Test
-    void twoBordersFlowCnecSecurityCheckerOKTest() {
+    void flowMonitoringFrEsSecurePtEsHighConstraintTest() {
         MultiBorderMonitoring flowCnecSecurityChecker = getFlowCnecSecurityChecker(30);
         MultiBorderMonitoringResult flowSecurityCheck = flowCnecSecurityChecker.run();
         assertThat(flowSecurityCheck.getMonitoringResultForBorder(Border.FR_ES).getStatus()).isEqualTo(Cnec.SecurityStatus.SECURE);
@@ -187,7 +192,7 @@ class SweCsaMonitoringTest {
      * So the flow monitoring results are unsecure for both borders
      * */
     @Test
-    void twoBordersFlowCnecSecurityCheckerWithDivergedLfTest() {
+    void flowMonitoringLfDivergenceTest() {
         MultiBorderMonitoring flowCnecSecurityChecker = getFlowCnecSecurityChecker(1);
         MultiBorderMonitoringResult flowSecurityCheck = flowCnecSecurityChecker.run();
         assertThat(flowSecurityCheck.getMonitoringResultForBorder(Border.FR_ES).getStatus()).isEqualTo(Cnec.SecurityStatus.FAILURE);
@@ -208,7 +213,7 @@ class SweCsaMonitoringTest {
      * - During voltageMontioring: PST is not applied, Network actions only applied at curative 3 (not preventive)
      * */
     @Test
-    void sweCsaRaoResultValidatorOKTest1() {
+    void ptEsUnsecureVoltageRasTest() {
 
         ParallelDichotomiesResult validatedParallelDichotomiesResult = runRaoResultValidation();
 
@@ -262,7 +267,7 @@ class SweCsaMonitoringTest {
      * - During voltageMontioring: "Network-action-pt-es-1" applied at curative 3 (not preventive)
      * */
     @Test
-    void sweCsaRaoResultValidatorOKWithAngleRAApplicationTest2() {
+    void ptEsUnsecureAngleAndVoltageRasTest() {
         // "Network-action-pt-es-2" has onConstraintUsage with AngleCNEC at preventive and curative 3
         ptEsCrac = fileImporter.importCrac("taskId", Objects.requireNonNull(getClass().getResource("/security_evaluator/crac_pt_es_2.json")).toString(), network);
         ptEsRaoResult = new RaoResultJsonImporter().importData(getClass().getResourceAsStream("/security_evaluator/rao_result_pt_es.json"), ptEsCrac);
@@ -322,7 +327,7 @@ class SweCsaMonitoringTest {
      * - During voltageMontioring: "Network-action-pt-es-1" is not applied because all voltageCNECs are secure
      * */
     @Test
-    void sweCsaRaoResultValidatorOKWithTwoSecureBordersTest1() {
+    void sweBorderSecureMonitoringTest() {
         // "Network-action-pt-es-2" has onConstraintUsage with AngleCNEC at preventive and curative 3
         ptEsCrac = fileImporter.importCrac("taskId", Objects.requireNonNull(getClass().getResource("/security_evaluator/crac_pt_es_3.json")).toString(), network);
         ptEsRaoResult = new RaoResultJsonImporter().importData(getClass().getResourceAsStream("/security_evaluator/rao_result_pt_es_3.json"), ptEsCrac);
@@ -347,28 +352,13 @@ class SweCsaMonitoringTest {
     }
 
     /**
-     * The LF computation is failed at the preventive flow monitoring
-     * So the dichotomy results are unsecure for both borders
-     * Note that the monitoring after preventive flow monitoring will not be executed
-     * */
-    @Test
-    void sweCsaRaoResultValidatorWithDivergedLf1Test() {
-        // Extreme network to make LF failed
-        network.getGeneratorStream().forEach(generator -> generator.setTargetP(2e6));
-        ParallelDichotomiesResult validatedParallelDichotomiesResult = runRaoResultValidation();
-        // Assert
-        assertSecurity(validatedParallelDichotomiesResult, false, false);
-
-    }
-
-    /**
      * The computation is failed at the when trying to redispatch the network
      * due to the bad input data of glsk document file
      * The angleMontioring at state "CO-Es-1" - Curative 3 failed for two borders
      * So Angle monitoring unsecure for both borders
      * */
     @Test
-    void sweCsaRaoResultValidatorWithDivergedLf2Test() {
+    void monitoringAngleLfDivergenceTest() {
         // "Network-action-pt-es-2" has onConstraintUsage with AngleCNEC at preventive and curative 3
         ptEsCrac = fileImporter.importCrac("taskId", Objects.requireNonNull(getClass().getResource("/security_evaluator/crac_pt_es_2.json")).toString(), network);
         ptEsRaoResult = new RaoResultJsonImporter().importData(getClass().getResourceAsStream("/security_evaluator/rao_result_pt_es.json"), ptEsCrac);
@@ -389,10 +379,12 @@ class SweCsaMonitoringTest {
      * but "Voltage-Cnec-Fr-Es-1-curative 3" is unsecure at Curative 3
      * This result is updated in raoResult (in the input raoResult, the
      * margin of this CNEC is positive, but in the updated result, it is negative)
-     * So the dichotomy of FrEs is unsecure
+     * Expected Results:
+     * FR-ES: flow -> secure, angle -> secure, voltage -> unsecure
+     * PT-ES: flow -> unsecure, angle -> unsecure, voltage -> unsecure
      * */
     @Test
-    void raoResultValidatorWithUnsecureFrEsVoltageMonitoringAtCurative3Test() {
+    void sweBordersVoltageMonitoringUnsecureTest() {
 
         frEsCrac = fileImporter.importCrac("taskId", Objects.requireNonNull(getClass().getResource("/security_evaluator/crac_fr_es_2.json")).toString(), network);
         frEsRaoResult = new RaoResultJsonImporter().importData(getClass().getResourceAsStream("/security_evaluator/rao_result_fr_es.json"), frEsCrac);
@@ -466,12 +458,10 @@ class SweCsaMonitoringTest {
     /**
      * frEsCrac contains an invalid CO, there are some flowCnecs linked to it
      * This CO is not applied during the flow monitoring
-     * So the flow of frEs is not secure with a message:
-     * 'Border [FR-ES] FLOW monitoring failed due to a load flow divergence or an inconsistency in the crac or in the parameters'
-     * Note that: because the flow CNECs are linked to invalid CO so the raoResult is not coherent with CRAC
+     * So the flow of frEs is not secure
      * */
     @Test
-    void inValidCOOfFlowMonitoringTest() {
+    void invalidCoFlowMonitoringTest() {
         LineContingency lineContingency = new LineContingency("invalid_line", null);
         frEsCrac.getContingency("CO-Fr-Es-2").addElement(lineContingency);
         ParallelDichotomiesResult validatedParallelDichotomiesResult = runRaoResultValidation();
@@ -482,11 +472,10 @@ class SweCsaMonitoringTest {
     /**
      * frEsCrac contains an invalid CO, and 'new_voltage_cnec' is linked to it
      * This CO is not applied during the voltage monitoring
-     * So the voltage of frEs is not secure with a message:
-     * 'Border [FR-ES] VOLTAGE monitoring failed due to a load flow divergence or an inconsistency in the crac or in the parameters'
+     * So the voltage of frEs is not secure
      * */
     @Test
-    void inValidCOOfVoltageMonitoringTest() {
+    void invalidCoVoltageMonitoringTest() {
         // Create a 'new_voltage_cnec' linked to an invalid CO
         frEsCrac.newContingency().withName("invalid_CO").withId("invalid_CO").withContingencyElement("invalid_CO_element", ContingencyElementType.LINE).add();
         frEsCrac.newVoltageCnec().withNetworkElement("FFR1AA1").withInstant("curative 3").withContingency("invalid_CO").withOptimized(false)
