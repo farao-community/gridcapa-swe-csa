@@ -18,12 +18,14 @@ import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openrao.commons.PhysicalParameter;
 import com.powsybl.openrao.data.crac.api.Crac;
 import com.powsybl.openrao.data.crac.api.rangeaction.CounterTradeRangeAction;
 import com.powsybl.openrao.data.raoresult.api.RaoResult;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
 import com.powsybl.openrao.raoapi.parameters.extensions.LoadFlowAndSensitivityParameters;
+import com.powsybl.openrao.raoapi.parameters.extensions.OpenRaoSearchTreeParameters;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.MDC;
@@ -72,8 +74,11 @@ public class DichotomyRunner {
 
     public FinalResult runDichotomy(CsaRequest csaRequest, String ptEsRaoResultDestinationPath, String frEsRaoResultDestinationPath) throws GlskLimitationException, ShiftingException {
         RaoParameters raoParameters = RaoParameters.load();
+        LoadFlowParameters loadFlowParameters = fileImporter.getLoadFlowParameters(csaRequest.getId(), csaRequest.getLoadFlowParametersUri());
+        // Update loadFlowParameters in raoParameters
+        updateRaoParametersWithNewLoadFlowParameters(raoParameters, loadFlowParameters);
         Instant instant = Instant.parse(csaRequest.getBusinessTimestamp());
-        String raoParametersUrl = fileImporter.uploadRaoParameters(instant);
+        String raoParametersUrl = fileImporter.uploadRaoParameters(instant, raoParameters);
         Network network = fileImporter.importNetwork(csaRequest.getId(), csaRequest.getGridModelUri());
         Crac cracPtEs = fileImporter.importCrac(csaRequest.getId(), csaRequest.getPtEsCracFileUri(), network);
         Crac cracFrEs = fileImporter.importCrac(csaRequest.getId(), csaRequest.getFrEsCracFileUri(), network);
@@ -300,4 +305,18 @@ public class DichotomyRunner {
     public void setMaxDichotomiesByBorder(double maxDichotomiesByBorder) {
         this.maxDichotomiesByBorder = maxDichotomiesByBorder;
     }
+
+    public static void updateRaoParametersWithNewLoadFlowParameters(RaoParameters raoParameters, LoadFlowParameters loadFlowParameters) {
+
+        OpenRaoSearchTreeParameters searchTreeParameters = raoParameters.getExtension(OpenRaoSearchTreeParameters.class);
+        if (searchTreeParameters == null) {
+            searchTreeParameters = new OpenRaoSearchTreeParameters();
+            raoParameters.addExtension(OpenRaoSearchTreeParameters.class, searchTreeParameters);
+        }
+
+        searchTreeParameters.getLoadFlowAndSensitivityParameters()
+                .getSensitivityWithLoadFlowParameters()
+                .setLoadFlowParameters(loadFlowParameters);
+    }
+
 }

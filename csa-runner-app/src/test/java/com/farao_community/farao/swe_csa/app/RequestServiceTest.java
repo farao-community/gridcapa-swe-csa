@@ -54,7 +54,7 @@ class RequestServiceTest {
 
         when(s3ArtifactsAdapter.generatePreSignedUrl("ptEsResultsPath")).thenReturn("https://cds/ptEsResultsPath.signed.url");
         when(s3ArtifactsAdapter.generatePreSignedUrl("frEsResultsPath")).thenReturn("https://cds/frEsResultsPath.signed.url");
-        CsaRequest csaRequest = new CsaRequest("id", "2023-08-08T15:30:00Z", "https://cds/gridModelUri.signed.url", "https://cds/glskUri.signed.url", "https://cds/ptEsCracFileUri.signed.url", "https://cds/frEsCracFileUri.signed.url");
+        CsaRequest csaRequest = new CsaRequest("id", "2023-08-08T15:30:00Z", "https://cds/gridModelUri.signed.url", "https://cds/glskUri.signed.url", "https://cds/ptEsCracFileUri.signed.url", "https://cds/frEsCracFileUri.signed.url", "https://cds/loadFlowParametersUri.signed.url");
         FinalResult finalResult = new FinalResult(Pair.of(null, Status.FINISHED_SECURE), Pair.of(null, Status.FINISHED_SECURE));
         when(dichotomyRunner.runDichotomy(csaRequest, "ptEsResultsPath", "frEsResultsPath")).thenReturn(finalResult);
 

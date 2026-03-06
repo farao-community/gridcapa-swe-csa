@@ -15,8 +15,11 @@ import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openrao.data.crac.api.Crac;
 import com.powsybl.openrao.data.crac.impl.CounterTradeRangeActionImpl;
+import com.powsybl.openrao.raoapi.parameters.RaoParameters;
+import com.powsybl.openrao.raoapi.parameters.extensions.LoadFlowAndSensitivityParameters;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -64,6 +67,8 @@ class SweCsaDichotomyRunnerTest {
         Instant utcInstant = Instant.parse("2023-09-13T09:30:00Z");
         Network network = Network.read("/dichotomy/TestCase_with_swe_countries.xiidm", getClass().getResourceAsStream("/dichotomy/TestCase_with_swe_countries.xiidm"));
         ZonalData<Scalable> scalableZonalData = SweCsaZonalData.getZonalData(network);
+        RaoParameters raoParameters = RaoParameters.load();
+        LoadFlowParameters loadFlowParameters = LoadFlowAndSensitivityParameters.getSensitivityWithLoadFlowParameters(raoParameters).getLoadFlowParameters();
 
         // Mock CRACs with the required CT RAs
         Crac ptEsCrac = Mockito.mock(Crac.class);
@@ -78,16 +83,17 @@ class SweCsaDichotomyRunnerTest {
         Mockito.when(frEsCrac.getCounterTradeRangeActions()).thenReturn(Set.of(ctRaFrEs, ctRaEsFr));
 
         Mockito.doNothing().when(s3ArtifactsAdapter).uploadFile(any(), any());
-        Mockito.when(fileImporter.uploadRaoParameters(utcInstant)).thenReturn("rao-parameters-url");
+        Mockito.when(fileImporter.uploadRaoParameters(utcInstant, RaoParameters.load())).thenReturn("rao-parameters-url");
         Mockito.when(fileImporter.importNetwork("csa-task-id", "cgm-url")).thenReturn(network);
         Mockito.when(fileImporter.importCrac("csa-task-id", "pt-es-crac-url", network)).thenReturn(ptEsCrac);
         Mockito.when(fileImporter.importCrac("csa-task-id", "fr-es-crac-url", network)).thenReturn(frEsCrac);
         Mockito.when(fileImporter.getZonalData("csa-task-id", utcInstant, "glsk-url", network)).thenReturn(scalableZonalData);
+        Mockito.when(fileImporter.getLoadFlowParameters("csa-task-id", "load-flow-parameters-url")).thenReturn(loadFlowParameters);
         Mockito.when(fileExporter.saveNetworkInArtifact(Mockito.anyString(), Mockito.any(), Mockito.any())).thenReturn("scaled-network-url");
         AbstractRaoResponse raoResponse = Mockito.mock(AbstractRaoResponse.class);
         Mockito.when(raoRunnerClient.runRao(Mockito.any())).thenReturn(raoResponse);
         SweCsaRaoValidator sweCsaRaoValidator = new SweCsaRaoValidatorMock(fileExporter, raoRunnerClient);
-        CsaRequest csaRequest = new CsaRequest("csa-task-id", "2023-09-13T09:30:00Z", "cgm-url", "glsk-url", "pt-es-crac-url", "fr-es-crac-url");
+        CsaRequest csaRequest = new CsaRequest("csa-task-id", "2023-09-13T09:30:00Z", "cgm-url", "glsk-url", "pt-es-crac-url", "fr-es-crac-url", "load-flow-parameters-url");
 
         DichotomyRunner sweCsaDichotomyRunner = new DichotomyRunner(sweCsaRaoValidator, fileImporter, fileExporter, interruptionService, streamBridge, s3ArtifactsAdapter, LoggerFactory.getLogger(SweCsaDichotomyRunnerTest.class), parallelDichotomiesRunner);
         sweCsaDichotomyRunner.setIndexPrecision(50);

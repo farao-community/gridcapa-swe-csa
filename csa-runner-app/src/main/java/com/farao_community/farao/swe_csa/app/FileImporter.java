@@ -9,6 +9,8 @@ import com.powsybl.glsk.api.io.GlskDocumentImporters;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.json.JsonLoadFlowParameters;
 import com.powsybl.openrao.commons.OpenRaoException;
 import com.powsybl.openrao.data.crac.api.Crac;
 import com.powsybl.openrao.raoapi.json.JsonRaoParameters;
@@ -17,7 +19,10 @@ import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.springframework.stereotype.Service;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -56,9 +61,8 @@ public class FileImporter {
         }
     }
 
-    public String uploadRaoParameters(Instant utcInstant) {
+    public String uploadRaoParameters(Instant utcInstant, RaoParameters raoParameters) {
         String raoParametersFilePath = String.format("configurations/rao-parameters-%s", HOURLY_NAME_FORMATTER.format(utcInstant).concat(".json"));
-        RaoParameters raoParameters = RaoParameters.load();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         JsonRaoParameters.write(raoParameters, baos);
         ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
@@ -93,6 +97,16 @@ public class FileImporter {
         } catch (Exception e) {
             businessLogger.error("Glsk document couldn't be imported, as a backup solution Scalable proportional to network generators will be used");
             return SweCsaZonalData.getZonalData(network);
+        }
+    }
+
+    public LoadFlowParameters getLoadFlowParameters(String taskId, String loadFlowParametersUri) {
+        try {
+            return JsonLoadFlowParameters.read(openUrlStream(taskId, loadFlowParametersUri));
+
+        } catch (Exception e) {
+            String message = String.format("Exception occurred while importing load flow parameters %s", getFileNameFromUrl(taskId, loadFlowParametersUri));
+            throw new CsaInvalidDataException(taskId, message, e);
         }
     }
 }

@@ -17,6 +17,7 @@ public class CsaRequest {
     private String glskUri;
     private String ptEsCracFileUri;
     private String frEsCracFileUri;
+    private String loadFlowParametersUri;
 
     @JsonCreator
     public CsaRequest(@JsonProperty("id") String id,
@@ -24,13 +25,15 @@ public class CsaRequest {
                       @JsonProperty("gridModelUri") String gridModelUri,
                       @JsonProperty("glskUri") String glskUri,
                       @JsonProperty("ptEsCracFileUri") String ptEsCracFileUri,
-                      @JsonProperty("frEsCracFileUri") String frEsCracFileUri) {
+                      @JsonProperty("frEsCracFileUri") String frEsCracFileUri,
+                      @JsonProperty("loadFlowParametersUri") String loadFlowParametersUri) {
         this.id = id;
         this.businessTimestamp = businessTimestamp;
         this.gridModelUri = gridModelUri;
         this.glskUri = glskUri;
         this.ptEsCracFileUri = ptEsCracFileUri;
         this.frEsCracFileUri = frEsCracFileUri;
+        this.loadFlowParametersUri = loadFlowParametersUri;
 
     }
 
@@ -78,6 +81,14 @@ public class CsaRequest {
         this.glskUri = glskUri;
     }
 
+    public String getLoadFlowParametersUri() {
+        return loadFlowParametersUri;
+    }
+
+    public void setLoadFlowParametersUri(String loadFlowParametersUri) {
+        this.loadFlowParametersUri = loadFlowParametersUri;
+    }
+
     @Override
     public String toString() {
         return ToStringBuilder.reflectionToString(this);
@@ -95,11 +106,11 @@ public class CsaRequest {
             return false;
         }
         CsaRequest other = (CsaRequest) obj;
-        return this.id.equals(other.id) && this.businessTimestamp.equals(other.businessTimestamp) && this.gridModelUri.equals(other.gridModelUri) && this.glskUri.equals(other.glskUri) && this.ptEsCracFileUri.equals(other.ptEsCracFileUri) && this.frEsCracFileUri.equals(other.frEsCracFileUri);
+        return this.id.equals(other.id) && this.businessTimestamp.equals(other.businessTimestamp) && this.gridModelUri.equals(other.gridModelUri) && this.glskUri.equals(other.glskUri) && this.ptEsCracFileUri.equals(other.ptEsCracFileUri) && this.frEsCracFileUri.equals(other.frEsCracFileUri) && this.loadFlowParametersUri.equals(other.loadFlowParametersUri);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, businessTimestamp, gridModelUri, glskUri, ptEsCracFileUri, frEsCracFileUri);
+        return Objects.hash(id, businessTimestamp, gridModelUri, glskUri, ptEsCracFileUri, frEsCracFileUri, loadFlowParametersUri);
     }
 }
