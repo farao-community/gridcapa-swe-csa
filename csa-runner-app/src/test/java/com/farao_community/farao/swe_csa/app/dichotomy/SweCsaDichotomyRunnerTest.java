@@ -83,7 +83,7 @@ class SweCsaDichotomyRunnerTest {
         Mockito.when(frEsCrac.getCounterTradeRangeActions()).thenReturn(Set.of(ctRaFrEs, ctRaEsFr));
 
         Mockito.doNothing().when(s3ArtifactsAdapter).uploadFile(any(), any());
-        Mockito.when(fileImporter.uploadRaoParameters(utcInstant, RaoParameters.load())).thenReturn("rao-parameters-url");
+        Mockito.when(fileExporter.uploadRaoParameters(utcInstant, RaoParameters.load())).thenReturn("rao-parameters-url");
         Mockito.when(fileImporter.importNetwork("csa-task-id", "cgm-url")).thenReturn(network);
         Mockito.when(fileImporter.importCrac("csa-task-id", "pt-es-crac-url", network)).thenReturn(ptEsCrac);
         Mockito.when(fileImporter.importCrac("csa-task-id", "fr-es-crac-url", network)).thenReturn(frEsCrac);

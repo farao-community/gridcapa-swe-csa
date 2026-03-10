@@ -78,7 +78,7 @@ public class DichotomyRunner {
         // Update loadFlowParameters in raoParameters
         updateRaoParametersWithNewLoadFlowParameters(raoParameters, loadFlowParameters);
         Instant instant = Instant.parse(csaRequest.getBusinessTimestamp());
-        String raoParametersUrl = fileImporter.uploadRaoParameters(instant, raoParameters);
+        String raoParametersUrl = fileExporter.uploadRaoParameters(instant, raoParameters);
         Network network = fileImporter.importNetwork(csaRequest.getId(), csaRequest.getGridModelUri());
         Crac cracPtEs = fileImporter.importCrac(csaRequest.getId(), csaRequest.getPtEsCracFileUri(), network);
         Crac cracFrEs = fileImporter.importCrac(csaRequest.getId(), csaRequest.getFrEsCracFileUri(), network);

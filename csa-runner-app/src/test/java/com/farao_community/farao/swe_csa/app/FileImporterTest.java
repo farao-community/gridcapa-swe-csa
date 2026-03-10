@@ -2,7 +2,6 @@ package com.farao_community.farao.swe_csa.app;
 
 import com.farao_community.farao.swe_csa.api.exception.CsaInvalidDataException;
 import com.farao_community.farao.swe_csa.app.dichotomy.DichotomyRunner;
-import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Network;
@@ -13,13 +12,10 @@ import com.powsybl.openrao.raoapi.parameters.RaoParameters;
 import com.powsybl.openrao.raoapi.parameters.extensions.LoadFlowAndSensitivityParameters;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -29,9 +25,6 @@ class FileImporterTest {
 
     @Autowired
     FileImporter fileImporter;
-
-    @MockitoBean
-    S3ArtifactsAdapter s3ArtifactsAdapter;
 
     @Test
     void checkIidmNetworkIsImportedCorrectly() {
@@ -88,13 +81,6 @@ class FileImporterTest {
         Scalable scalableFR = zonalScalable.getData("10YFR-RTE------C");
         assertEquals(3, scalableFR.filterInjections(testNetwork).size());
         assertEquals("FFR1AA1 _generator", scalableFR.filterInjections(testNetwork).getFirst().getId());
-    }
-
-    @Test
-    void saveRaoParametersTest() {
-        Mockito.when(s3ArtifactsAdapter.generatePreSignedUrl("configurations/rao-parameters-19990101_1230.json")).thenReturn("url");
-        String result = fileImporter.uploadRaoParameters(OffsetDateTime.parse("1999-01-01T12:30Z").toInstant(), RaoParameters.load());
-        assertEquals("url", result);
     }
 
     @Test

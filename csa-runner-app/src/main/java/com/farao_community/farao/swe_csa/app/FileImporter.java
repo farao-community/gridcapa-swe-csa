@@ -1,7 +1,6 @@
 package com.farao_community.farao.swe_csa.app;
 
 import com.farao_community.farao.swe_csa.api.exception.CsaInvalidDataException;
-import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
 import com.farao_community.farao.swe_csa.app.shift.SweCsaZonalData;
 import com.powsybl.glsk.api.GlskDocument;
 import com.powsybl.glsk.api.io.GlskDocumentImporter;
@@ -13,34 +12,23 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.json.JsonLoadFlowParameters;
 import com.powsybl.openrao.commons.OpenRaoException;
 import com.powsybl.openrao.data.crac.api.Crac;
-import com.powsybl.openrao.raoapi.json.JsonRaoParameters;
-import com.powsybl.openrao.raoapi.parameters.RaoParameters;
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.springframework.stereotype.Service;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 
 @Service
 public class FileImporter {
     private final Logger businessLogger;
 
-    private final S3ArtifactsAdapter s3ArtifactsAdapter;
-
-    private static final DateTimeFormatter HOURLY_NAME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd'_'HHmm").withZone(ZoneId.of("UTC"));
-
-    public FileImporter(Logger businessLogger, S3ArtifactsAdapter s3ArtifactsAdapter) {
+    public FileImporter(Logger businessLogger) {
         this.businessLogger = businessLogger;
-        this.s3ArtifactsAdapter = s3ArtifactsAdapter;
     }
 
     public Crac importCrac(String taskId, String cracFileUrl, Network network) {
@@ -59,15 +47,6 @@ public class FileImporter {
             String message = String.format("Exception occurred while importing network %s", getFileNameFromUrl(taskId, networkFileUrl));
             throw new CsaInvalidDataException(taskId, message, e);
         }
-    }
-
-    public String uploadRaoParameters(Instant utcInstant, RaoParameters raoParameters) {
-        String raoParametersFilePath = String.format("configurations/rao-parameters-%s", HOURLY_NAME_FORMATTER.format(utcInstant).concat(".json"));
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        JsonRaoParameters.write(raoParameters, baos);
-        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-        s3ArtifactsAdapter.uploadFile(raoParametersFilePath, bais);
-        return s3ArtifactsAdapter.generatePreSignedUrl(raoParametersFilePath);
     }
 
     private InputStream openUrlStream(String taskId, String urlString) {
