@@ -80,6 +80,10 @@ public class FileImporter {
     }
 
     public LoadFlowParameters getLoadFlowParameters(String taskId, String loadFlowParametersUri) {
+        if (loadFlowParametersUri == null || loadFlowParametersUri.isEmpty()) {
+            businessLogger.info("No load flow parameters URI provided, using default parameters");
+            return LoadFlowParameters.load();
+        }
         try {
             return JsonLoadFlowParameters.read(openUrlStream(taskId, loadFlowParametersUri));
 

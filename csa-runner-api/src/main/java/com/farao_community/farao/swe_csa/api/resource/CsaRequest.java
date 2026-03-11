@@ -106,7 +106,7 @@ public class CsaRequest {
             return false;
         }
         CsaRequest other = (CsaRequest) obj;
-        return this.id.equals(other.id) && this.businessTimestamp.equals(other.businessTimestamp) && this.gridModelUri.equals(other.gridModelUri) && this.glskUri.equals(other.glskUri) && this.ptEsCracFileUri.equals(other.ptEsCracFileUri) && this.frEsCracFileUri.equals(other.frEsCracFileUri) && this.loadFlowParametersUri.equals(other.loadFlowParametersUri);
+        return Objects.equals(this.id, other.id) && Objects.equals(this.businessTimestamp, other.businessTimestamp) && Objects.equals(this.gridModelUri, other.gridModelUri) && Objects.equals(this.glskUri, other.glskUri) && Objects.equals(this.ptEsCracFileUri, other.ptEsCracFileUri) && Objects.equals(this.frEsCracFileUri, other.frEsCracFileUri) && Objects.equals(this.loadFlowParametersUri, other.loadFlowParametersUri);
     }
 
     @Override

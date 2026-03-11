@@ -73,10 +73,7 @@ public class DichotomyRunner {
     }
 
     public FinalResult runDichotomy(CsaRequest csaRequest, String ptEsRaoResultDestinationPath, String frEsRaoResultDestinationPath) throws GlskLimitationException, ShiftingException {
-        RaoParameters raoParameters = RaoParameters.load();
-        LoadFlowParameters loadFlowParameters = fileImporter.getLoadFlowParameters(csaRequest.getId(), csaRequest.getLoadFlowParametersUri());
-        // Update loadFlowParameters in raoParameters
-        updateRaoParametersWithNewLoadFlowParameters(raoParameters, loadFlowParameters);
+        RaoParameters raoParameters = loadRaoParameters(csaRequest);
         Instant instant = Instant.parse(csaRequest.getBusinessTimestamp());
         String raoParametersUrl = fileExporter.uploadRaoParameters(instant, raoParameters);
         Network network = fileImporter.importNetwork(csaRequest.getId(), csaRequest.getGridModelUri());
@@ -304,6 +301,17 @@ public class DichotomyRunner {
 
     public void setMaxDichotomiesByBorder(double maxDichotomiesByBorder) {
         this.maxDichotomiesByBorder = maxDichotomiesByBorder;
+    }
+
+    private RaoParameters loadRaoParameters(CsaRequest csaRequest) {
+        RaoParameters raoParameters = RaoParameters.load();
+        if (csaRequest.getLoadFlowParametersUri() == null || csaRequest.getLoadFlowParametersUri().isEmpty()) {
+            return raoParameters;
+        }
+        // Update loadFlowParameters in raoParameters
+        LoadFlowParameters loadFlowParameters = fileImporter.getLoadFlowParameters(csaRequest.getId(), csaRequest.getLoadFlowParametersUri());
+        updateRaoParametersWithNewLoadFlowParameters(raoParameters, loadFlowParameters);
+        return raoParameters;
     }
 
     public static void updateRaoParametersWithNewLoadFlowParameters(RaoParameters raoParameters, LoadFlowParameters loadFlowParameters) {
