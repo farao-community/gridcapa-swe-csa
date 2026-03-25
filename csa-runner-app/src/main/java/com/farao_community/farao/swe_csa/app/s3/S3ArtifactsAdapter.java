@@ -1,23 +1,24 @@
 package com.farao_community.farao.swe_csa.app.s3;
 
 import io.minio.MinioClient;
+import java.io.InputStream;
+import java.time.OffsetDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
-import java.io.InputStream;
-import java.time.OffsetDateTime;
-
 @Component
 public class S3ArtifactsAdapter {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(S3AdapterUtil.class);
 
     private final MinioClient minioClient;
     private final String bucket;
     private final String basePath;
 
-    public S3ArtifactsAdapter(@Qualifier("getArtifactsClient") MinioClient minioClient, S3ClientsConfigurations s3ClientsConfigurations) {
+    public S3ArtifactsAdapter(@Qualifier("getArtifactsClient") MinioClient minioClient,
+        S3ClientsConfigurations s3ClientsConfigurations) {
         this.minioClient = minioClient;
         this.bucket = s3ClientsConfigurations.getArtifactsBucket();
         this.basePath = s3ClientsConfigurations.getArtifactsBasePath();
@@ -29,7 +30,8 @@ public class S3ArtifactsAdapter {
 
     public void uploadFile(String pathDestination, InputStream sourceInputStream) {
         createBucketIfDoesNotExist();
-        S3AdapterUtil.uploadFile(minioClient, basePath + "/" + pathDestination, sourceInputStream, bucket);
+        S3AdapterUtil.uploadFile(minioClient, basePath + "/" + pathDestination, sourceInputStream,
+            bucket);
     }
 
     public String generatePreSignedUrl(String minioPath) {
@@ -38,7 +40,9 @@ public class S3ArtifactsAdapter {
 
     public String createRaoResultDestination(String timestamp, String borderName) {
         OffsetDateTime offsetDateTime = OffsetDateTime.parse(timestamp);
-        return "artifacts" + "/" + offsetDateTime.getYear() + "/" + offsetDateTime.getMonthValue() + "/" + offsetDateTime.getDayOfMonth() + "/" + offsetDateTime.getHour() + "_" + offsetDateTime.getMinute() + "/"  + borderName + "-rao-result.json";
+        return "artifacts" + "/" + offsetDateTime.getYear() + "/" + offsetDateTime.getMonthValue()
+            + "/" + offsetDateTime.getDayOfMonth() + "/" + offsetDateTime.getHour() + "_"
+            + offsetDateTime.getMinute() + "/" + borderName + "-rao-result.json";
     }
 
 }

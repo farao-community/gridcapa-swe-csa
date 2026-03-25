@@ -13,16 +13,18 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 @SpringBootTest
 class FileExporterTest {
 
-  @Autowired
-  FileExporter fileExporter;
+    @Autowired
+    FileExporter fileExporter;
 
-  @MockitoBean
-  S3ArtifactsAdapter s3ArtifactsAdapter;
+    @MockitoBean
+    S3ArtifactsAdapter s3ArtifactsAdapter;
 
-  @Test
-  void saveRaoParametersTest() {
-    Mockito.when(s3ArtifactsAdapter.generatePreSignedUrl("configurations/rao-parameters-19990101_1230.json")).thenReturn("url");
-    String result = fileExporter.uploadRaoParameters(OffsetDateTime.parse("1999-01-01T12:30Z").toInstant());
-    assertEquals("url", result);
-  }
+    @Test
+    void saveRaoParametersTest() {
+        Mockito.when(s3ArtifactsAdapter.generatePreSignedUrl(
+            "configurations/rao-parameters-19990101_1230.json")).thenReturn("url");
+        String result = fileExporter.uploadRaoParameters(
+            OffsetDateTime.parse("1999-01-01T12:30Z").toInstant());
+        assertEquals("url", result);
+    }
 }
