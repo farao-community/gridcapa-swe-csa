@@ -16,19 +16,22 @@ import org.mockito.InOrder;
 import org.mockito.Mockito;
 
 class S3AdapterUtilTest {
+
     @Test
     void checkBucketCreatedCorrectly() {
         try {
             MinioClient minioClient = Mockito.mock(MinioClient.class);
             Mockito.when(minioClient.bucketExists(Mockito.any())).thenReturn(true);
-            Assertions.assertDoesNotThrow(() -> S3AdapterUtil.createBucketIfDoesNotExist(minioClient, "bucket"));
+            Assertions.assertDoesNotThrow(
+                () -> S3AdapterUtil.createBucketIfDoesNotExist(minioClient, "bucket"));
         } catch (Exception e) {
             // should not happen
         }
         try {
             MinioClient badMinioClient = Mockito.mock(MinioClient.class);
             Mockito.when(badMinioClient.bucketExists(Mockito.any())).thenThrow(IOException.class);
-            Assertions.assertThrows(CsaInternalException.class, () -> S3AdapterUtil.createBucketIfDoesNotExist(badMinioClient, "bucket"));
+            Assertions.assertThrows(CsaInternalException.class,
+                () -> S3AdapterUtil.createBucketIfDoesNotExist(badMinioClient, "bucket"));
         } catch (Exception e) {
             // should not happen
         }
@@ -38,10 +41,12 @@ class S3AdapterUtilTest {
     void checkUpload() {
         try {
             MinioClient minioClient = Mockito.mock(MinioClient.class);
-            Mockito.when(minioClient.bucketExists(Mockito.argThat(assertBucketExistsArgs()))).thenReturn(false);
+            Mockito.when(minioClient.bucketExists(Mockito.argThat(assertBucketExistsArgs())))
+                .thenReturn(false);
 
             var content = "thisimycontent";
-            S3AdapterUtil.uploadFile(minioClient, "/path", new ByteArrayInputStream(content.getBytes()), "bucket", content.length());
+            S3AdapterUtil.uploadFile(minioClient, "/path",
+                new ByteArrayInputStream(content.getBytes()), "bucket", content.length());
             InOrder inOrder = Mockito.inOrder(minioClient);
 
             inOrder.verify(minioClient, Mockito.times(1))

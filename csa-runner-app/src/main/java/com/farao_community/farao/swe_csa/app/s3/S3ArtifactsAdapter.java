@@ -16,7 +16,8 @@ public class S3ArtifactsAdapter {
     private final String bucket;
     private final String basePath;
 
-    public S3ArtifactsAdapter(@Qualifier("getArtifactsClient") MinioClient minioClient, S3ClientsConfigurations s3ClientsConfigurations) {
+    public S3ArtifactsAdapter(@Qualifier("getArtifactsClient") MinioClient minioClient,
+        S3ClientsConfigurations s3ClientsConfigurations) {
         this.minioClient = minioClient;
         this.bucket = s3ClientsConfigurations.getArtifactsBucket();
         this.basePath = s3ClientsConfigurations.getArtifactsBasePath();
@@ -27,26 +28,33 @@ public class S3ArtifactsAdapter {
     }
 
     /**
-     * File content must be smaller than 5 MB. Just call if you are absolutely sure about that, otherwise call uploadFile passing TmpFile instead of InputStream
+     * File content must be smaller than 5 MB. Just call if you are absolutely sure about that,
+     * otherwise call uploadFile passing TmpFile instead of InputStream
      */
     @WithSpan("uploadFileToS3")
-    public void uploadSmallFile(@SpanAttribute("pathDestination") String pathDestination, InputStream sourceInputStream) {
-        S3AdapterUtil.uploadFile(minioClient, basePath + "/" + pathDestination, sourceInputStream, bucket, -1);
+    public void uploadSmallFile(@SpanAttribute("pathDestination") String pathDestination,
+        InputStream sourceInputStream) {
+        S3AdapterUtil.uploadFile(minioClient, basePath + "/" + pathDestination, sourceInputStream,
+            bucket, -1);
     }
 
     @WithSpan("uploadFileToS3")
-    public void uploadFile(@SpanAttribute("pathDestination") String pathDestination, TmpFile source) {
-        S3AdapterUtil.uploadFile(minioClient, basePath + "/" + pathDestination, source.getReadStream(), bucket, source.getTempFile().length());
+    public void uploadFile(@SpanAttribute("pathDestination") String pathDestination,
+        TmpFile source) {
+        S3AdapterUtil.uploadFile(minioClient, basePath + "/" + pathDestination,
+            source.getReadStream(), bucket, source.getTempFile().length());
     }
 
     @WithSpan("generatePreSignedUrl")
-    public String generatePreSignedUrl(@SpanAttribute("minioPath")String minioPath) {
+    public String generatePreSignedUrl(@SpanAttribute("minioPath") String minioPath) {
         return S3AdapterUtil.generatePreSignedUrl(minioClient, basePath + "/" + minioPath, bucket);
     }
 
     public String createRaoResultDestination(String timestamp, String borderName) {
         OffsetDateTime offsetDateTime = OffsetDateTime.parse(timestamp);
-        return "artifacts" + "/" + offsetDateTime.getYear() + "/" + offsetDateTime.getMonthValue() + "/" + offsetDateTime.getDayOfMonth() + "/" + offsetDateTime.getHour() + "_" + offsetDateTime.getMinute() + "/"  + borderName + "-rao-result.json";
+        return "artifacts" + "/" + offsetDateTime.getYear() + "/" + offsetDateTime.getMonthValue()
+            + "/" + offsetDateTime.getDayOfMonth() + "/" + offsetDateTime.getHour() + "_"
+            + offsetDateTime.getMinute() + "/" + borderName + "-rao-result.json";
     }
 
 }

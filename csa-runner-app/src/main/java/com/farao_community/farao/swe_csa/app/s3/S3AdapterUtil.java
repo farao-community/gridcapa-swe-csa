@@ -39,7 +39,8 @@ public final class S3AdapterUtil {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(S3AdapterUtil.class);
 
-    private static final DateTimeFormatter UPLOAD_TMP_NAME_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS");
+    private static final DateTimeFormatter UPLOAD_TMP_NAME_FORMAT = DateTimeFormatter.ofPattern(
+        "yyyyMMddHHmmssSSS");
 
     private static final int DEFAULT_DOWNLOAD_LINK_EXPIRY_IN_DAYS = 7;
 
@@ -50,18 +51,20 @@ public final class S3AdapterUtil {
             }
         } catch (Exception e) {
             LOGGER.error(String.format("Exception occurred while creating bucket: %s", bucket));
-            throw new CsaInternalException(MDC.get("gridcapaTaskId"), String.format("Exception occurred while creating bucket: %s", bucket));
+            throw new CsaInternalException(MDC.get("gridcapaTaskId"),
+                String.format("Exception occurred while creating bucket: %s", bucket));
         }
     }
 
     /**
      * Note: sourceInputStream will be closed after uploading
-     *
      */
-    public static void uploadFile(MinioClient minioClient, String pathDestination, InputStream sourceInputStream, String bucket, long fileSize) {
+    public static void uploadFile(MinioClient minioClient, String pathDestination,
+        InputStream sourceInputStream, String bucket, long fileSize) {
 
         var startedAt = System.currentTimeMillis();
-        LOGGER.debug("Uploading file. Bucket={}. Path={}. Size={}", bucket, pathDestination, fileSize);
+        LOGGER.debug("Uploading file. Bucket={}. Path={}. Size={}", bucket, pathDestination,
+            fileSize);
 
         final String tmpKey = getUploadTmpPath(pathDestination);
         //TODO via config
@@ -83,24 +86,29 @@ public final class S3AdapterUtil {
 
                 // Copy tmp object to final bucket. this is atomic, last writer wins
                 var tmpSource = CopySource.builder().bucket(bucket).object(tmpKey).build();
-                var copyOperation = CopyObjectArgs.builder().bucket(bucket).object(pathDestination).source(tmpSource).build();
+                var copyOperation = CopyObjectArgs.builder().bucket(bucket).object(pathDestination)
+                    .source(tmpSource).build();
                 safeCopy(minioClient, copyOperation, pathDestination);
 
             } finally {
                 try {
                     // Delete temp object
-                    var deleteOperation = RemoveObjectArgs.builder().bucket(bucket).object(tmpKey).build();
+                    var deleteOperation = RemoveObjectArgs.builder().bucket(bucket).object(tmpKey)
+                        .build();
                     minioClient.removeObject(deleteOperation);
                 } catch (Exception e) {
                     LOGGER.warn("Error removing TMP file", e);
                 }
             }
 
-            LOGGER.debug("Upload done. Destination={}. Size={}. Time={}", pathDestination, fileSize, System.currentTimeMillis() - startedAt);
+            LOGGER.debug("Upload done. Destination={}. Size={}. Time={}", pathDestination, fileSize,
+                System.currentTimeMillis() - startedAt);
 
         } catch (Exception e) {
             LOGGER.error("Error uploading to {}: {}", pathDestination, e.getMessage(), e);
-            throw new CsaInternalException(MDC.get("gridcapaTaskId"), String.format("Exception occurred while uploading file: %s, to minio server", pathDestination));
+            throw new CsaInternalException(MDC.get("gridcapaTaskId"),
+                String.format("Exception occurred while uploading file: %s, to minio server",
+                    pathDestination));
         }
     }
 
@@ -115,7 +123,8 @@ public final class S3AdapterUtil {
         while (true) {
             try {
                 if (numRetries > 0) {
-                    LOGGER.debug("Retrying copy operation for file {}. RetryCount={}", key, numRetries);
+                    LOGGER.debug("Retrying copy operation for file {}. RetryCount={}", key,
+                        numRetries);
                 }
                 minioClient.copyObject(copyArgs);
                 break;
@@ -125,7 +134,8 @@ public final class S3AdapterUtil {
                     if (elapsed >= maxWaitMillis) {
                         throw new RuntimeException("Copy timeout", e);
                     }
-                    LOGGER.debug("OperationAborted for file {}. Will retry in {} ms", waitMillis, key);
+                    LOGGER.debug("OperationAborted for file {}. Will retry in {} ms", waitMillis,
+                        key);
                     numRetries++;
                     sleep(waitMillis);
                 } else {
@@ -151,15 +161,21 @@ public final class S3AdapterUtil {
         return String.format("tmp/uploads/%s/%s.%s", now, rand, pathDestination);
     }
 
-    public static String generatePreSignedUrl(MinioClient minioClient, String minioPath, String bucket) {
+    public static String generatePreSignedUrl(MinioClient minioClient, String minioPath,
+        String bucket) {
         try {
-            return minioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder().bucket(bucket).object(minioPath).expiry(DEFAULT_DOWNLOAD_LINK_EXPIRY_IN_DAYS, TimeUnit.DAYS).method(Method.GET).build());
+            return minioClient.getPresignedObjectUrl(
+                GetPresignedObjectUrlArgs.builder().bucket(bucket).object(minioPath)
+                    .expiry(DEFAULT_DOWNLOAD_LINK_EXPIRY_IN_DAYS, TimeUnit.DAYS).method(Method.GET)
+                    .build());
         } catch (Exception e) {
-            throw new CsaInternalException(MDC.get("gridcapaTaskId"), "Exception in MinIO connection.", e);
+            throw new CsaInternalException(MDC.get("gridcapaTaskId"),
+                "Exception in MinIO connection.", e);
         }
     }
 
-    public static Path copyFileInTargetSystemPath(MinioClient minioClient, String minioObjectName, Path targetTempPath, String bucket) {
+    public static Path copyFileInTargetSystemPath(MinioClient minioClient, String minioObjectName,
+        Path targetTempPath, String bucket) {
         try (InputStream raoRequestInputStream = Optional.of(minioClient.getObject(GetObjectArgs
             .builder()
             .bucket(bucket)
