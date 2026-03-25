@@ -11,19 +11,16 @@ import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.commons.OpenRaoException;
 import com.powsybl.openrao.data.crac.api.Crac;
-import com.powsybl.openrao.raoapi.json.JsonRaoParameters;
-import com.powsybl.openrao.raoapi.parameters.RaoParameters;
-import org.apache.commons.io.FilenameUtils;
-import org.slf4j.Logger;
-import org.springframework.stereotype.Service;
-
-import java.io.*;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
+import org.apache.commons.io.FilenameUtils;
+import org.slf4j.Logger;
+import org.springframework.stereotype.Service;
 
 @Service
 public class FileImporter {
@@ -31,13 +28,12 @@ public class FileImporter {
 
     private final S3ArtifactsAdapter s3ArtifactsAdapter;
 
-    private static final DateTimeFormatter HOURLY_NAME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd'_'HHmm").withZone(ZoneId.of("UTC"));
-
     public FileImporter(Logger businessLogger, S3ArtifactsAdapter s3ArtifactsAdapter) {
         this.businessLogger = businessLogger;
         this.s3ArtifactsAdapter = s3ArtifactsAdapter;
     }
 
+    @WithSpan("importCrac")
     public Crac importCrac(String taskId, String cracFileUrl, Network network) {
         try {
             return Crac.read(getFileNameFromUrl(taskId, cracFileUrl), openUrlStream(taskId, cracFileUrl), network);
@@ -47,6 +43,7 @@ public class FileImporter {
         }
     }
 
+    @WithSpan("importNetwork")
     public Network importNetwork(String taskId, String networkFileUrl) {
         try {
             return Network.read(getFileNameFromUrl(taskId, networkFileUrl), openUrlStream(taskId, networkFileUrl));
@@ -54,16 +51,6 @@ public class FileImporter {
             String message = String.format("Exception occurred while importing network %s", getFileNameFromUrl(taskId, networkFileUrl));
             throw new CsaInvalidDataException(taskId, message, e);
         }
-    }
-
-    public String uploadRaoParameters(Instant utcInstant) {
-        String raoParametersFilePath = String.format("configurations/rao-parameters-%s", HOURLY_NAME_FORMATTER.format(utcInstant).concat(".json"));
-        RaoParameters raoParameters = RaoParameters.load();
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        JsonRaoParameters.write(raoParameters, baos);
-        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-        s3ArtifactsAdapter.uploadFile(raoParametersFilePath, bais);
-        return s3ArtifactsAdapter.generatePreSignedUrl(raoParametersFilePath);
     }
 
     private InputStream openUrlStream(String taskId, String urlString) {
@@ -84,6 +71,7 @@ public class FileImporter {
         }
     }
 
+    @WithSpan("getZonalData")
     public ZonalData<Scalable> getZonalData(String taskId, Instant instant, String glskUri, Network network) {
         try {
             GlskDocumentImporter glskDocumentImporter = GlskDocumentImporters.findImporter(openUrlStream(taskId, glskUri));

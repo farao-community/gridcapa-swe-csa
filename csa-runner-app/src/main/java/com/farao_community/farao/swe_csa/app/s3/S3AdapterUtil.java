@@ -1,13 +1,15 @@
 package com.farao_community.farao.swe_csa.app.s3;
 
 import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
-import io.minio.*;
+import io.minio.BucketExistsArgs;
+import io.minio.GetObjectArgs;
+import io.minio.GetPresignedObjectUrlArgs;
+import io.minio.MakeBucketArgs;
+import io.minio.MinioClient;
+import io.minio.PutObjectArgs;
 import io.minio.http.Method;
-import org.apache.commons.io.FilenameUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
-
+import io.opentelemetry.instrumentation.annotations.SpanAttribute;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -15,6 +17,10 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.io.FilenameUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 public final class S3AdapterUtil {
 
@@ -37,7 +43,8 @@ public final class S3AdapterUtil {
         }
     }
 
-    public static void uploadFile(MinioClient minioClient, String pathDestination, InputStream sourceInputStream, String bucket) {
+    @WithSpan("uploadFileToS3")
+    public static void uploadFile(MinioClient minioClient, @SpanAttribute("pathDestination") String pathDestination, InputStream sourceInputStream, String bucket) {
         try {
             createBucketIfDoesNotExist(minioClient, bucket);
             minioClient.putObject(PutObjectArgs.builder().bucket(bucket).object(pathDestination).stream(sourceInputStream, -1, 50000000).build());

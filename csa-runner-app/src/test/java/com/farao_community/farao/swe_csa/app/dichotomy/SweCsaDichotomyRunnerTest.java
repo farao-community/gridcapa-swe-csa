@@ -1,5 +1,9 @@
 package com.farao_community.farao.swe_csa.app.dichotomy;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
+
 import com.farao_community.farao.dichotomy.api.exceptions.GlskLimitationException;
 import com.farao_community.farao.dichotomy.api.exceptions.ShiftingException;
 import com.farao_community.farao.rao_runner.api.resource.AbstractRaoResponse;
@@ -17,6 +21,8 @@ import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.data.crac.api.Crac;
 import com.powsybl.openrao.data.crac.impl.CounterTradeRangeActionImpl;
+import java.time.Instant;
+import java.util.Set;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -26,13 +32,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.cloud.stream.function.StreamBridge;
-
-import java.time.Instant;
-import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyDouble;
 
 @SpringBootTest
 class SweCsaDichotomyRunnerTest {
@@ -78,7 +77,7 @@ class SweCsaDichotomyRunnerTest {
         Mockito.when(frEsCrac.getCounterTradeRangeActions()).thenReturn(Set.of(ctRaFrEs, ctRaEsFr));
 
         Mockito.doNothing().when(s3ArtifactsAdapter).uploadFile(any(), any());
-        Mockito.when(fileImporter.uploadRaoParameters(utcInstant)).thenReturn("rao-parameters-url");
+        Mockito.when(fileExporter.uploadRaoParameters(utcInstant)).thenReturn("rao-parameters-url");
         Mockito.when(fileImporter.importNetwork("csa-task-id", "cgm-url")).thenReturn(network);
         Mockito.when(fileImporter.importCrac("csa-task-id", "pt-es-crac-url", network)).thenReturn(ptEsCrac);
         Mockito.when(fileImporter.importCrac("csa-task-id", "fr-es-crac-url", network)).thenReturn(frEsCrac);
