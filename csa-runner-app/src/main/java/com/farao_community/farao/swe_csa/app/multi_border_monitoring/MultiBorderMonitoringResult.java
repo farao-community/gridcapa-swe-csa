@@ -34,7 +34,7 @@ public class MultiBorderMonitoringResult {
     }
 
     public boolean allFailed() {
-        return resultPerBorder.values().stream()
+        return !resultPerBorder.isEmpty() && resultPerBorder.values().stream()
                 .allMatch(v -> Objects.equals(v.getStatus(), Cnec.SecurityStatus.FAILURE));
     }
 
