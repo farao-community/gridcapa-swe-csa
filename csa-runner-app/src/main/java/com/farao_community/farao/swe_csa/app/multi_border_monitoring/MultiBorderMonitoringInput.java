@@ -22,6 +22,7 @@ public final class MultiBorderMonitoringInput {
 
     private final Network network;
     private final Set<BorderMonitoringInput> inputs;
+    private final Map<Border, BorderMonitoringInput> inputPerBorder;
     private final PhysicalParameter physicalParameter;
     private final ZonalData<Scalable> scalableZonalData;
     private final String loadFlowProvider;
@@ -35,19 +36,21 @@ public final class MultiBorderMonitoringInput {
     public MultiBorderMonitoringInput(Network network, Set<BorderMonitoringInput> inputs, PhysicalParameter physicalParameter,
                                       ZonalData<Scalable> scalableZonalData, String loadFlowProvider, LoadFlowParameters loadFlowParameters) {
         this.network = network;
-        this.inputs = Set.copyOf(inputs);
         this.physicalParameter = physicalParameter;
         this.scalableZonalData = scalableZonalData;
         this.loadFlowProvider = loadFlowProvider;
         this.loadFlowParameters = loadFlowParameters;
+        this.inputPerBorder = inputs.stream().collect(Collectors.toMap(BorderMonitoringInput::border, Function.identity(),
+                (a, b) -> { throw new IllegalArgumentException("Duplicate input defined for border " + a.border()); }));
+        this.inputs = Set.copyOf(this.inputPerBorder.values());
     }
 
     private BorderMonitoringInput getInput(Border border) {
-        return inputs.stream()
-                .filter(i -> i.border().equals(border))
-                .findFirst()
-                .orElseThrow(() ->
-                        new IllegalArgumentException("No input defined for border " + border));
+        BorderMonitoringInput input = inputPerBorder.get(border);
+        if (input == null) {
+            throw new IllegalArgumentException("No input defined for border " + border);
+        }
+        return input;
     }
 
     public Crac getCracForBorder(Border border) {
