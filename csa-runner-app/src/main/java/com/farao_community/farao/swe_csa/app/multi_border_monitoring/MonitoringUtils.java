@@ -243,7 +243,9 @@ public final class MonitoringUtils {
         Map<Border, MonitoringResult> result = new HashMap<>();
         impactedBorders.forEach(border -> {
             Crac crac = parallelInput.getCracForBorder(border);
-            Set<CnecResult> cnecResults = crac.getCnecs(state).stream().map(cnec -> new CnecResult(cnec, unit, nanValue, Double.NaN, Cnec.SecurityStatus.FAILURE)).collect(Collectors.toSet());
+            Set<CnecResult> cnecResults = crac.getCnecs(physicalParameter, state).stream()
+                    .map(cnec -> new CnecResult(cnec, unit, nanValue, Double.NaN, Cnec.SecurityStatus.FAILURE))
+                    .collect(Collectors.toSet());
             result.put(border, new MonitoringResult(physicalParameter, cnecResults, Map.of(state, Collections.emptySet()), Cnec.SecurityStatus.FAILURE));
         });
         businessLogger.warn(failureReason);
