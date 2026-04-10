@@ -9,6 +9,8 @@ import com.powsybl.openrao.monitoring.results.MonitoringResult;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.slf4j.MDC;
 
+import java.util.Objects;
+
 public final class DichotomyStepResult {
     private final RaoResult raoResult;
     private final boolean isSecure;
@@ -110,7 +112,10 @@ public final class DichotomyStepResult {
     }
 
     public boolean isFlowSecure() {
-        return this.getFlowMonitoringResult().getStatus().equals(Cnec.SecurityStatus.SECURE);
+        if (this.flowMonitoringResult != null) {
+            return Objects.equals(Cnec.SecurityStatus.SECURE, this.flowMonitoringResult.getStatus());
+        }
+        return this.isSecure;
     }
 }
 
