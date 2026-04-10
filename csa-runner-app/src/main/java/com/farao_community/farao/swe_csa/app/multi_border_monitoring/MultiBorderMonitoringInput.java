@@ -108,7 +108,9 @@ public final class MultiBorderMonitoringInput {
     }
 
     public Map<Border, State> getPreventiveStates() {
-        return inputs.stream().collect(Collectors.toMap(BorderMonitoringInput::border, i -> i.crac().getPreventiveState()));
+        Map<Border, State> preventiveStates = new EnumMap<>(Border.class);
+        inputs.forEach(i -> preventiveStates.put(i.border(), i.crac().getPreventiveState()));
+        return preventiveStates;
     }
 
     public boolean hasAnyPreventiveState() {
