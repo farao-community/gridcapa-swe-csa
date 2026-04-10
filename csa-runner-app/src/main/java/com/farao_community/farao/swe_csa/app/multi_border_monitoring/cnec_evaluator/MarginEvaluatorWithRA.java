@@ -57,17 +57,21 @@ public class MarginEvaluatorWithRA implements CnecEvaluator {
 
         Map<Border, Set<CnecResult>> cnecResultsPerBorder = borders.stream().collect(Collectors.toMap(border -> border, border -> new HashSet<>()));
         Map<Border, List<AppliedNetworkActionsResult>> appliedActionsPerBorder = borders.stream().collect(Collectors.toMap(border -> border, border -> new ArrayList<>()));
+        Set<String> alreadyAppliedActionIds = new HashSet<>();
 
         // process cnecs for each border
         for (Border border : borders) {
             MonitoringInput input = multiBorderMonitoringInput.getMonitoringInputForBorder(border);
-            processMonitoringCnecs(cnecsToEvaluatePerBorder.get(border), state, input, cnecResultsPerBorder.get(border), appliedActionsPerBorder.get(border), network, unit, physicalParameter);
+            processMonitoringCnecs(cnecsToEvaluatePerBorder.get(border), state, input, cnecResultsPerBorder.get(border), appliedActionsPerBorder.get(border), network, unit, physicalParameter, alreadyAppliedActionIds);
         }
 
         // Redispatch for ANGLE
         if (physicalParameter == PhysicalParameter.ANGLE) {
             ZonalData<Scalable> scalable = multiBorderMonitoringInput.getZonalScalableData();
-            appliedActionsPerBorder.values().forEach(list -> redispatchNetworkActions(network, list, scalable, businessLogger));
+            List<AppliedNetworkActionsResult> allAppliedRas = appliedActionsPerBorder.values().stream()
+                    .flatMap(List::stream)
+                    .collect(Collectors.toList());
+            redispatchNetworkActions(network, allAppliedRas, scalable, businessLogger);
         }
 
         boolean anyActionsApplied = appliedActionsPerBorder.values().stream().flatMap(List::stream).anyMatch(r -> !r.getAppliedNetworkActions().isEmpty());
@@ -102,13 +106,16 @@ public class MarginEvaluatorWithRA implements CnecEvaluator {
         return new MultiBorderMonitoringResult(resultPerBorder);
     }
 
-    private void processMonitoringCnecs(Set<Cnec> cnecs, State state, MonitoringInput monitoringInput, Set<CnecResult> cnecResults, List<AppliedNetworkActionsResult> appliedActions, Network network, Unit unit, PhysicalParameter physicalParameter) {
+    private void processMonitoringCnecs(Set<Cnec> cnecs, State state, MonitoringInput monitoringInput, Set<CnecResult> cnecResults, List<AppliedNetworkActionsResult> appliedActions, Network network, Unit unit, PhysicalParameter physicalParameter, Set<String> alreadyAppliedActionIds) {
         cnecs.forEach(cnec -> {
             if (cnec.computeMargin(network, unit) < 0) {
-                Set<NetworkAction> availableNetworkActions = getNetworkActionsAssociatedToCnec(state, monitoringInput.getCrac(), cnec, physicalParameter);
+                Set<NetworkAction> availableNetworkActions = getNetworkActionsAssociatedToCnec(state, monitoringInput.getCrac(), cnec, physicalParameter).stream()
+                        .filter(action -> !alreadyAppliedActionIds.contains(action.getId()))
+                        .collect(Collectors.toSet());
                 if (!availableNetworkActions.isEmpty()) {
                     AppliedNetworkActionsResult result = applyNetworkActions(network, availableNetworkActions, cnec.getId(), monitoringInput);
                     if (!result.getAppliedNetworkActions().isEmpty()) {
+                        result.getAppliedNetworkActions().forEach(action -> alreadyAppliedActionIds.add(action.getId()));
                         appliedActions.add(result);
                     }
                 }
