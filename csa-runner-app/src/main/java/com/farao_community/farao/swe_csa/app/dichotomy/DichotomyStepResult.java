@@ -104,7 +104,7 @@ public final class DichotomyStepResult {
 
     public MonitoringResult getFlowMonitoringResult() {
         if (flowMonitoringResult == null) {
-            throw new CsaInternalException(MDC.get("gridcapaTaskId"), "Flow monitoring has not been performed. Flow moninotoring results are not available.");
+            throw new CsaInternalException(MDC.get("gridcapaTaskId"), "Flow monitoring has not been performed. Flow monitoring results are not available.");
         }
         return flowMonitoringResult;
     }
