@@ -75,7 +75,7 @@ public class MultiBorderMonitoring {
                         .toList();
                 tasks.stream().map(this::waitFor).forEach(resultMap -> resultMap.forEach(monitoringResult::combine));
                 networkPool.shutdownAndAwaitTermination(24, TimeUnit.HOURS);
-            } catch (Exception e) {
+            } catch (InterruptedException | OpenRaoException e) {
                 Thread.currentThread().interrupt();
                 monitoringResult.getResultsForAllBorders().values().forEach(MonitoringResult::setStatusToFailure);
             }
