@@ -224,12 +224,11 @@ public final class MonitoringUtils {
         appliedNetworkActionsResults.forEach(appliedNetworkActionsResult -> appliedNetworkActionsResult.getPowerToBeRedispatched().forEach((key, value) -> {
             businessLogger.info("Redispatching {} MW in {} [start]", value, key);
             List<Scalable> countryScalables = scalableZonalData.getDataPerZone().entrySet().stream().filter(entry -> key.equals((new CountryEICode((String) entry.getKey())).getCountry())).map(Map.Entry::getValue).toList();
-            if (countryScalables.size() > 1) {
-                throw new OpenRaoException(String.format("> 1 (%s) glskPoints defined for country %s", countryScalables.size(), key.getName()));
-            } else {
-                (new RedispatchAction(value, appliedNetworkActionsResult.getNetworkElementsToBeExcluded(), (Scalable) countryScalables.get(0))).apply(network);
-                businessLogger.info("Redispatching {} MW in {} [end]", value, key);
+            if (countryScalables.size() != 1) {
+                throw new OpenRaoException(String.format("Expected exactly 1 glskPoint for country %s, found %s", key.getName(), countryScalables.size()));
             }
+            (new RedispatchAction(value, appliedNetworkActionsResult.getNetworkElementsToBeExcluded(), countryScalables.get(0))).apply(network);
+            businessLogger.info("Redispatching {} MW in {} [end]", value, key);
         }));
     }
 
