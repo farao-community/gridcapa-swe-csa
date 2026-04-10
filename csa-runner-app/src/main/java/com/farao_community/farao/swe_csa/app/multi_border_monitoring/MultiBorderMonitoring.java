@@ -70,10 +70,10 @@ public class MultiBorderMonitoring {
         Map<State, EnumSet<Border>> contingencyStatesPerBorder = MonitoringUtils.mapContingencyStates(monitoringInput);
         if (!contingencyStatesPerBorder.isEmpty()) {
             try (AbstractNetworkPool networkPool = AbstractNetworkPool.create(network, network.getVariantManager().getWorkingVariantId(), Math.min(numberOfLoadFlowsInParallel, contingencyStatesPerBorder.size()), true)) {
-                List<ForkJoinTask<Void>> tasks = contingencyStatesPerBorder.entrySet().stream()
-                        .map(entry -> submitParallelMonitoring(networkPool, entry.getKey(), entry.getValue(), monitoringResult))
+                List<ForkJoinTask<Map<Border, MonitoringResult>>> tasks = contingencyStatesPerBorder.entrySet().stream()
+                        .map(entry -> submitParallelMonitoring(networkPool, entry.getKey(), entry.getValue()))
                         .toList();
-                tasks.forEach(this::waitFor);
+                tasks.stream().map(this::waitFor).forEach(resultMap -> resultMap.forEach(monitoringResult::combine));
                 networkPool.shutdownAndAwaitTermination(24, TimeUnit.HOURS);
             } catch (Exception e) {
                 Thread.currentThread().interrupt();
@@ -87,36 +87,32 @@ public class MultiBorderMonitoring {
         return monitoringResult;
     }
 
-    private ForkJoinTask<Void> submitParallelMonitoring(AbstractNetworkPool networkPool, State state, Set<Border> impactedBorders, MultiBorderMonitoringResult monitoringResult) {
-        return networkPool.submit(() -> monitorContingencyState(networkPool, state, impactedBorders, monitoringResult));
+    private ForkJoinTask<Map<Border, MonitoringResult>> submitParallelMonitoring(AbstractNetworkPool networkPool, State state, Set<Border> impactedBorders) {
+        return networkPool.submit(() -> monitorContingencyState(networkPool, state, impactedBorders));
     }
 
-    private Void monitorContingencyState(AbstractNetworkPool networkPool, State state, Set<Border> impactedBorders, MultiBorderMonitoringResult monitoringResult) throws InterruptedException {
+    private Map<Border, MonitoringResult> monitorContingencyState(AbstractNetworkPool networkPool, State state, Set<Border> impactedBorders) throws InterruptedException {
         Network networkClone = networkPool.getAvailableNetwork();
         try {
             // Apply contingency
             Contingency contingency = state.getContingency().orElseThrow();
             if (!MonitoringUtils.applyContingency(state, networkClone)) {
-                Map<Border, MonitoringResult> failedResults = MonitoringUtils.makeFailedMonitoringResultForStateWithNaNCnecResults(monitoringInput, state, impactedBorders, "Unable to apply contingency " + contingency.getId(), businessLogger);
-                failedResults.forEach(monitoringResult::combine);
-                return null;
+                return MonitoringUtils.makeFailedMonitoringResultForStateWithNaNCnecResults(monitoringInput, state, impactedBorders, "Unable to apply contingency " + contingency.getId(), businessLogger);
             }
             // Apply optimized RAs
             impactedBorders.forEach(border -> applyOptimalRemedialActionsOnContingencyState(state, networkClone, monitoringInput.getCracForBorder(border), monitoringInput.getRaoResultForBorder(border)));
             // Monitors CNECs
             Map<Border, Set<Cnec>> cnecsToEvaluatePerBorder = monitoringInput.getCnecsForBorders(impactedBorders, state);
             MultiBorderMonitoringResult currentStateResults = cnecEvaluator.evaluate(networkClone, state, cnecsToEvaluatePerBorder);
-            // Update monitoring results
-            currentStateResults.getResultsForAllBorders().forEach(monitoringResult::combine);
-            return null;
+            return currentStateResults.getResultsForAllBorders();
         } finally {
             networkPool.releaseUsedNetwork(networkClone);
         }
     }
 
-    private void waitFor(ForkJoinTask<Void> task) {
+    private <T> T waitFor(ForkJoinTask<T> task) {
         try {
-            task.get();
+            return task.get();
         } catch (ExecutionException e) {
             throw new OpenRaoException(e);
         } catch (InterruptedException e) {
@@ -124,5 +120,6 @@ public class MultiBorderMonitoring {
             throw new OpenRaoException(e);
         }
     }
+
 
 }
