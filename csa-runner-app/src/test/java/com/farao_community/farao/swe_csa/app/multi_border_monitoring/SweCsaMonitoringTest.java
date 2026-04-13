@@ -157,7 +157,6 @@ class SweCsaMonitoringTest {
         Instant utcInstant = Instant.parse("2023-09-13T09:30:00Z");
 
         Mockito.lenient().doNothing().when(s3ArtifactsAdapter).uploadFile(any(), any());
-        Mockito.lenient().doNothing().when(s3ArtifactsAdapter).uploadFile(any(), any());
         Mockito.when(dataCheckImporter.uploadRaoParameters(utcInstant)).thenReturn("rao-parameters-url");
         Mockito.when(dataCheckImporter.importNetwork("csa-task-id", "cgm-url")).thenReturn(network);
         Mockito.when(dataCheckImporter.importCrac("csa-task-id", "pt-es-crac-url", network)).thenReturn(ptEsCrac);
