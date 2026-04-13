@@ -131,7 +131,7 @@ class SweCsaMonitoringTest {
             OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters().setMaxNewtonRaphsonIterations(maxNrIterations);
             loadFlowParameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
         }
-        int numberOfLoadFlowsInParallel = Runtime.getRuntime().availableProcessors();
+        int numberOfLoadFlowsInParallel = 2;
         Set<BorderMonitoringInput> monitoringInputs = Set.of(
                 new MultiBorderMonitoringInput.BorderMonitoringInput(Border.FR_ES, frEsCrac, frEsRaoResult),
                 new MultiBorderMonitoringInput.BorderMonitoringInput(Border.PT_ES, ptEsCrac, ptEsRaoResult));
@@ -340,7 +340,7 @@ class SweCsaMonitoringTest {
         // Assert
         assertSecurity(validatedParallelDichotomiesResult, true, true);
 
-        // Pt-Es is not secure
+        // Pt-Es is secure - verify RaoResult is accessible
         RaoResult validatedPtEsRaoResult = validatedParallelDichotomiesResult.getPtEsResult().getRaoResult();
         assertNotNull(validatedPtEsRaoResult);
 
