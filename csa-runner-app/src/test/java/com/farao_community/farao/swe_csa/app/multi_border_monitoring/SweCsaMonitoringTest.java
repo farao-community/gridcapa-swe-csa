@@ -37,8 +37,10 @@ import com.powsybl.openrao.raoapi.parameters.extensions.LoadFlowAndSensitivityPa
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,6 +57,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 
 @SpringBootTest
+@ExtendWith(MockitoExtension.class)
 class SweCsaMonitoringTest {
 
     @Autowired
@@ -153,16 +156,16 @@ class SweCsaMonitoringTest {
     void checkInputDataWithDichotomyRunnerTest() throws GlskLimitationException, ShiftingException {
         Instant utcInstant = Instant.parse("2023-09-13T09:30:00Z");
 
-        Mockito.doNothing().when(s3ArtifactsAdapter).uploadFile(any(), any());
-        Mockito.doNothing().when(s3ArtifactsAdapter).uploadFile(any(), any());
+        Mockito.lenient().doNothing().when(s3ArtifactsAdapter).uploadFile(any(), any());
+        Mockito.lenient().doNothing().when(s3ArtifactsAdapter).uploadFile(any(), any());
         Mockito.when(dataCheckImporter.uploadRaoParameters(utcInstant)).thenReturn("rao-parameters-url");
         Mockito.when(dataCheckImporter.importNetwork("csa-task-id", "cgm-url")).thenReturn(network);
         Mockito.when(dataCheckImporter.importCrac("csa-task-id", "pt-es-crac-url", network)).thenReturn(ptEsCrac);
         Mockito.when(dataCheckImporter.importCrac("csa-task-id", "fr-es-crac-url", network)).thenReturn(frEsCrac);
         Mockito.when(dataCheckImporter.getZonalData("csa-task-id", utcInstant, "glsk-url", network)).thenReturn(zonalScalable);
-        Mockito.when(fileExporter.saveNetworkInArtifact(Mockito.anyString(), Mockito.any(), Mockito.any())).thenReturn("scaled-network-url");
+        Mockito.lenient().when(fileExporter.saveNetworkInArtifact(Mockito.anyString(), Mockito.any(), Mockito.any())).thenReturn("scaled-network-url");
         AbstractRaoResponse raoResponse = Mockito.mock(AbstractRaoResponse.class);
-        Mockito.when(raoRunnerClient.runRao(Mockito.any())).thenReturn(raoResponse);
+        Mockito.lenient().when(raoRunnerClient.runRao(Mockito.any())).thenReturn(raoResponse);
         SweCsaRaoValidator sweCsaRaoValidator = new SweCsaRaoValidatorMock(fileExporter, raoRunnerClient);
         CsaRequest csaRequest = new CsaRequest("csa-task-id", "2023-09-13T09:30:00Z", "cgm-url", "glsk-url", "pt-es-crac-url", "fr-es-crac-url");
 
