@@ -311,21 +311,21 @@
       "max" : 30000.0
     } ]
   }, {
-      "id" : "Voltage-Cnec-Fr-Es-1-curative 3",
-      "name" : "Voltage-Cnec-Fr-Es-1-curative 3",
-      "networkElementId" : "FFR1AA1",
-      "operator" : "RTE",
-      "border" : "ES-FR",
-      "instant" : "curative 3",
-      "contingencyId" : "CO-Es-1",
-      "optimized" : false,
-      "monitored" : true,
-      "reliabilityMargin" : 0.0,
-      "thresholds" : [ {
-        "unit" : "kilovolt",
-        "min" : -30000.0,
-        "max" : 30000.0
-      } ]
+    "id" : "Voltage-Cnec-Fr-Es-1-curative 3",
+    "name" : "Voltage-Cnec-Fr-Es-1-curative 3",
+    "networkElementId" : "FFR1AA1",
+    "operator" : "RTE",
+    "border" : "ES-FR",
+    "instant" : "curative 3",
+    "contingencyId" : "CO-Es-1",
+    "optimized" : false,
+    "monitored" : true,
+    "reliabilityMargin" : 0.0,
+    "thresholds" : [ {
+      "unit" : "kilovolt",
+      "min" : -30000.0,
+      "max" : 30000.0
+    } ]
   }],
   "pstRangeActions" : [ {
     "id" : "Pst-action-fr-es",
