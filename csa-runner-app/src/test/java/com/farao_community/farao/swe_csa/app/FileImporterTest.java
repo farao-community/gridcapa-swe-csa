@@ -1,20 +1,21 @@
 package com.farao_community.farao.swe_csa.app;
 
 import com.farao_community.farao.swe_csa.api.exception.CsaInvalidDataException;
-import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
+import com.farao_community.farao.swe_csa.app.dichotomy.DichotomyRunner;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openrao.data.crac.api.Crac;
+import com.powsybl.openrao.raoapi.parameters.RaoParameters;
+import com.powsybl.openrao.raoapi.parameters.extensions.LoadFlowAndSensitivityParameters;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -24,9 +25,6 @@ class FileImporterTest {
 
     @Autowired
     FileImporter fileImporter;
-
-    @MockitoBean
-    S3ArtifactsAdapter s3ArtifactsAdapter;
 
     @Test
     void checkIidmNetworkIsImportedCorrectly() {
@@ -86,9 +84,26 @@ class FileImporterTest {
     }
 
     @Test
-    void saveRaoParametersTest() {
-        Mockito.when(s3ArtifactsAdapter.generatePreSignedUrl("configurations/rao-parameters-19990101_1230.json")).thenReturn("url");
-        String result = fileImporter.uploadRaoParameters(OffsetDateTime.parse("1999-01-01T12:30Z").toInstant());
-        assertEquals("url", result);
+    void checkLoadFlowParametersAreImportedCorrectly() {
+        LoadFlowParameters loadFlowParameters = fileImporter.getLoadFlowParameters("taskId", Objects.requireNonNull(getClass().getResource("/load_flow_parameters/load-flow-parameters.json")).toString());
+        OpenLoadFlowParameters openLoadFlowParameters = loadFlowParameters.getExtension(OpenLoadFlowParameters.class);
+        assertEquals(0.7, loadFlowParameters.getDcPowerFactor());
+        assertEquals(7000, openLoadFlowParameters.getPlausibleActivePowerLimit());
     }
+
+    @Test
+    void checkLoadFlowParametersAreUpdatedInRaoParametersCorrectly() {
+        RaoParameters raoParameters = RaoParameters.load();
+        LoadFlowParameters defaultLoadFlowParameters = LoadFlowAndSensitivityParameters.getSensitivityWithLoadFlowParameters(raoParameters).getLoadFlowParameters();
+        assertEquals(1.0, defaultLoadFlowParameters.getDcPowerFactor());
+        LoadFlowParameters newLoadFlowParameters = fileImporter.getLoadFlowParameters("taskId", Objects.requireNonNull(getClass().getResource("/load_flow_parameters/load-flow-parameters.json")).toString());
+        // Update loadFlowParameters in raoParameters
+        DichotomyRunner.updateRaoParametersWithNewLoadFlowParameters(raoParameters, newLoadFlowParameters);
+        LoadFlowParameters updatedLfParametersInRao = LoadFlowAndSensitivityParameters.getSensitivityWithLoadFlowParameters(raoParameters).getLoadFlowParameters();
+
+        // Verify updated value of DCPowerFactor in LoadFlowParameters and PlausibleActivePowerLimit in OpenLoadFlowParameters (extension of LoadFlowParameters)
+        assertEquals(0.7, updatedLfParametersInRao.getDcPowerFactor());
+        assertEquals(7000, updatedLfParametersInRao.getExtension(OpenLoadFlowParameters.class).getPlausibleActivePowerLimit());
+    }
+
 }

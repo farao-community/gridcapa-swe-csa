@@ -24,21 +24,23 @@ class CsaRequestTest {
         String glskUri = "https://example.com/glsk";
         String ptEsCracFileUri = "https://example.com/ptEsCrac";
         String frEsCracFileUri = "https://example.com/frEsCrac";
+        String loadFlowParametersUri = "https://example.com/loadFlowParameters";
 
-        CsaRequest request = new CsaRequest(id, businessTimestamp, gridModelUri, glskUri, ptEsCracFileUri, frEsCracFileUri);
+        CsaRequest request = new CsaRequest(id, businessTimestamp, gridModelUri, glskUri, ptEsCracFileUri, frEsCracFileUri, loadFlowParametersUri);
         assertEquals(id, request.getId());
         assertEquals(businessTimestamp, request.getBusinessTimestamp());
         assertEquals(gridModelUri, request.getGridModelUri());
         assertEquals(glskUri, request.getGlskUri());
         assertEquals(ptEsCracFileUri, request.getPtEsCracFileUri());
         assertEquals(frEsCracFileUri, request.getFrEsCracFileUri());
+        assertEquals(loadFlowParametersUri, request.getLoadFlowParametersUri());
     }
 
     @Test
     void testEqualsAndHashCode() {
-        CsaRequest request1 = new CsaRequest("1", "2025-03-11T12:00:00Z", "gridUri", "glskUri", "ptEsUri", "frEsUri");
-        CsaRequest request2 = new CsaRequest("1", "2025-03-11T12:00:00Z", "gridUri", "glskUri", "ptEsUri", "frEsUri");
-        CsaRequest request3 = new CsaRequest("2", "2025-03-11T12:00:00Z", "gridUri", "glskUri", "ptEsUri", "frEsUri");
+        CsaRequest request1 = new CsaRequest("1", "2025-03-11T12:00:00Z", "gridUri", "glskUri", "ptEsUri", "frEsUri", "loadFlowParameters");
+        CsaRequest request2 = new CsaRequest("1", "2025-03-11T12:00:00Z", "gridUri", "glskUri", "ptEsUri", "frEsUri", "loadFlowParameters");
+        CsaRequest request3 = new CsaRequest("2", "2025-03-11T12:00:00Z", "gridUri", "glskUri", "ptEsUri", "frEsUri", "loadFlowParameters");
 
         assertEquals(request1, request2);
         assertEquals(request1.hashCode(), request2.hashCode());
