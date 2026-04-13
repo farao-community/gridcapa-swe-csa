@@ -129,11 +129,7 @@ public class MarginEvaluatorWithRA implements CnecEvaluator {
         if (results.isEmpty()) {
             return  Cnec.SecurityStatus.SECURE;
         }
-        if (results.stream().anyMatch(r -> r.getMargin() < 0)) {
-            return MonitoringResult.combineStatuses(results.stream().map(CnecResult::getCnecSecurityStatus).toArray(Cnec.SecurityStatus[]::new));
-        } else {
-            return Cnec.SecurityStatus.SECURE;
-        }
+        return MonitoringResult.combineStatuses(results.stream().map(CnecResult::getCnecSecurityStatus).toArray(Cnec.SecurityStatus[]::new));
     }
 
 }
