@@ -367,6 +367,9 @@ class SweCsaMonitoringTest {
 
         // Assert
         assertSecurity(validatedParallelDichotomiesResult, false, false);
+        assertFalse(validatedParallelDichotomiesResult.getFrEsResult().getRaoResult().isSecure(PhysicalParameter.ANGLE));
+        assertFalse(validatedParallelDichotomiesResult.getPtEsResult().getRaoResult().isSecure(PhysicalParameter.ANGLE));
+        // The borders are not secure for the angle monitoring, by consequence they will not be secure overall
         assertFalse(validatedParallelDichotomiesResult.getFrEsResult().getRaoResult().isSecure());
         assertFalse(validatedParallelDichotomiesResult.getPtEsResult().getRaoResult().isSecure());
 
@@ -391,6 +394,9 @@ class SweCsaMonitoringTest {
         ParallelDichotomiesResult validatedParallelDichotomiesResult = runRaoResultValidation();
         // Assert
         assertSecurity(validatedParallelDichotomiesResult, false, false);
+        assertFalse(validatedParallelDichotomiesResult.getFrEsResult().getRaoResult().isSecure(PhysicalParameter.VOLTAGE));
+        assertFalse(validatedParallelDichotomiesResult.getPtEsResult().getRaoResult().isSecure(PhysicalParameter.VOLTAGE));
+        // The borders are not secure for the voltage monitoring, by consequence they will not be secure overall
         assertFalse(validatedParallelDichotomiesResult.getFrEsResult().getRaoResult().isSecure());
         assertFalse(validatedParallelDichotomiesResult.getPtEsResult().getRaoResult().isSecure());
 
