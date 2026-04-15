@@ -225,8 +225,8 @@ class SweCsaMonitoringTest {
         assertNotNull(validatedPtEsRaoResult);
         assertFalse(validatedPtEsRaoResult.isSecure(PhysicalParameter.FLOW, PhysicalParameter.ANGLE, PhysicalParameter.VOLTAGE));
 
-        State stateCoCurative3 = ptEsCrac.getState("CO-Es-1", ptEsCrac.getInstant("curative 3"));
-        List<NetworkAction> ptEsActivatedNetworkActionsAtCurative3 = validatedPtEsRaoResult.getActivatedNetworkActionsDuringState(stateCoCurative3).stream().toList();
+        State ptEsStateCoCurative3 = ptEsCrac.getState("CO-Es-1", ptEsCrac.getInstant("curative 3"));
+        List<NetworkAction> ptEsActivatedNetworkActionsAtCurative3 = validatedPtEsRaoResult.getActivatedNetworkActionsDuringState(ptEsStateCoCurative3).stream().toList();
 
         // "Network-action-pt-es-1" linked to VoltageCNEC at curative 3 is activated
         assertEquals(1, ptEsActivatedNetworkActionsAtCurative3.size());
@@ -241,11 +241,13 @@ class SweCsaMonitoringTest {
         List<RangeAction<?>> ptEsActivatedPstAtPreventive = validatedPtEsRaoResult.getActivatedRangeActionsDuringState(ptEsCrac.getPreventiveState()).stream().toList();
         assertEquals(0, ptEsActivatedPstAtPreventive.size());
 
-        List<RangeAction<?>> ptEsActivatedPstAtCurative3 = validatedPtEsRaoResult.getActivatedRangeActionsDuringState(stateCoCurative3).stream().toList();
+        List<RangeAction<?>> ptEsActivatedPstAtCurative3 = validatedPtEsRaoResult.getActivatedRangeActionsDuringState(ptEsStateCoCurative3).stream().toList();
         assertEquals(0, ptEsActivatedPstAtCurative3.size());
 
         // "Network-action-fr-es-2" is not applied because its associated cnec "Voltage-Cnec-Fr-Es-1-curative 3" is not overloaded
-        List<String> frEsActivatedActionIds = validatedParallelDichotomiesResult.getFrEsResult().getRaoResult().getActivatedNetworkActionsDuringState(stateCoCurative3).stream().map(NetworkAction::getId).toList();
+        State frEsStateCoCurative3 = frEsCrac.getState("CO-Es-1", frEsCrac.getInstant("curative 3"));
+
+        List<String> frEsActivatedActionIds = validatedParallelDichotomiesResult.getFrEsResult().getRaoResult().getActivatedNetworkActionsDuringState(frEsStateCoCurative3).stream().map(NetworkAction::getId).toList();
         assertFalse(frEsActivatedActionIds.contains("Network-action-fr-es-2"));
     }
 
@@ -281,8 +283,8 @@ class SweCsaMonitoringTest {
         assertNotNull(validatedPtEsRaoResult);
         assertFalse(validatedPtEsRaoResult.isSecure(PhysicalParameter.FLOW, PhysicalParameter.ANGLE, PhysicalParameter.VOLTAGE));
 
-        State stateCoCurative3 = ptEsCrac.getState("CO-Es-1", ptEsCrac.getInstant("curative 3"));
-        List<NetworkAction> ptEsActivatedNetworkActionsAtCurative3 = validatedPtEsRaoResult.getActivatedNetworkActionsDuringState(stateCoCurative3).stream().toList();
+        State ptEsStateCoCurative3 = ptEsCrac.getState("CO-Es-1", ptEsCrac.getInstant("curative 3"));
+        List<NetworkAction> ptEsActivatedNetworkActionsAtCurative3 = validatedPtEsRaoResult.getActivatedNetworkActionsDuringState(ptEsStateCoCurative3).stream().toList();
 
         // "Network-action-pt-es-1" linked to VoltageCNEC and "Network-action-pt-es-2" linked to AngleCNEC at curative 3 is activated
         assertEquals(2, ptEsActivatedNetworkActionsAtCurative3.size());
@@ -298,11 +300,13 @@ class SweCsaMonitoringTest {
         List<RangeAction<?>> ptEsActivatedPstAtPreventive = validatedPtEsRaoResult.getActivatedRangeActionsDuringState(ptEsCrac.getPreventiveState()).stream().toList();
         assertEquals(0, ptEsActivatedPstAtPreventive.size());
 
-        List<RangeAction<?>> ptEsActivatedPstAtCurative3 = validatedPtEsRaoResult.getActivatedRangeActionsDuringState(stateCoCurative3).stream().toList();
+        List<RangeAction<?>> ptEsActivatedPstAtCurative3 = validatedPtEsRaoResult.getActivatedRangeActionsDuringState(ptEsStateCoCurative3).stream().toList();
         assertEquals(0, ptEsActivatedPstAtCurative3.size());
 
         // "Network-action-fr-es-2" is not applied because its associated cnec "Voltage-Cnec-Fr-Es-1-curative 3" is not overloaded
-        List<String> frEsActivatedActionIds = validatedParallelDichotomiesResult.getFrEsResult().getRaoResult().getActivatedNetworkActionsDuringState(stateCoCurative3).stream().map(NetworkAction::getId).toList();
+        State frEsStateCoCurative3 = frEsCrac.getState("CO-Es-1", frEsCrac.getInstant("curative 3"));
+
+        List<String> frEsActivatedActionIds = validatedParallelDichotomiesResult.getFrEsResult().getRaoResult().getActivatedNetworkActionsDuringState(frEsStateCoCurative3).stream().map(NetworkAction::getId).toList();
         assertFalse(frEsActivatedActionIds.contains("Network-action-fr-es-2"));
     }
 
@@ -341,8 +345,8 @@ class SweCsaMonitoringTest {
         RaoResult validatedPtEsRaoResult = validatedParallelDichotomiesResult.getPtEsResult().getRaoResult();
         assertNotNull(validatedPtEsRaoResult);
 
-        State stateCoCurative3 = ptEsCrac.getState("CO-Es-1", ptEsCrac.getInstant("curative 3"));
-        List<NetworkAction> ptEsActivatedNetworkActionsAtCurative3 = validatedPtEsRaoResult.getActivatedNetworkActionsDuringState(stateCoCurative3).stream().toList();
+        State ptEsStateCoCurative3 = ptEsCrac.getState("CO-Es-1", ptEsCrac.getInstant("curative 3"));
+        List<NetworkAction> ptEsActivatedNetworkActionsAtCurative3 = validatedPtEsRaoResult.getActivatedNetworkActionsDuringState(ptEsStateCoCurative3).stream().toList();
 
         // "Network-action-pt-es-2" linked to AngleCNEC at curative 3 is activated
         assertEquals(1, ptEsActivatedNetworkActionsAtCurative3.size());
@@ -437,7 +441,7 @@ class SweCsaMonitoringTest {
 
     /**
      * Fr-Es is secure at the beginning (data from sweCsaRaoResultValidatorOKTest)
-     * Adding an overloaded angleCnec makes fr-es is not secure anymore
+     * Adding an overloaded voltageCnec makes fr-es is not secure anymore
      * */
     @Test
     void frEsUnsecureDueToOverloadedVoltageCnecsTest() {
