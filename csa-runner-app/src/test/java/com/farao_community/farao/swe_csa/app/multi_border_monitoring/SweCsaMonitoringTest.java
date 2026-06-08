@@ -441,7 +441,7 @@ class SweCsaMonitoringTest {
 
     /**
      * Fr-Es is secure at the beginning (data from sweCsaRaoResultValidatorOKTest)
-     * Adding an overloaded voltageCnec makes fr-es is not secure anymore
+     * Adding an overloaded voltageCnec makes fr-es not secure anymore
      * */
     @Test
     void frEsUnsecureDueToOverloadedVoltageCnecsTest() {

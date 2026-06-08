@@ -35,6 +35,7 @@ public class SweCsaMonitoring {
     private final String loadFlowProvider;
     private final LoadFlowParameters loadFlowParameters;
     private final Logger businessLogger;
+    private static final String MONITORING_NETWORK_VARIANT_ID = "monitoringVariantId";
 
     public SweCsaMonitoring(String loadFlowProvider, LoadFlowParameters loadFlowParameters, Logger businessLogger) {
         this.loadFlowProvider = loadFlowProvider;
@@ -45,13 +46,26 @@ public class SweCsaMonitoring {
     public ParallelDichotomiesResult validateNetworkForSweBorders(Network network, ParallelDichotomiesResult parallelDichotomiesResult, Crac frEsCrac, Crac ptEsCrac, ZonalData<Scalable> zonalData) {
         MonitoringContext monitoringContext = initializeMonitoringContext(parallelDichotomiesResult, frEsCrac, ptEsCrac);
         try {
+            String initialVariant = network.getVariantManager().getWorkingVariantId();
+            createMonitoringNetworkVariant(network, initialVariant);
             monitoringContext = runFlowMonitoring(network, zonalData, monitoringContext);
             monitoringContext = runAngleMonitoringIfNeeded(network, zonalData, monitoringContext);
             monitoringContext = runVoltageMonitoringIfNeeded(network, zonalData, monitoringContext);
+            resetToInitialNetworkVariant(network, initialVariant);
             return buildFinalResult(parallelDichotomiesResult, monitoringContext);
         } catch (Exception e) {
             throw new CsaInternalException(MDC.get("gridcapaTaskId"), "Monitoring failed", e);
         }
+    }
+
+    private void createMonitoringNetworkVariant(Network network, String initialVariant) {
+        network.getVariantManager().cloneVariant(initialVariant, MONITORING_NETWORK_VARIANT_ID);
+        network.getVariantManager().setWorkingVariant(MONITORING_NETWORK_VARIANT_ID);
+    }
+
+    private void resetToInitialNetworkVariant(Network network, String initialVariant) {
+        network.getVariantManager().setWorkingVariant(initialVariant);
+        network.getVariantManager().removeVariant(MONITORING_NETWORK_VARIANT_ID);
     }
 
     private MonitoringContext initializeMonitoringContext(ParallelDichotomiesResult parallelResult, Crac frEsCrac, Crac ptEsCrac) {
