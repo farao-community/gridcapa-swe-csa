@@ -32,10 +32,11 @@ public class SweCsaMonitoring {
                                      Map<Border, MonitoringResult> voltageMonitoringPerBorder
     ) { }
 
+    private static final String MONITORING_NETWORK_VARIANT_ID = "monitoringVariantId";
+
     private final String loadFlowProvider;
     private final LoadFlowParameters loadFlowParameters;
     private final Logger businessLogger;
-    private static final String MONITORING_NETWORK_VARIANT_ID = "monitoringVariantId";
 
     public SweCsaMonitoring(String loadFlowProvider, LoadFlowParameters loadFlowParameters, Logger businessLogger) {
         this.loadFlowProvider = loadFlowProvider;

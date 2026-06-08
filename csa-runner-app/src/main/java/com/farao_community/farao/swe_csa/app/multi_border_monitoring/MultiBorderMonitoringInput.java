@@ -40,8 +40,11 @@ public final class MultiBorderMonitoringInput {
         this.scalableZonalData = scalableZonalData;
         this.loadFlowProvider = loadFlowProvider;
         this.loadFlowParameters = loadFlowParameters;
-        this.inputPerBorder = inputs.stream().collect(Collectors.toMap(BorderMonitoringInput::border, Function.identity(),
-                (a, b) -> { throw new IllegalArgumentException("Duplicate input defined for border " + a.border()); }));
+        this.inputPerBorder = inputs.stream()
+                .collect(Collectors.toMap(
+                        BorderMonitoringInput::border, Function.identity(), (a, b) -> {
+                            throw new IllegalArgumentException("Duplicate input defined for border " + a.border());
+                        }));
         this.inputs = Set.copyOf(this.inputPerBorder.values());
     }
 
