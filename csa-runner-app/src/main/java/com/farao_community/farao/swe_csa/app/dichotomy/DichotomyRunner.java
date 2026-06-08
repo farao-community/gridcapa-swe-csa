@@ -87,8 +87,6 @@ public class DichotomyRunner {
         Map<String, Double> initialNetPositions = CountryBalanceComputation.computeSweCountriesBalances(network, LoadFlowAndSensitivityParameters.getSensitivityWithLoadFlowParameters(raoParameters).getLoadFlowParameters())
             .entrySet().stream()
             .collect(Collectors.toMap(entry -> new CountryEICode(entry.getKey()).getCountry().getName(), Map.Entry::getValue));
-
-        businessLogger.info("Initial net positions: PT: {}, ES: {}, FR: {}", initialNetPositions.get(Country.PT.getName()), initialNetPositions.get(Country.ES.getName()), initialNetPositions.get(Country.FR.getName()));
         Map<String, Double> initialExchanges = CountryBalanceComputation.computeSweBordersExchanges(network);
 
         double expEsFr0 = initialExchanges.get(ES_FR);
@@ -160,7 +158,7 @@ public class DichotomyRunner {
                 return FinalResult.fromDichotomyStepResults(maxCtParallelDichotomiesResult.getPtEsResult(), maxCtParallelDichotomiesResult.getFrEsResult());
             } else {
                 businessLogger.info("Best case in unsecure, worst case is secure, trying to find optimum in between using dichotomy");
-                Index index = new Index(0, 0, indexPrecision, maxDichotomiesByBorder);
+                Index index = new Index(0, 0, indexPrecision, maxDichotomiesByBorder, initialNetPositions);
 
                 index.addPtEsDichotomyStepResult(0, noCtParallelDichotomiesResult.getPtEsResult());
                 index.addPtEsDichotomyStepResult(ctPtEsUpperBound, maxCtParallelDichotomiesResult.getPtEsResult());

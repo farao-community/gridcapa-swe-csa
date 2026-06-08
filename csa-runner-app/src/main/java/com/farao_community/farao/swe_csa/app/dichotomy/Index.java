@@ -1,6 +1,11 @@
 package com.farao_community.farao.swe_csa.app.dichotomy;
 
+import com.powsybl.iidm.network.Country;
 import org.apache.commons.lang3.tuple.Pair;
+
+import java.util.Map;
+
+import static java.lang.Math.signum;
 
 public class Index {
     private final double ptEsMinValue;
@@ -15,12 +20,14 @@ public class Index {
     private ParallelDichotomiesResult bestValidDichotomyStepResult;
     private int frEsDichotomyCount = 0;
     private int ptEsDichotomyCount = 0;
+    private final Map<String, Double> initialNetPositions;
 
-    public Index(double ptEsMinValue, double frEsMinValue, double precision, double maxDichotomiesByBorder) {
+    public Index(double ptEsMinValue, double frEsMinValue, double precision, double maxDichotomiesByBorder, Map<String, Double> initialNetPositions) {
         this.ptEsMinValue = ptEsMinValue;
         this.frEsMinValue = frEsMinValue;
         this.precision = precision;
         this.maxDichotomiesByBorder = maxDichotomiesByBorder;
+        this.initialNetPositions = initialNetPositions;
     }
 
     public Pair<Double, DichotomyStepResult> getFrEsHighestUnsecureStep() {
@@ -35,8 +42,16 @@ public class Index {
         return frEsLowestSecureStep;
     }
 
+    public Double getSignedFrEsLowestSecureStepValue() {
+        return -frEsLowestSecureStep.getLeft() * signum(initialNetPositions.get(Country.FR.getName()));
+    }
+
     public Pair<Double, DichotomyStepResult> getPtEsLowestSecureStep() {
         return ptEsLowestSecureStep;
+    }
+
+    public Double getSignedPtEsLowestSecureStepValue() {
+        return -ptEsLowestSecureStep.getLeft() * signum(initialNetPositions.get(Country.PT.getName()));
     }
 
     public boolean addPtEsDichotomyStepResult(double ptEsCtStepValue, DichotomyStepResult stepResult) {

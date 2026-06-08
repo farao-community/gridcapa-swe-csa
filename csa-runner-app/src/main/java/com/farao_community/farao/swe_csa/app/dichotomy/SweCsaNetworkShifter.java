@@ -72,7 +72,7 @@ public final class SweCsaNetworkShifter {
             DichotomyDirection.ES_FR.toString(), esFrInitialExchange - Math.signum(esFrInitialExchange) * Math.abs(counterTradingValues.frEsCt()),
             DichotomyDirection.ES_PT.toString(), esPtInitialExchange - Math.signum(esPtInitialExchange) * Math.abs(counterTradingValues.ptEsCt())
         );
-        BUSINESS_LOGS.info("Target exchanges: PT->ES: {}, FR-ES: {}", -targetExchanges.get(DichotomyDirection.ES_PT.toString()), -targetExchanges.get(DichotomyDirection.ES_FR.toString()));
+        BUSINESS_LOGS.info("Target exchanges: PT->ES: {} MW, FR-ES: {} MW", -targetExchanges.get(DichotomyDirection.ES_PT.toString()), -targetExchanges.get(DichotomyDirection.ES_FR.toString()));
 
         shiftExchangeValues(network, targetExchanges, scalingValueEstimationPerCountry, raoParameters);
     }
@@ -112,7 +112,8 @@ public final class SweCsaNetworkShifter {
 
             // Step 4 : check after iteration max and out of tolerance
             if (!shiftSucceed) {
-                String message = String.format("Balancing adjustment out of tolerances: mismatch on ES-PT = %.2f , mismatch on ES-FR =  %.2f", mismatchPerBorder.get(DichotomyDirection.ES_PT.toString()), mismatchPerBorder.get(DichotomyDirection.ES_FR.toString()));
+                String message = String.format("Balancing adjustment out of tolerances: mismatch on ES-PT = %.2f MW, mismatch on ES-FR =  %.2f MW",
+                        mismatchPerBorder.get(DichotomyDirection.ES_PT.toString()), mismatchPerBorder.get(DichotomyDirection.ES_FR.toString()));
                 BUSINESS_LOGS.error(message);
                 throw new ShiftingException(message);
             }
@@ -130,7 +131,7 @@ public final class SweCsaNetworkShifter {
     static Map<String, Double> computeExchangeValuesMismatch(Network network, String workingVariantCopyId, Map<String, Double> targetExchanges, RaoParameters raoParameters) throws ShiftingException {
         Map<String, Double> mismatchPerBorder;
         LoadFlowResult loadFlowResult = LoadFlow.run(network, workingVariantCopyId, LocalComputationManager.getDefault(), LoadFlowAndSensitivityParameters.getSensitivityWithLoadFlowParameters(raoParameters).getLoadFlowParameters());
-        if (!loadFlowResult.isFullyConverged()) {
+        if (loadFlowResult.isFailed()) {
             String message = String.format("Load-flow computation diverged on network '%s' during balancing adjustment", network.getId());
             throw new ShiftingException(message);
         }

@@ -12,9 +12,9 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
  */
 
 import com.farao_community.farao.rao_runner.api.exceptions.RaoRunnerException;
-import com.farao_community.farao.rao_runner.api.resource.RaoRequest;
 import com.farao_community.farao.rao_runner.api.resource.AbstractRaoResponse;
 import com.farao_community.farao.rao_runner.api.resource.RaoFailureResponse;
+import com.farao_community.farao.rao_runner.api.resource.RaoRequest;
 import com.farao_community.farao.rao_runner.api.resource.RaoSuccessResponse;
 import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
 import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
@@ -128,8 +128,18 @@ public class SweCsaRaoValidator {
 
     static Set<FlowCnec> getBorderFlowCnecs(Crac crac, String border) {
         return crac.getFlowCnecs().stream()
-            .filter(flowCnec -> flowCnec.isOptimized() && flowCnec.getBorder().equals(border))
+            .filter(flowCnec -> flowCnec.isOptimized() && flowCnec.getBorder().equals(normalizeBorder(border)))
             .collect(Collectors.toSet());
+    }
+
+    static String normalizeBorder(String border) {
+        if (border.contains("ES") && border.contains("PT")) {
+            return "ES-PT";
+        }
+        if (border.contains("ES") && border.contains("FR")) {
+            return "ES-FR";
+        }
+        return border;
     }
 
     Pair<String, Double> getFlowCnecSmallestMargin(RaoResult raoResult, Set<FlowCnec> flowCnecs) {
