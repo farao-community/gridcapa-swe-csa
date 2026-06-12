@@ -97,7 +97,7 @@ public class MarginEvaluatorWithRA implements CnecEvaluator {
         cnecResultsPerBorder.forEach((border, results) -> {
             Cnec.SecurityStatus status = computeStatus(results);
             securityStatusPerBorder.put(border, status);
-            businessLogger.info("Border [{}] – {} margins at state '{}' -> security status: {}", border, physicalParameter, state, status);
+            //businessLogger.info("Border [{}] – {} margins at state '{}' -> security status: {}",border, physicalParameter, state, status);
         });
         Map<Border, MonitoringResult> resultPerBorder = borders.stream().collect(Collectors.toMap(
                 border -> border,
