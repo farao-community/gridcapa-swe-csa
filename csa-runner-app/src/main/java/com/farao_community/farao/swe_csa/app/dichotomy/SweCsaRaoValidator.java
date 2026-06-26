@@ -43,6 +43,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class SweCsaRaoValidator {
+    private static final Unit FLOW_CNECS_UNIT = Unit.AMPERE;
 
     private final FileExporter fileExporter;
     private final RaoRunnerClient raoRunnerClient;
@@ -121,8 +122,7 @@ public class SweCsaRaoValidator {
             businessLogger.info("There is overloads on '{}' border, network is not secure", borderName);
             Set<FlowCnec> flowCnecs = getBorderFlowCnecs(crac, borderName);
             Pair<String, Double> flowCnecSmallestMargin = getFlowCnecSmallestMargin(raoResult, flowCnecs);
-            businessLogger.info("On the '{}' border, the most limiting CNEC is {}, with a margin of {}", borderName, flowCnecSmallestMargin.getLeft(), flowCnecSmallestMargin.getRight());
-
+            businessLogger.info("On the '{}' border, the most limiting CNEC is {}, with a margin of {} {}", borderName, flowCnecSmallestMargin.getLeft(), flowCnecSmallestMargin.getRight(), FLOW_CNECS_UNIT);
         }
     }
 
@@ -146,7 +146,7 @@ public class SweCsaRaoValidator {
         String flowCnecId = "";
         double smallestMargin = Double.MAX_VALUE;
         for (FlowCnec flowCnec : flowCnecs) {
-            double margin = raoResult.getMargin(flowCnec.getState().getInstant(), flowCnec, Unit.AMPERE);
+            double margin = raoResult.getMargin(flowCnec.getState().getInstant(), flowCnec, FLOW_CNECS_UNIT);
             if (margin < smallestMargin) {
                 flowCnecId = flowCnec.getId();
                 smallestMargin = margin;

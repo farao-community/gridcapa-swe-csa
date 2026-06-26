@@ -139,13 +139,13 @@ public final class SweCsaNetworkShifter {
         double mismatchEsPt = targetExchanges.get(DichotomyDirection.ES_PT.toString()) - bordersExchanges.get(DichotomyDirection.ES_PT.toString());
         double mismatchEsFr = targetExchanges.get(DichotomyDirection.ES_FR.toString()) - bordersExchanges.get(DichotomyDirection.ES_FR.toString());
         mismatchPerBorder = Map.of(DichotomyDirection.ES_FR.toString(), mismatchEsFr, DichotomyDirection.ES_PT.toString(), mismatchEsPt);
-        BUSINESS_LOGS.info("Resulting exchanges: PT->ES: {}, FR->ES: {}", -bordersExchanges.get(DichotomyDirection.ES_PT.toString()), -bordersExchanges.get(DichotomyDirection.ES_FR.toString()));
-        BUSINESS_LOGS.info("Mismatch: PT->ES: {}, FR->ES: {}", mismatchEsPt, mismatchEsFr);
+        BUSINESS_LOGS.info("Resulting exchanges: PT->ES: {} MW, FR->ES: {} MW", -bordersExchanges.get(DichotomyDirection.ES_PT.toString()), -bordersExchanges.get(DichotomyDirection.ES_FR.toString()));
+        BUSINESS_LOGS.info("Mismatch: PT->ES: {} MW, FR->ES: {} MW", mismatchEsPt, mismatchEsFr);
         return mismatchPerBorder;
     }
 
     private void shiftNetPositions(Network network, Map<String, Double> scalingValuePerCountry) throws GlskLimitationException {
-        String logTargetCountriesShift = String.format("Target shifts by country: [ES = %.2f, FR = %.2f, PT = %.2f]",
+        String logTargetCountriesShift = String.format("Target shifts by country: [ES = %.2f MW, FR = %.2f MW, PT = %.2f MW]",
             scalingValuePerCountry.get(EI_CODE_ES), scalingValuePerCountry.get(EI_CODE_FR), scalingValuePerCountry.get(EI_CODE_PT));
         BUSINESS_LOGS.info(logTargetCountriesShift);
 
@@ -153,14 +153,14 @@ public final class SweCsaNetworkShifter {
         for (Map.Entry<String, Double> entry : scalingValuePerCountry.entrySet()) {
             String zoneId = entry.getKey();
             double asked = entry.getValue();
-            String logApplyingVariationOnZone = String.format("Applying variation on zone %s (target: %.2f)", zoneId, asked);
+            String logApplyingVariationOnZone = String.format("Applying variation on zone %s (target: %.2f MW)", zoneId, asked);
             BUSINESS_LOGS.info(logApplyingVariationOnZone);
             ScalingParameters scalingParameters = new ScalingParameters();
             scalingParameters.setPriority(ScalingParameters.Priority.RESPECT_OF_VOLUME_ASKED);
             scalingParameters.setReconnect(true);
             double done = zonalScalable.getData(zoneId).scale(network, asked, scalingParameters);
             if (Math.abs(done - asked) > shiftTolerance) {
-                String logWarnIncompleteVariation = String.format("Incomplete variation on zone %s (target: %.2f, done: %.2f)", zoneId, asked, done);
+                String logWarnIncompleteVariation = String.format("Incomplete variation on zone %s (target: %.2f MW, done: %.2f MW)", zoneId, asked, done);
                 BUSINESS_WARNS.warn(logWarnIncompleteVariation);
                 limitingCountries.add(zoneId);
             }
