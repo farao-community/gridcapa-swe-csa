@@ -1,5 +1,6 @@
 package com.farao_community.farao.swe_csa.app.s3;
 
+import com.farao_community.farao.swe_csa.app.utils.TmpFile;
 import io.minio.MinioClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,7 +12,8 @@ import java.time.OffsetDateTime;
 
 @Component
 public class S3ArtifactsAdapter {
-    private static final Logger LOGGER = LoggerFactory.getLogger(S3AdapterUtil.class);
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(S3ArtifactsAdapter.class);
 
     private final MinioClient minioClient;
     private final String bucket;
@@ -27,9 +29,18 @@ public class S3ArtifactsAdapter {
         S3AdapterUtil.createBucketIfDoesNotExist(minioClient, bucket);
     }
 
-    public void uploadFile(String pathDestination, InputStream sourceInputStream) {
-        createBucketIfDoesNotExist();
-        S3AdapterUtil.uploadFile(minioClient, basePath + "/" + pathDestination, sourceInputStream, bucket);
+    /**
+     * File content must be smaller than 5 MB. Just call if you are absolutely sure about that,
+     * otherwise call uploadFile passing TmpFile instead of InputStream
+     */
+    public void uploadSmallFile(String pathDestination,
+                                InputStream sourceInputStream) {
+        S3AdapterUtil.uploadFile(minioClient, basePath + "/" + pathDestination, sourceInputStream, bucket, -1);
+    }
+
+    public void uploadFile(String pathDestination, TmpFile source) {
+        S3AdapterUtil.uploadFile(minioClient, basePath + "/" + pathDestination,
+                source.getReadStream(), bucket, source.getTempFile().length());
     }
 
     public String generatePreSignedUrl(String minioPath) {

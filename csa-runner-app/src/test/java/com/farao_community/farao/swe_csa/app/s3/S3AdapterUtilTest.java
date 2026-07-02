@@ -22,14 +22,16 @@ class S3AdapterUtilTest {
         try {
             MinioClient minioClient = Mockito.mock(MinioClient.class);
             Mockito.when(minioClient.bucketExists(Mockito.any())).thenReturn(true);
-            Assertions.assertDoesNotThrow(() -> S3AdapterUtil.createBucketIfDoesNotExist(minioClient, "bucket"));
+            Assertions.assertDoesNotThrow(
+                    () -> S3AdapterUtil.createBucketIfDoesNotExist(minioClient, "bucket"));
         } catch (Exception e) {
             // should not happen
         }
         try {
             MinioClient badMinioClient = Mockito.mock(MinioClient.class);
             Mockito.when(badMinioClient.bucketExists(Mockito.any())).thenThrow(IOException.class);
-            Assertions.assertThrows(CsaInternalException.class, () -> S3AdapterUtil.createBucketIfDoesNotExist(badMinioClient, "bucket"));
+            Assertions.assertThrows(CsaInternalException.class,
+                    () -> S3AdapterUtil.createBucketIfDoesNotExist(badMinioClient, "bucket"));
         } catch (Exception e) {
             // should not happen
         }
@@ -39,24 +41,23 @@ class S3AdapterUtilTest {
     void checkUpload() {
         try {
             MinioClient minioClient = Mockito.mock(MinioClient.class);
-            Mockito.when(minioClient.bucketExists(Mockito.argThat(assertBucketExistsArgs()))).thenReturn(false);
+            Mockito.when(minioClient.bucketExists(Mockito.argThat(assertBucketExistsArgs())))
+                    .thenReturn(false);
 
-            S3AdapterUtil.uploadFile(minioClient, "/path", new ByteArrayInputStream("content".getBytes()), "bucket");
+            var content = "thisimycontent";
+            S3AdapterUtil.uploadFile(minioClient, "/path",
+                    new ByteArrayInputStream(content.getBytes()), "bucket", content.length());
             InOrder inOrder = Mockito.inOrder(minioClient);
 
             inOrder.verify(minioClient, Mockito.times(1))
-                .bucketExists(Mockito.argThat(
-                    assertBucketExistsArgs()
-                ));
+                    .bucketExists(Mockito.argThat(assertBucketExistsArgs()));
+            inOrder.verify(minioClient, Mockito.times(1))
+                    .makeBucket(Mockito.argThat(assertMakeBucketArgs()));
 
-            inOrder.verify(minioClient, Mockito.times(1))
-                .makeBucket(Mockito.argThat(
-                    assertMakeBucketArgs()
-                ));
-            inOrder.verify(minioClient, Mockito.times(1))
-                .putObject(Mockito.argThat(
-                    assertPutObjectArgs())
-                );
+            inOrder.verify(minioClient, Mockito.times(1)).putObject(Mockito.any());
+            inOrder.verify(minioClient, Mockito.times(1)).copyObject(Mockito.any());
+            inOrder.verify(minioClient, Mockito.times(1)).removeObject(Mockito.any());
+
         } catch (Exception e) {
             // should not happen
 

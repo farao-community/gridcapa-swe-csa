@@ -2,6 +2,7 @@ package com.farao_community.farao.swe_csa.app;
 
 import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
 import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
+import com.farao_community.farao.swe_csa.app.utils.TmpFile;
 import com.powsybl.commons.datasource.MemDataSource;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.data.crac.api.Crac;
@@ -10,7 +11,7 @@ import com.powsybl.openrao.raoapi.json.JsonRaoParameters;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
 import org.springframework.stereotype.Service;
 
-import java.io.*;
+import java.io.IOException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -33,8 +34,8 @@ public class FileExporter {
     public String saveNetworkInArtifact(String taskId, Network network, String networkFilePath) {
         MemDataSource memDataSource = new MemDataSource();
         network.write(IIDM_EXPORT_FORMAT, new Properties(), memDataSource);
-        try (InputStream is = memDataSource.newInputStream("", IIDM_EXTENSION)) {
-            s3ArtifactsAdapter.uploadFile(networkFilePath, is);
+        try (var tmp = TmpFile.create("network", memDataSource.newInputStream("", IIDM_EXTENSION))) {
+            s3ArtifactsAdapter.uploadFile(networkFilePath, tmp);
         } catch (IOException e) {
             throw new CsaInternalException(taskId, "Error while trying to save network to artifacts", e);
         }
@@ -42,20 +43,26 @@ public class FileExporter {
     }
 
     public void saveRaoResultInArtifact(String destinationPath, RaoResult raoResult, Crac crac) {
-        ByteArrayOutputStream outputStreamRaoResult = new ByteArrayOutputStream();
-        Properties propertiesAmperes = new Properties();
-        propertiesAmperes.setProperty("rao-result.export.json.flows-in-amperes", "true");
-        raoResult.write("JSON", crac, propertiesAmperes, outputStreamRaoResult);
-        s3ArtifactsAdapter.uploadFile(destinationPath, new ByteArrayInputStream(outputStreamRaoResult.toByteArray()));
+        try (var tmp = TmpFile.create("rao")) {
+            Properties propertiesAmperes = new Properties();
+            propertiesAmperes.setProperty("rao-result.export.json.flows-in-amperes", "true");
+            raoResult.write("JSON", crac, propertiesAmperes, tmp.getWriteStream());
+            s3ArtifactsAdapter.uploadFile(destinationPath, tmp);
+        } catch (IOException e) {
+            throw new RuntimeException("Error uploading Rao results", e);
+        }
     }
 
     public String uploadRaoParameters(Instant utcInstant, RaoParameters raoParameters) {
-        String raoParametersFilePath = String.format("configurations/rao-parameters-%s", HOURLY_NAME_FORMATTER.format(utcInstant).concat(".json"));
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        JsonRaoParameters.write(raoParameters, baos);
-        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-        s3ArtifactsAdapter.uploadFile(raoParametersFilePath, bais);
-        return s3ArtifactsAdapter.generatePreSignedUrl(raoParametersFilePath);
+        String raoParametersFilePath = String.format("configurations/rao-parameters-%s",
+                HOURLY_NAME_FORMATTER.format(utcInstant).concat(".json"));
+        try (var tmp = TmpFile.create("rao-params")) {
+            JsonRaoParameters.write(raoParameters, tmp.getWriteStream());
+            s3ArtifactsAdapter.uploadFile(raoParametersFilePath, tmp);
+            return s3ArtifactsAdapter.generatePreSignedUrl(raoParametersFilePath);
+        } catch (IOException e) {
+            throw new RuntimeException("Error uploading Rao parameters", e);
+        }
     }
 
 }
