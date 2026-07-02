@@ -121,7 +121,7 @@ public final class S3AdapterUtil {
                     if (elapsed >= maxWaitMillis) {
                         throw new RuntimeException("Copy timeout", e);
                     }
-                    LOGGER.debug("OperationAborted for file {}. Will retry in {} ms", waitMillis, key);
+                    LOGGER.debug("OperationAborted for file {}. Will retry in {} ms", key, waitMillis);
                     numRetries++;
                     sleep(waitMillis);
                 } else {

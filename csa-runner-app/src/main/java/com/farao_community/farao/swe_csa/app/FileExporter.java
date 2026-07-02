@@ -43,10 +43,10 @@ public class FileExporter {
     }
 
     public void saveRaoResultInArtifact(String destinationPath, RaoResult raoResult, Crac crac) {
-        try (var tmp = TmpFile.create("rao")) {
+        try (var tmp = TmpFile.create("rao"); var os = tmp.getWriteStream()) {
             Properties propertiesAmperes = new Properties();
             propertiesAmperes.setProperty("rao-result.export.json.flows-in-amperes", "true");
-            raoResult.write("JSON", crac, propertiesAmperes, tmp.getWriteStream());
+            raoResult.write("JSON", crac, propertiesAmperes, os);
             s3ArtifactsAdapter.uploadFile(destinationPath, tmp);
         } catch (IOException e) {
             throw new RuntimeException("Error uploading Rao results", e);
@@ -56,8 +56,8 @@ public class FileExporter {
     public String uploadRaoParameters(Instant utcInstant, RaoParameters raoParameters) {
         String raoParametersFilePath = String.format("configurations/rao-parameters-%s",
                 HOURLY_NAME_FORMATTER.format(utcInstant).concat(".json"));
-        try (var tmp = TmpFile.create("rao-params")) {
-            JsonRaoParameters.write(raoParameters, tmp.getWriteStream());
+        try (var tmp = TmpFile.create("rao-params"); var os = tmp.getWriteStream()) {
+            JsonRaoParameters.write(raoParameters, os);
             s3ArtifactsAdapter.uploadFile(raoParametersFilePath, tmp);
             return s3ArtifactsAdapter.generatePreSignedUrl(raoParametersFilePath);
         } catch (IOException e) {
