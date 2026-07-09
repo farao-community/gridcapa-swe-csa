@@ -57,8 +57,8 @@ public class DichotomyRunner {
     private final Logger businessLogger;
     private final ParallelDichotomiesRunner parallelDichotomiesRunner;
 
-    private static final String ES_FR = "ES_FR";
-    private static final String ES_PT = "ES_PT";
+    static final String ES_FR = "ES_FR";
+    static final String ES_PT = "ES_PT";
 
     public DichotomyRunner(SweCsaRaoValidator sweCsaRaoValidator, FileImporter fileImporter, FileExporter fileExporter, InterruptionService interruptionService, StreamBridge streamBridge, S3ArtifactsAdapter s3ArtifactsAdapter, Logger businessLogger, ParallelDichotomiesRunner parallelDichotomiesRunner) {
         this.sweCsaRaoValidator = sweCsaRaoValidator;
@@ -158,7 +158,7 @@ public class DichotomyRunner {
                 return FinalResult.fromDichotomyStepResults(maxCtParallelDichotomiesResult.getPtEsResult(), maxCtParallelDichotomiesResult.getFrEsResult());
             } else {
                 businessLogger.info("Best case is unsecure, maximum counter-trading case is secure, launching dichotomy to find the optimal counter-trading values");
-                Index index = new Index(0, 0, indexPrecision, maxDichotomiesByBorder, initialNetPositions);
+                Index index = new Index(0, 0, indexPrecision, maxDichotomiesByBorder, initialExchanges);
 
                 index.addPtEsDichotomyStepResult(0, noCtParallelDichotomiesResult.getPtEsResult());
                 index.addPtEsDichotomyStepResult(ctPtEsUpperBound, maxCtParallelDichotomiesResult.getPtEsResult());
