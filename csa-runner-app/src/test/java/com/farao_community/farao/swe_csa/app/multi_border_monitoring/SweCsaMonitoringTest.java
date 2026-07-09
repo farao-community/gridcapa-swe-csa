@@ -154,7 +154,7 @@ class SweCsaMonitoringTest {
         Instant utcInstant = Instant.parse("2023-09-13T09:30:00Z");
 
         Mockito.lenient().doNothing().when(s3ArtifactsAdapter).uploadFile(any(), any());
-        Mockito.when(dataCheckImporter.uploadRaoParameters(utcInstant)).thenReturn("rao-parameters-url");
+        Mockito.when(fileExporter.uploadRaoParameters(Mockito.eq(utcInstant), Mockito.any(RaoParameters.class))).thenReturn("rao-parameters-url");
         Mockito.when(dataCheckImporter.importNetwork("csa-task-id", "cgm-url")).thenReturn(network);
         Mockito.when(dataCheckImporter.importCrac("csa-task-id", "pt-es-crac-url", network)).thenReturn(ptEsCrac);
         Mockito.when(dataCheckImporter.importCrac("csa-task-id", "fr-es-crac-url", network)).thenReturn(frEsCrac);
@@ -163,7 +163,7 @@ class SweCsaMonitoringTest {
         AbstractRaoResponse raoResponse = Mockito.mock(AbstractRaoResponse.class);
         Mockito.lenient().when(raoRunnerClient.runRao(Mockito.any())).thenReturn(raoResponse);
         SweCsaRaoValidator sweCsaRaoValidator = new SweCsaRaoValidatorMock(fileExporter, raoRunnerClient);
-        CsaRequest csaRequest = new CsaRequest("csa-task-id", "2023-09-13T09:30:00Z", "cgm-url", "glsk-url", "pt-es-crac-url", "fr-es-crac-url");
+        CsaRequest csaRequest = new CsaRequest("csa-task-id", "2023-09-13T09:30:00Z", "cgm-url", "glsk-url", "pt-es-crac-url", "fr-es-crac-url", null);
 
         DichotomyRunner sweCsaDichotomyRunner = new DichotomyRunner(sweCsaRaoValidator, dataCheckImporter, fileExporter, interruptionService, streamBridge, s3ArtifactsAdapter, LoggerFactory.getLogger(com.farao_community.farao.swe_csa.app.multi_border_monitoring.SweCsaMonitoringTest.class), parallelDichotomiesRunner);
         sweCsaDichotomyRunner.setIndexPrecision(50);

@@ -22,6 +22,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -43,8 +45,8 @@ class SweCsaRaoValidatorTest {
     RaoRunnerClient raoRunnerClient;
 
     @Test
-    void testGetBorderFlowCnecs() {
-        Network network = Network.read(getClass().getResource("/rao_inputs/network.xiidm").getPath());
+    void testGetBorderFlowCnecs() throws URISyntaxException {
+        Network network = Network.read(Paths.get(Objects.requireNonNull(getClass().getResource("/rao_inputs/network.xiidm")).toURI()).toString());
         Crac crac = fileImporter.importCrac("taskId", Objects.requireNonNull(getClass().getResource("/rao_inputs/crac.json")).toString(), network);
 
         Set<FlowCnec> cnecsPtEs = SweCsaRaoValidator.getBorderFlowCnecs(crac, "PT-ES");
@@ -91,8 +93,8 @@ class SweCsaRaoValidatorTest {
     }
 
     @Test
-    void testValidateNetworkRaoFailureResponse() {
-        Network network = Network.read(getClass().getResource("/rao_inputs/network.xiidm").getPath());
+    void testValidateNetworkRaoFailureResponse() throws URISyntaxException {
+        Network network = Network.read(Paths.get(Objects.requireNonNull(getClass().getResource("/rao_inputs/network.xiidm")).toURI()).toString());
         Crac crac = fileImporter.importCrac("taskId", Objects.requireNonNull(getClass().getResource("/rao_inputs/crac.json")).toString(), network);
 
         SweCsaRaoValidator sweCsaRaoValidator = new SweCsaRaoValidator(fileExporter, raoRunnerClient, LoggerFactory.getLogger(S3AdapterUtil.class));
