@@ -2,8 +2,14 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
 
 import com.farao_community.farao.dichotomy.api.results.ReasonInvalid;
 import com.farao_community.farao.rao_runner.api.resource.RaoSuccessResponse;
+import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
+import com.powsybl.openrao.data.crac.api.cnec.Cnec;
 import com.powsybl.openrao.data.raoresult.api.RaoResult;
+import com.powsybl.openrao.monitoring.results.MonitoringResult;
 import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.slf4j.MDC;
+
+import java.util.Objects;
 
 public final class DichotomyStepResult {
     private final RaoResult raoResult;
@@ -12,6 +18,9 @@ public final class DichotomyStepResult {
     private final ReasonInvalid reasonInvalid;
     private final String failureMessage;
     private final CounterTradingValues counterTradingValues;
+    private final MonitoringResult flowMonitoringResult;
+    private final MonitoringResult angleMonitoringResult;
+    private final MonitoringResult voltageMonitoringResult;
 
     private DichotomyStepResult(boolean isSecure, ReasonInvalid reasonInvalid, String failureMessage, CounterTradingValues counterTradingValues) {
         this.isSecure = isSecure;
@@ -20,6 +29,9 @@ public final class DichotomyStepResult {
         this.counterTradingValues = counterTradingValues;
         this.reasonInvalid = reasonInvalid;
         this.failureMessage = failureMessage;
+        this.flowMonitoringResult = null;
+        this.angleMonitoringResult = null;
+        this.voltageMonitoringResult = null;
     }
 
     private DichotomyStepResult(RaoResult raoResult, boolean isSecure, RaoSuccessResponse raoSuccessResponse, CounterTradingValues counterTradingValues) {
@@ -29,6 +41,22 @@ public final class DichotomyStepResult {
         this.reasonInvalid = isSecure ? ReasonInvalid.NONE : ReasonInvalid.UNSECURE_AFTER_VALIDATION;
         this.counterTradingValues = counterTradingValues;
         this.failureMessage = "None";
+        this.flowMonitoringResult = null;
+        this.angleMonitoringResult = null;
+        this.voltageMonitoringResult = null;
+    }
+
+    private DichotomyStepResult(RaoResult raoResult, boolean isSecure, RaoSuccessResponse raoSuccessResponse, CounterTradingValues counterTradingValues,
+                                MonitoringResult flowMonitoringResult, MonitoringResult angleMonitoringResult, MonitoringResult voltageMonitoringResult) {
+        this.raoResult = raoResult;
+        this.isSecure = isSecure;
+        this.raoSuccessResponse = raoSuccessResponse;
+        this.reasonInvalid = isSecure ? ReasonInvalid.NONE : ReasonInvalid.UNSECURE_AFTER_VALIDATION;
+        this.counterTradingValues = counterTradingValues;
+        this.failureMessage = "None";
+        this.flowMonitoringResult = flowMonitoringResult;
+        this.angleMonitoringResult = angleMonitoringResult;
+        this.voltageMonitoringResult = voltageMonitoringResult;
     }
 
     public static DichotomyStepResult fromFailure(ReasonInvalid reasonInvalid, String failureMessage, CounterTradingValues counterTradingValues) {
@@ -37,6 +65,11 @@ public final class DichotomyStepResult {
 
     public static DichotomyStepResult fromNetworkValidationResult(RaoResult raoResult, boolean isSecure, RaoSuccessResponse raoResponse, CounterTradingValues counterTradingValues) {
         return new DichotomyStepResult(raoResult, isSecure, raoResponse, counterTradingValues);
+    }
+
+    public static DichotomyStepResult fromNetworkValidationWithMonitoringResult(RaoResult raoResult, boolean isSecure, RaoSuccessResponse raoResponse, CounterTradingValues counterTradingValues,
+                                                                                MonitoringResult flowMonitoringResult, MonitoringResult angleMonitoringResult, MonitoringResult voltageMonitoringResult) {
+        return new DichotomyStepResult(raoResult, isSecure, raoResponse, counterTradingValues, flowMonitoringResult, angleMonitoringResult, voltageMonitoringResult);
     }
 
     public RaoResult getRaoResult() {
@@ -69,6 +102,20 @@ public final class DichotomyStepResult {
 
     public boolean isSecure() {
         return isSecure;
+    }
+
+    public MonitoringResult getFlowMonitoringResult() {
+        if (flowMonitoringResult == null) {
+            throw new CsaInternalException(MDC.get("gridcapaTaskId"), "Flow monitoring has not been performed. Flow monitoring results are not available.");
+        }
+        return flowMonitoringResult;
+    }
+
+    public boolean isFlowSecure() {
+        if (this.flowMonitoringResult != null) {
+            return Objects.equals(Cnec.SecurityStatus.SECURE, this.flowMonitoringResult.getStatus());
+        }
+        return this.isSecure;
     }
 }
 
