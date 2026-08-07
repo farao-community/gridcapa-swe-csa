@@ -1,15 +1,18 @@
 package com.farao_community.farao.swe_csa.app.s3;
 
 import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
-import io.minio.*;
+import io.minio.BucketExistsArgs;
+import io.minio.CopyObjectArgs;
+import io.minio.CopySource;
+import io.minio.GetObjectArgs;
+import io.minio.GetPresignedObjectUrlArgs;
+import io.minio.MakeBucketArgs;
+import io.minio.MinioClient;
+import io.minio.PutObjectArgs;
+import io.minio.RemoveObjectArgs;
 import io.minio.errors.ErrorResponseException;
 import io.minio.errors.MinioException;
 import io.minio.http.Method;
-import org.apache.commons.io.FilenameUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,6 +26,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.io.FilenameUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 public final class S3AdapterUtil {
 
@@ -48,6 +55,10 @@ public final class S3AdapterUtil {
     }
 
     /**
+     *
+     * When using InputStream, the file content must be smaller than 5 MB. Just call if you are absolutely sure about that,
+     * otherwise use TmpFile instead of direct InputStream
+     *
      * Note: sourceInputStream will be closed after uploading
      */
     public static void uploadFile(MinioClient minioClient, String pathDestination,
