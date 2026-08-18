@@ -270,7 +270,7 @@ public class DichotomyRunner {
                 : Math.min(Math.min(ctraTowardsES.getMaxAdmissibleSetpoint(initialExchangeTowardsES), -ctraFromES.getMinAdmissibleSetpoint(-initialExchangeTowardsES)), -initialExchangeTowardsES);
 
         if (ctMax != Math.abs(initialExchangeTowardsES)) {
-            businessLogger.warn("Maximum counter-trading volume {} for border {} is different from initial exchange {}", ctMax, borderName, borderName, Math.abs(initialExchangeTowardsES));
+            businessLogger.warn("Maximum counter-trading volume {} MW for border {} is different from initial exchange {} MW", ctMax, borderName, Math.abs(initialExchangeTowardsES));
         }
 
         return ctMax;
@@ -296,7 +296,7 @@ public class DichotomyRunner {
     }
 
     private String getNewVariantName(CounterTradingValues counterTradingValues) {
-        return String.format("network-ScaledBy-%s-MW", counterTradingValues.print());
+        return String.format("Scaled-network-%s", counterTradingValues.print());
     }
 
     public void setIndexPrecision(double indexPrecision) {

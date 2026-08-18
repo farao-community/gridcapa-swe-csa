@@ -33,6 +33,8 @@ public class SweCsaMonitoring {
     ) { }
 
     private static final String MONITORING_NETWORK_VARIANT_ID = "monitoringVariantId";
+    private static final String SECURE = "Secure";
+    private static final String UNSECURE = "Unsecure";
 
     private final String loadFlowProvider;
     private final LoadFlowParameters loadFlowParameters;
@@ -46,16 +48,17 @@ public class SweCsaMonitoring {
 
     public ParallelDichotomiesResult validateNetworkForSweBorders(Network network, ParallelDichotomiesResult parallelDichotomiesResult, Crac frEsCrac, Crac ptEsCrac, ZonalData<Scalable> zonalData) {
         MonitoringContext monitoringContext = initializeMonitoringContext(parallelDichotomiesResult, frEsCrac, ptEsCrac);
+        String initialVariant = network.getVariantManager().getWorkingVariantId();
+        createMonitoringNetworkVariant(network, initialVariant);
         try {
-            String initialVariant = network.getVariantManager().getWorkingVariantId();
-            createMonitoringNetworkVariant(network, initialVariant);
             monitoringContext = runFlowMonitoring(network, zonalData, monitoringContext);
             monitoringContext = runAngleMonitoringIfNeeded(network, zonalData, monitoringContext);
             monitoringContext = runVoltageMonitoringIfNeeded(network, zonalData, monitoringContext);
-            resetToInitialNetworkVariant(network, initialVariant);
             return buildFinalResult(parallelDichotomiesResult, monitoringContext);
         } catch (Exception e) {
             throw new CsaInternalException(MDC.get("gridcapaTaskId"), "Monitoring failed", e);
+        } finally {
+            resetToInitialNetworkVariant(network, initialVariant);
         }
     }
 
@@ -102,7 +105,6 @@ public class SweCsaMonitoring {
         Map<Border, MonitoringResult> angleMonitoringResultsPerBorder = angleMonitoringResults.getResultsForAllBorders();
         Map<Border, RaoResult> updatedRaoResultPerBorder = updateRaoResultsWithAngleMonitoringForTwoBorders(angleInput, angleMonitoringResultsPerBorder);
         Map<Border, Boolean> securityPerBorder = updateSecurityPerBorder(monitoringContext.securityFlagPerBorder(), updatedRaoResultPerBorder, PhysicalParameter.ANGLE);
-        logMonitoringOutcome(PhysicalParameter.ANGLE.toString(), securityPerBorder);
         Set<BorderMonitoringInput> updatedBorderMonitoringInput = rebuildMonitoringInputs(monitoringContext.borderMonitoringInputs(), updatedRaoResultPerBorder);
         return new MonitoringContext(updatedRaoResultPerBorder, securityPerBorder, updatedBorderMonitoringInput, monitoringContext.flowMonitoringPerBorder(), angleMonitoringResultsPerBorder, monitoringContext.voltageMonitoringPerBorder());
     }
@@ -119,7 +121,6 @@ public class SweCsaMonitoring {
         Map<Border, MonitoringResult> voltageMonitoringResultsPerBorder = voltageMonitoringResults.getResultsForAllBorders();
         Map<Border, RaoResult> updatedRaoResultPerBorder = updateRaoResultsWithVoltageMonitoringForTwoBorders(voltageInput, voltageMonitoringResultsPerBorder);
         Map<Border, Boolean> securityPerBorder = updateSecurityPerBorder(monitoringContext.securityFlagPerBorder(), updatedRaoResultPerBorder, PhysicalParameter.VOLTAGE);
-        logMonitoringOutcome(PhysicalParameter.VOLTAGE.toString(), securityPerBorder);
         Set<BorderMonitoringInput> updatedBorderMonitoringInput = rebuildMonitoringInputs(monitoringContext.borderMonitoringInputs(), updatedRaoResultPerBorder);
         return new MonitoringContext(updatedRaoResultPerBorder, securityPerBorder, updatedBorderMonitoringInput, monitoringContext.flowMonitoringPerBorder(), monitoringContext.angleMonitoringPerBorder(), voltageMonitoringResultsPerBorder);
     }
@@ -145,21 +146,10 @@ public class SweCsaMonitoring {
         return newMap;
     }
 
-    private void logMonitoringOutcome(String label, Map<Border, Boolean> securityFlagPerBorder) {
-        if (securityFlagPerBorder.values().stream().allMatch(Boolean::booleanValue)) {
-            businessLogger.info("{} monitoring secure for both borders, Final result will contain {} monitoring results", label, label);
-        } else {
-            businessLogger.info("{} monitoring unsecure for at least one border", label);
-        }
-    }
-
     private Set<BorderMonitoringInput> rebuildMonitoringInputs(Set<BorderMonitoringInput> borderMonitoringInput, Map<Border, RaoResult> updatedRaoResultPerBorder) {
         return borderMonitoringInput.stream()
                 .map(i -> new MultiBorderMonitoringInput.BorderMonitoringInput(
-                        i.border(),
-                        i.crac(),
-                        updatedRaoResultPerBorder.get(i.border())
-                ))
+                        i.border(), i.crac(), updatedRaoResultPerBorder.get(i.border())))
                 .collect(Collectors.toSet());
     }
 
@@ -185,6 +175,8 @@ public class SweCsaMonitoring {
 
     private ParallelDichotomiesResult buildFinalResult(ParallelDichotomiesResult initialResult, MonitoringContext monitoringContext) {
         CounterTradingValues ct = initialResult.getCounterTradingValues();
+        String frEsSecurityFlag = securityLabel(monitoringContext.securityFlagPerBorder().get(Border.FR_ES));
+        businessLogger.info("Monitoring done for {} border, overall security status: {}", Border.FR_ES, frEsSecurityFlag);
         DichotomyStepResult frEs = DichotomyStepResult.fromNetworkValidationWithMonitoringResult(
                 monitoringContext.raoResultPerBorder().get(Border.FR_ES),
                 monitoringContext.securityFlagPerBorder().get(Border.FR_ES),
@@ -194,6 +186,8 @@ public class SweCsaMonitoring {
                 monitoringContext.angleMonitoringPerBorder().get(Border.FR_ES),
                 monitoringContext.voltageMonitoringPerBorder().get(Border.FR_ES)
         );
+        String ptEsSecurityFlag = securityLabel(monitoringContext.securityFlagPerBorder().get(Border.PT_ES));
+        businessLogger.info("Monitoring done for {} border, overall security status: {}", Border.PT_ES, ptEsSecurityFlag);
         DichotomyStepResult ptEs = DichotomyStepResult.fromNetworkValidationWithMonitoringResult(
                 monitoringContext.raoResultPerBorder().get(Border.PT_ES),
                 monitoringContext.securityFlagPerBorder().get(Border.PT_ES),
@@ -204,6 +198,10 @@ public class SweCsaMonitoring {
                 monitoringContext.voltageMonitoringPerBorder().get(Border.PT_ES)
         );
         return new ParallelDichotomiesResult(ptEs, frEs, ct);
+    }
+
+    private static String securityLabel(boolean flag) {
+        return flag ? SECURE : UNSECURE;
     }
 }
 

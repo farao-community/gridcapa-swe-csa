@@ -96,9 +96,9 @@ public class SweCsaRaoValidator {
 
     private void logBorderOverload(RaoResult raoResult, Crac crac, String borderName) {
         if (raoResult.isSecure(PhysicalParameter.FLOW)) {
-            businessLogger.info("There is no overload on '{}' border during parallel RAO", borderName);
+            businessLogger.info("There are no overloads on '{}' border during parallel RAO", borderName);
         } else {
-            businessLogger.info("There is overloads on '{}' border, network is not secure during parallel RAO", borderName);
+            businessLogger.info("There are overloads on '{}' border, network was not secure during parallel RAO", borderName);
             Set<FlowCnec> flowCnecs = getBorderFlowCnecs(crac, borderName);
             Pair<String, Double> flowCnecSmallestMargin = getFlowCnecSmallestMargin(raoResult, flowCnecs);
             businessLogger.info("On the '{}' border, the most limiting CNEC during parallel RAO is {}, with a margin of {} {}", borderName, flowCnecSmallestMargin.getLeft(), flowCnecSmallestMargin.getRight(), FLOW_CNECS_UNIT);
@@ -107,7 +107,7 @@ public class SweCsaRaoValidator {
 
     static Set<FlowCnec> getBorderFlowCnecs(Crac crac, String border) {
         return crac.getFlowCnecs().stream()
-            .filter(flowCnec -> flowCnec.isOptimized() && flowCnec.getBorder().equals(normalizeBorder(border)))
+            .filter(flowCnec -> flowCnec.isOptimized() && normalizeBorder(border).equals(flowCnec.getBorder()))
             .collect(Collectors.toSet());
     }
 
