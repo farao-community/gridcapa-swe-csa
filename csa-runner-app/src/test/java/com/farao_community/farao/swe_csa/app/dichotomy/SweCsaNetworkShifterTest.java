@@ -5,10 +5,12 @@ import com.farao_community.farao.dichotomy.api.exceptions.ShiftingException;
 import com.farao_community.farao.gridcapa_swe_commons.shift.CountryBalanceComputation;
 import com.farao_community.farao.swe_csa.app.shift.ShiftDispatcher;
 import com.farao_community.farao.swe_csa.app.shift.SweCsaZonalData;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openrao.commons.EICode;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
@@ -27,7 +29,7 @@ class SweCsaNetworkShifterTest {
     @Test
     void testShiftExchangeValues() throws GlskLimitationException, ShiftingException {
         Network network = Network.read("/dichotomy/TestCase_with_swe_countries.xiidm", getClass().getResourceAsStream("/dichotomy/TestCase_with_swe_countries.xiidm"));
-        RaoParameters raoParameters = RaoParameters.load();
+        RaoParameters raoParameters = RaoParameters.load(ReportNode.NO_OP);
         ZonalData<Scalable> scalableZonalData = SweCsaZonalData.getZonalData(network);
         Map<String, Double> targetExchanges = Map.of(
             "ES_FR", 2020.,
@@ -39,9 +41,15 @@ class SweCsaNetworkShifterTest {
             new EICode(Country.ES).getAreaCode(), 8.
         );
 
-        Map<String, Double> initialNetPositions = CountryBalanceComputation.computeSweCountriesBalances(network, LoadFlowAndSensitivityParameters.getSensitivityWithLoadFlowParameters(RaoParameters.load()).getLoadFlowParameters());
+        LoadFlowParameters loadFlowParameters = LoadFlowAndSensitivityParameters.getSensitivityWithLoadFlowParameters(RaoParameters.load(ReportNode.NO_OP)).getLoadFlowParameters();
+        // OLF Parameters are adapted here instead of changing assertions. Default values for the following parameters has been changed in 2.3.0
+        OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
+        openLoadFlowParameters.setPlausibleActivePowerLimit(5000.0);
+        openLoadFlowParameters.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
+        loadFlowParameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
+        Map<String, Double> initialNetPositions = CountryBalanceComputation.computeSweCountriesBalances(network, loadFlowParameters);
         Map<String, Double> balance = CountryBalanceComputation.computeSweBordersExchanges(network);
-        assertEquals(2012., balance.get("ES_FR"), 1);
+        assertEquals(2012.0, balance.get("ES_FR"), 1);
         assertEquals(0, balance.get("ES_PT"), 1);
 
         new SweCsaNetworkShifter(scalableZonalData, 2012., 0., new ShiftDispatcher(initialNetPositions)).shiftExchangeValues(network, targetExchanges, scalingValues, raoParameters);
@@ -54,7 +62,7 @@ class SweCsaNetworkShifterTest {
     @Test
     void testShiftExchangeValuesWithShiftingException() {
         Network network = Network.read("/dichotomy/TestCase_with_swe_countries.xiidm", getClass().getResourceAsStream("/dichotomy/TestCase_with_swe_countries.xiidm"));
-        RaoParameters raoParameters = RaoParameters.load();
+        RaoParameters raoParameters = RaoParameters.load(ReportNode.NO_OP);
         ZonalData<Scalable> scalableZonalData = SweCsaZonalData.getZonalData(network);
         Map<String, Double> targetExchanges = Map.of(
             "ES_FR", 100.0,
@@ -119,10 +127,10 @@ class SweCsaNetworkShifterTest {
     }
 
     private static RaoParameters createRaoAndOlfParameters(OpenLoadFlowParameters openLoadFlowParameters) {
-        RaoParameters raoParameters = RaoParameters.load();
-        LoadFlowAndSensitivityParameters loadFlowAndSensitivityParameters = new LoadFlowAndSensitivityParameters();
+        RaoParameters raoParameters = RaoParameters.load(ReportNode.NO_OP);
+        LoadFlowAndSensitivityParameters loadFlowAndSensitivityParameters = new LoadFlowAndSensitivityParameters(ReportNode.NO_OP);
         loadFlowAndSensitivityParameters.getSensitivityWithLoadFlowParameters().getLoadFlowParameters().addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
-        OpenRaoSearchTreeParameters raoSearchTreeParameters = new OpenRaoSearchTreeParameters();
+        OpenRaoSearchTreeParameters raoSearchTreeParameters = new OpenRaoSearchTreeParameters(ReportNode.NO_OP);
         raoSearchTreeParameters.setLoadFlowAndSensitivityParameters(loadFlowAndSensitivityParameters);
         raoParameters.addExtension(OpenRaoSearchTreeParameters.class, raoSearchTreeParameters);
         return raoParameters;

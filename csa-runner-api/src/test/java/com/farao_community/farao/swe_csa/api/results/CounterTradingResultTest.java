@@ -28,23 +28,23 @@ class CounterTradingResultTest {
         Mockito.when(preventiveState.isPreventive()).thenReturn(true);
 
         Mockito.when(frEsCounterTradeRangeActionMock.getGroupId()).thenReturn(Optional.of("CT_FR_ES"));
-        Mockito.when(frEsCounterTradeRangeActionMock.getImportingCountry()).thenReturn(Country.ES);
-        Mockito.when(frEsCounterTradeRangeActionMock.getExportingCountry()).thenReturn(Country.FR);
+        Mockito.when(frEsCounterTradeRangeActionMock.getImportingArea()).thenReturn(Country.ES.toString());
+        Mockito.when(frEsCounterTradeRangeActionMock.getExportingArea()).thenReturn(Country.FR.toString());
         Mockito.when(frEsCounterTradeRangeActionMock.getInitialSetpoint()).thenReturn(0.);
 
         Mockito.when(esFrCounterTradeRangeActionMock.getGroupId()).thenReturn(Optional.of("CT_ES_FR"));
-        Mockito.when(esFrCounterTradeRangeActionMock.getImportingCountry()).thenReturn(Country.FR);
-        Mockito.when(esFrCounterTradeRangeActionMock.getExportingCountry()).thenReturn(Country.ES);
+        Mockito.when(esFrCounterTradeRangeActionMock.getImportingArea()).thenReturn(Country.FR.toString());
+        Mockito.when(esFrCounterTradeRangeActionMock.getExportingArea()).thenReturn(Country.ES.toString());
         Mockito.when(esFrCounterTradeRangeActionMock.getInitialSetpoint()).thenReturn(0.);
 
         Mockito.when(esPtCounterTradeRangeActionMock.getGroupId()).thenReturn(Optional.of("CT_ES_PT"));
-        Mockito.when(esPtCounterTradeRangeActionMock.getImportingCountry()).thenReturn(Country.PT);
-        Mockito.when(esPtCounterTradeRangeActionMock.getExportingCountry()).thenReturn(Country.ES);
+        Mockito.when(esPtCounterTradeRangeActionMock.getImportingArea()).thenReturn(Country.PT.toString());
+        Mockito.when(esPtCounterTradeRangeActionMock.getExportingArea()).thenReturn(Country.ES.toString());
         Mockito.when(esPtCounterTradeRangeActionMock.getInitialSetpoint()).thenReturn(0.);
 
         Mockito.when(ptEsCounterTradeRangeActionMock.getGroupId()).thenReturn(Optional.of("CT_PT_ES"));
-        Mockito.when(ptEsCounterTradeRangeActionMock.getImportingCountry()).thenReturn(Country.FR);
-        Mockito.when(ptEsCounterTradeRangeActionMock.getExportingCountry()).thenReturn(Country.ES);
+        Mockito.when(ptEsCounterTradeRangeActionMock.getImportingArea()).thenReturn(Country.FR.toString());
+        Mockito.when(ptEsCounterTradeRangeActionMock.getExportingArea()).thenReturn(Country.ES.toString());
         Mockito.when(ptEsCounterTradeRangeActionMock.getInitialSetpoint()).thenReturn(0.);
 
         CounterTradeRangeActionResult frEsCounterTradeRangeActionResult = new CounterTradeRangeActionResult("CT_FR_ES", 10.0, Arrays.asList("CNEC1", "CNEC2"));

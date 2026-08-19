@@ -175,8 +175,8 @@ public final class MonitoringUtils {
             return network.getIdentifiable(generatorAction.getGeneratorId());
         } else if (ea instanceof LoadAction loadAction) {
             return network.getIdentifiable(loadAction.getLoadId());
-        } else if (ea instanceof DanglingLineAction danglingLineAction) {
-            return network.getIdentifiable(danglingLineAction.getDanglingLineId());
+        } else if (ea instanceof BoundaryLine boundaryLineAction) {
+            return network.getIdentifiable(boundaryLineAction.getId());
         } else if (ea instanceof ShuntCompensatorPositionAction shuntCompensatorPositionAction) {
             return network.getIdentifiable(shuntCompensatorPositionAction.getShuntCompensatorId());
         } else {

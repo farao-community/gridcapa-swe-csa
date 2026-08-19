@@ -16,6 +16,7 @@ import com.farao_community.farao.swe_csa.app.InterruptionService;
 import com.farao_community.farao.swe_csa.app.multi_border_monitoring.SweCsaMonitoring;
 import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
 import com.farao_community.farao.swe_csa.app.shift.ShiftDispatcher;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.glsk.commons.CountryEICode;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
@@ -288,7 +289,7 @@ public class DichotomyRunner {
 
     private CounterTradeRangeAction getCounterTradeRangeActionByCountries(Crac crac, Country exportingCountry, Country importingCountry) {
         for (CounterTradeRangeAction counterTradeRangeAction : crac.getCounterTradeRangeActions()) {
-            if (counterTradeRangeAction.getExportingCountry() == exportingCountry && counterTradeRangeAction.getImportingCountry() == importingCountry) {
+            if (counterTradeRangeAction.getExportingArea().equals(exportingCountry.toString()) && counterTradeRangeAction.getImportingArea().equals(importingCountry.toString())) {
                 return counterTradeRangeAction;
             }
         }
@@ -308,7 +309,7 @@ public class DichotomyRunner {
     }
 
     private RaoParameters loadRaoParameters(CsaRequest csaRequest) {
-        RaoParameters raoParameters = RaoParameters.load();
+        RaoParameters raoParameters = RaoParameters.load(ReportNode.NO_OP);
         if (csaRequest.getLoadFlowParametersUri() == null || csaRequest.getLoadFlowParametersUri().isEmpty()) {
             return raoParameters;
         }
@@ -322,7 +323,7 @@ public class DichotomyRunner {
 
         OpenRaoSearchTreeParameters searchTreeParameters = raoParameters.getExtension(OpenRaoSearchTreeParameters.class);
         if (searchTreeParameters == null) {
-            searchTreeParameters = new OpenRaoSearchTreeParameters();
+            searchTreeParameters = new OpenRaoSearchTreeParameters(ReportNode.NO_OP);
             raoParameters.addExtension(OpenRaoSearchTreeParameters.class, searchTreeParameters);
         }
 

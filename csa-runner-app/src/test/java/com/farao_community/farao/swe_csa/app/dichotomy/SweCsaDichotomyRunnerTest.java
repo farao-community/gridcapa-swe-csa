@@ -11,6 +11,7 @@ import com.farao_community.farao.swe_csa.app.FileImporter;
 import com.farao_community.farao.swe_csa.app.InterruptionService;
 import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
 import com.farao_community.farao.swe_csa.app.shift.SweCsaZonalData;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Country;
@@ -79,7 +80,7 @@ class SweCsaDichotomyRunnerTest {
         Mockito.when(frEsCrac.getCounterTradeRangeActions()).thenReturn(Set.of(ctRaFrEs, ctRaEsFr));
 
         Mockito.doNothing().when(s3ArtifactsAdapter).uploadFile(any(), any());
-        Mockito.when(fileExporter.uploadRaoParameters(utcInstant, RaoParameters.load())).thenReturn("rao-parameters-url");
+        Mockito.when(fileExporter.uploadRaoParameters(utcInstant, RaoParameters.load(ReportNode.NO_OP))).thenReturn("rao-parameters-url");
         Mockito.when(fileImporter.importNetwork("csa-task-id", "cgm-url")).thenReturn(network);
         Mockito.when(fileImporter.importCrac("csa-task-id", "pt-es-crac-url", network)).thenReturn(ptEsCrac);
         Mockito.when(fileImporter.importCrac("csa-task-id", "fr-es-crac-url", network)).thenReturn(frEsCrac);
@@ -139,8 +140,8 @@ class SweCsaDichotomyRunnerTest {
 
     private static CounterTradeRangeActionImpl mockCtAction(Country exporting, Country importing) {
         CounterTradeRangeActionImpl action = Mockito.mock(CounterTradeRangeActionImpl.class);
-        Mockito.when(action.getExportingCountry()).thenReturn(exporting);
-        Mockito.when(action.getImportingCountry()).thenReturn(importing);
+        Mockito.when(action.getExportingArea()).thenReturn(exporting.toString());
+        Mockito.when(action.getImportingArea()).thenReturn(importing.toString());
         Mockito.when(action.getMinAdmissibleSetpoint(Mockito.anyDouble())).thenReturn(-50000.0);
         Mockito.when(action.getMaxAdmissibleSetpoint(Mockito.anyDouble())).thenReturn(50000.0);
         return action;

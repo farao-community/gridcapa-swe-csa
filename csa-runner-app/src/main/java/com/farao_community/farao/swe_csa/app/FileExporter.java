@@ -3,6 +3,7 @@ package com.farao_community.farao.swe_csa.app;
 import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
 import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
 import com.powsybl.commons.datasource.MemDataSource;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.data.crac.api.Crac;
 import com.powsybl.openrao.data.raoresult.api.RaoResult;
@@ -52,7 +53,7 @@ public class FileExporter {
     public String uploadRaoParameters(Instant utcInstant, RaoParameters raoParameters) {
         String raoParametersFilePath = String.format("configurations/rao-parameters-%s", HOURLY_NAME_FORMATTER.format(utcInstant).concat(".json"));
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        JsonRaoParameters.write(raoParameters, baos);
+        JsonRaoParameters.write(raoParameters, baos, ReportNode.NO_OP);
         ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
         s3ArtifactsAdapter.uploadFile(raoParametersFilePath, bais);
         return s3ArtifactsAdapter.generatePreSignedUrl(raoParametersFilePath);

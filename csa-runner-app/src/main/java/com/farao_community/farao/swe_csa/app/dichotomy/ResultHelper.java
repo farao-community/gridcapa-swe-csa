@@ -77,7 +77,7 @@ public class ResultHelper {
 
     private static CounterTradeRangeAction findCounterTradingAction(Set<CounterTradeRangeAction> ctActions, Country exportingCountry, Country importingCountry) {
         return ctActions.stream()
-                .filter(action -> action.getExportingCountry() == exportingCountry && action.getImportingCountry() == importingCountry)
+                .filter(action -> action.getExportingArea().equals(exportingCountry.toString()) && action.getImportingArea().equals(importingCountry.toString()))
                 .findFirst()
                 .orElseThrow(() -> new CsaInvalidDataException(MDC.get("gridcapaTaskId"), String.format("No CounterTradeRangeAction found for '%s' → '%s'", exportingCountry.getName(), importingCountry.getName())));
     }

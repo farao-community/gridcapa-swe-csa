@@ -52,13 +52,13 @@ class ResultHelperTest {
         Crac crac = mock(Crac.class);
         CounterTradeRangeAction counterTradeRangeActionPtEs = mock(CounterTradeRangeAction.class);
         when(counterTradeRangeActionPtEs.getId()).thenReturn("CT_RA_PTES");
-        when(counterTradeRangeActionPtEs.getExportingCountry()).thenReturn(Country.PT);
-        when(counterTradeRangeActionPtEs.getImportingCountry()).thenReturn(Country.ES);
+        when(counterTradeRangeActionPtEs.getExportingArea()).thenReturn(Country.PT.toString());
+        when(counterTradeRangeActionPtEs.getImportingArea()).thenReturn(Country.ES.toString());
         when(crac.getCounterTradeRangeAction("CT_RA_PTES")).thenReturn(counterTradeRangeActionPtEs);
         CounterTradeRangeAction counterTradeRangeActionEsPt = mock(CounterTradeRangeAction.class);
         when(counterTradeRangeActionEsPt.getId()).thenReturn("CT_RA_ESPT");
-        when(counterTradeRangeActionEsPt.getExportingCountry()).thenReturn(Country.ES);
-        when(counterTradeRangeActionEsPt.getImportingCountry()).thenReturn(Country.PT);
+        when(counterTradeRangeActionEsPt.getExportingArea()).thenReturn(Country.ES.toString());
+        when(counterTradeRangeActionEsPt.getImportingArea()).thenReturn(Country.PT.toString());
         when(crac.getCounterTradeRangeAction("CT_RA_ESPT")).thenReturn(counterTradeRangeActionEsPt);
         when(crac.getCounterTradeRangeActions()).thenReturn(Set.of(counterTradeRangeActionPtEs, counterTradeRangeActionEsPt));
         Index index = mock(Index.class);

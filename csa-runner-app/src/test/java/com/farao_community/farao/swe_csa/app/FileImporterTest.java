@@ -2,6 +2,7 @@ package com.farao_community.farao.swe_csa.app;
 
 import com.farao_community.farao.swe_csa.api.exception.CsaInvalidDataException;
 import com.farao_community.farao.swe_csa.app.dichotomy.DichotomyRunner;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.glsk.commons.ZonalData;
 import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Network;
@@ -93,7 +94,7 @@ class FileImporterTest {
 
     @Test
     void checkLoadFlowParametersAreUpdatedInRaoParametersCorrectly() {
-        RaoParameters raoParameters = RaoParameters.load();
+        RaoParameters raoParameters = RaoParameters.load(ReportNode.NO_OP);
         LoadFlowParameters defaultLoadFlowParameters = LoadFlowAndSensitivityParameters.getSensitivityWithLoadFlowParameters(raoParameters).getLoadFlowParameters();
         assertEquals(1.0, defaultLoadFlowParameters.getDcPowerFactor());
         LoadFlowParameters newLoadFlowParameters = fileImporter.getLoadFlowParameters("taskId", Objects.requireNonNull(getClass().getResource("/load_flow_parameters/load-flow-parameters.json")).toString());
