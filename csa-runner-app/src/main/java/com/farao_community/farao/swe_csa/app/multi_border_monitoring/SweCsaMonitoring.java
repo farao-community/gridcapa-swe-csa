@@ -15,7 +15,7 @@ import com.powsybl.openrao.data.crac.api.cnec.Cnec;
 import com.powsybl.openrao.data.raoresult.api.RaoResult;
 import com.powsybl.openrao.monitoring.results.MonitoringResult;
 import com.powsybl.openrao.monitoring.results.RaoResultWithAngleMonitoring;
-import com.powsybl.openrao.monitoring.results.RaoResultWithVoltageMonitoring;
+import com.farao_community.farao.swe_csa.app.rao_result.RaoResultWithAngleAndVoltageMonitoring;
 import org.slf4j.Logger;
 import org.slf4j.MDC;
 
@@ -24,7 +24,8 @@ import java.util.stream.Collectors;
 
 public class SweCsaMonitoring {
 
-    private record MonitoringContext(Map<Border, RaoResult> raoResultPerBorder,
+    private record MonitoringContext(Map<Border, RaoResult> originalRaoResultPerBorder,
+                                     Map<Border, RaoResult> raoResultPerBorder,
                                      Map<Border, Boolean> securityFlagPerBorder,
                                      Set<BorderMonitoringInput> borderMonitoringInputs,
                                      Map<Border, MonitoringResult> flowMonitoringPerBorder,
@@ -81,7 +82,7 @@ public class SweCsaMonitoring {
         Map<Border, Boolean> secureMap = new EnumMap<>(Border.class);
         secureMap.put(Border.FR_ES, true);
         secureMap.put(Border.PT_ES, true);
-        return new MonitoringContext(raoResultsPerBorder, secureMap, monitoringInputsPerBorder, new EnumMap<>(Border.class), new EnumMap<>(Border.class), new EnumMap<>(Border.class));
+        return new MonitoringContext(raoResultsPerBorder, raoResultsPerBorder, secureMap, monitoringInputsPerBorder, new EnumMap<>(Border.class), new EnumMap<>(Border.class), new EnumMap<>(Border.class));
     }
 
     private MonitoringContext runFlowMonitoring(Network network, ZonalData<Scalable> zonalData, MonitoringContext monitoringContext) {
@@ -90,7 +91,7 @@ public class SweCsaMonitoring {
         MultiBorderMonitoringResult flowMonitoringResult = flowMonitoring.run();
         Map<Border, Boolean> securityPerBorder = computeSecurityPerBorder(input, flowMonitoringResult);
         Map<Border, MonitoringResult> flowMonitoringResultsPerBorder = flowMonitoringResult.getResultsForAllBorders();
-        return new MonitoringContext(monitoringContext.raoResultPerBorder(), securityPerBorder, monitoringContext.borderMonitoringInputs(), flowMonitoringResultsPerBorder, monitoringContext.angleMonitoringPerBorder(), monitoringContext.voltageMonitoringPerBorder());
+        return new MonitoringContext(monitoringContext.originalRaoResultPerBorder(), monitoringContext.raoResultPerBorder(), securityPerBorder, monitoringContext.borderMonitoringInputs(), flowMonitoringResultsPerBorder, monitoringContext.angleMonitoringPerBorder(), monitoringContext.voltageMonitoringPerBorder());
     }
 
     private MonitoringContext runAngleMonitoringIfNeeded(Network network, ZonalData<Scalable> zonalData, MonitoringContext monitoringContext) {
@@ -106,7 +107,7 @@ public class SweCsaMonitoring {
         Map<Border, RaoResult> updatedRaoResultPerBorder = updateRaoResultsWithAngleMonitoringForTwoBorders(angleInput, angleMonitoringResultsPerBorder);
         Map<Border, Boolean> securityPerBorder = updateSecurityPerBorder(monitoringContext.securityFlagPerBorder(), updatedRaoResultPerBorder, PhysicalParameter.ANGLE);
         Set<BorderMonitoringInput> updatedBorderMonitoringInput = rebuildMonitoringInputs(monitoringContext.borderMonitoringInputs(), updatedRaoResultPerBorder);
-        return new MonitoringContext(updatedRaoResultPerBorder, securityPerBorder, updatedBorderMonitoringInput, monitoringContext.flowMonitoringPerBorder(), angleMonitoringResultsPerBorder, monitoringContext.voltageMonitoringPerBorder());
+        return new MonitoringContext(monitoringContext.originalRaoResultPerBorder(), updatedRaoResultPerBorder, securityPerBorder, updatedBorderMonitoringInput, monitoringContext.flowMonitoringPerBorder(), angleMonitoringResultsPerBorder, monitoringContext.voltageMonitoringPerBorder());
     }
 
     private MonitoringContext runVoltageMonitoringIfNeeded(Network network, ZonalData<Scalable> zonalData, MonitoringContext monitoringContext) {
@@ -119,10 +120,14 @@ public class SweCsaMonitoring {
         MultiBorderMonitoring monitoring = new MultiBorderMonitoring(voltageInput, Runtime.getRuntime().availableProcessors(), businessLogger);
         MultiBorderMonitoringResult voltageMonitoringResults = monitoring.run();
         Map<Border, MonitoringResult> voltageMonitoringResultsPerBorder = voltageMonitoringResults.getResultsForAllBorders();
-        Map<Border, RaoResult> updatedRaoResultPerBorder = updateRaoResultsWithVoltageMonitoringForTwoBorders(voltageInput, voltageMonitoringResultsPerBorder);
+        // Merge angle + voltage monitoring results directly on top of the original (pre-monitoring) RaoResult,
+        // instead of nesting OpenRAO's official RaoResultWithVoltageMonitoring on top of the angle-monitored
+        // result: that would silently lose the angle results on any getAngle/getMargin(angle) call. See
+        // RaoResultWithAngleAndVoltageMonitoring's javadoc for details.
+        Map<Border, RaoResult> updatedRaoResultPerBorder = updateRaoResultsWithAngleAndVoltageMonitoringForTwoBorders(monitoringContext.originalRaoResultPerBorder(), monitoringContext.angleMonitoringPerBorder(), voltageMonitoringResultsPerBorder);
         Map<Border, Boolean> securityPerBorder = updateSecurityPerBorder(monitoringContext.securityFlagPerBorder(), updatedRaoResultPerBorder, PhysicalParameter.VOLTAGE);
         Set<BorderMonitoringInput> updatedBorderMonitoringInput = rebuildMonitoringInputs(monitoringContext.borderMonitoringInputs(), updatedRaoResultPerBorder);
-        return new MonitoringContext(updatedRaoResultPerBorder, securityPerBorder, updatedBorderMonitoringInput, monitoringContext.flowMonitoringPerBorder(), monitoringContext.angleMonitoringPerBorder(), voltageMonitoringResultsPerBorder);
+        return new MonitoringContext(monitoringContext.originalRaoResultPerBorder(), updatedRaoResultPerBorder, securityPerBorder, updatedBorderMonitoringInput, monitoringContext.flowMonitoringPerBorder(), monitoringContext.angleMonitoringPerBorder(), voltageMonitoringResultsPerBorder);
     }
 
     private MultiBorderMonitoringInput buildMultiBorderMonitoringInput(Network network, Set<BorderMonitoringInput> borderMonitoringInputs, PhysicalParameter parameter, ZonalData<Scalable> zonalData) {
@@ -163,11 +168,12 @@ public class SweCsaMonitoring {
                 ));
     }
 
-    public static Map<Border, RaoResult> updateRaoResultsWithVoltageMonitoringForTwoBorders(MultiBorderMonitoringInput parallelInput, Map<Border, MonitoringResult> voltageMonitoringResults) {
-        return parallelInput.getBorders().stream()
+    public static Map<Border, RaoResult> updateRaoResultsWithAngleAndVoltageMonitoringForTwoBorders(Map<Border, RaoResult> originalRaoResultPerBorder, Map<Border, MonitoringResult> angleMonitoringResults, Map<Border, MonitoringResult> voltageMonitoringResults) {
+        return voltageMonitoringResults.keySet().stream()
                 .collect(Collectors.toMap(border -> border,
-                        border -> new RaoResultWithVoltageMonitoring(
-                                parallelInput.getRaoResultForBorder(border),
+                        border -> new RaoResultWithAngleAndVoltageMonitoring(
+                                originalRaoResultPerBorder.get(border),
+                                angleMonitoringResults.get(border),
                                 voltageMonitoringResults.get(border)
                         )
                 ));
