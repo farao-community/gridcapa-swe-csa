@@ -38,23 +38,23 @@ class RaoResultWithCounterTradeRangeActionsTest {
         Mockito.when(preventiveState.isPreventive()).thenReturn(true);
 
         Mockito.when(frEsCounterTradeRangeActionMock.getGroupId()).thenReturn(Optional.of("CT_FR_ES"));
-        Mockito.when(frEsCounterTradeRangeActionMock.getImportingCountry()).thenReturn(Country.ES);
-        Mockito.when(frEsCounterTradeRangeActionMock.getExportingCountry()).thenReturn(Country.FR);
+        Mockito.when(frEsCounterTradeRangeActionMock.getImportingArea()).thenReturn(Country.ES.toString());
+        Mockito.when(frEsCounterTradeRangeActionMock.getExportingArea()).thenReturn(Country.FR.toString());
         Mockito.when(frEsCounterTradeRangeActionMock.getInitialSetpoint()).thenReturn(0.);
 
         Mockito.when(esFrCounterTradeRangeActionMock.getGroupId()).thenReturn(Optional.of("CT_ES_FR"));
-        Mockito.when(esFrCounterTradeRangeActionMock.getImportingCountry()).thenReturn(Country.FR);
-        Mockito.when(esFrCounterTradeRangeActionMock.getExportingCountry()).thenReturn(Country.ES);
+        Mockito.when(esFrCounterTradeRangeActionMock.getImportingArea()).thenReturn(Country.FR.toString());
+        Mockito.when(esFrCounterTradeRangeActionMock.getExportingArea()).thenReturn(Country.ES.toString());
         Mockito.when(esFrCounterTradeRangeActionMock.getInitialSetpoint()).thenReturn(0.);
 
         Mockito.when(esPtCounterTradeRangeActionMock.getGroupId()).thenReturn(Optional.of("CT_ES_PT"));
-        Mockito.when(esPtCounterTradeRangeActionMock.getImportingCountry()).thenReturn(Country.PT);
-        Mockito.when(esPtCounterTradeRangeActionMock.getExportingCountry()).thenReturn(Country.ES);
+        Mockito.when(esPtCounterTradeRangeActionMock.getImportingArea()).thenReturn(Country.PT.toString());
+        Mockito.when(esPtCounterTradeRangeActionMock.getExportingArea()).thenReturn(Country.ES.toString());
         Mockito.when(esPtCounterTradeRangeActionMock.getInitialSetpoint()).thenReturn(0.);
 
         Mockito.when(ptEsCounterTradeRangeActionMock.getGroupId()).thenReturn(Optional.of("CT_PT_ES"));
-        Mockito.when(ptEsCounterTradeRangeActionMock.getImportingCountry()).thenReturn(Country.FR);
-        Mockito.when(ptEsCounterTradeRangeActionMock.getExportingCountry()).thenReturn(Country.ES);
+        Mockito.when(ptEsCounterTradeRangeActionMock.getImportingArea()).thenReturn(Country.FR.toString());
+        Mockito.when(ptEsCounterTradeRangeActionMock.getExportingArea()).thenReturn(Country.ES.toString());
         Mockito.when(ptEsCounterTradeRangeActionMock.getInitialSetpoint()).thenReturn(0.);
 
         CounterTradeRangeActionResult frEsCounterTradeRangeActionResult = new CounterTradeRangeActionResult("CT_FR_ES", 10.0, Arrays.asList("CNEC1", "CNEC2"));
@@ -100,10 +100,11 @@ class RaoResultWithCounterTradeRangeActionsTest {
 
     @Test
     void testRaoResultWithCounterTrading() throws IOException {
-        InputStream raoResultFile = getClass().getResourceAsStream("/rao_result/rao-result-v1.7.json");
-        InputStream cracFile = getClass().getResourceAsStream("/rao_result/crac-for-rao-result-v1.7.json");
-
-        Crac crac = Crac.read("crac-for-rao-result-v1.7.json", cracFile, getMockedNetwork());
+        InputStream networkIs = Objects.requireNonNull(getClass().getResourceAsStream("/security_evaluator/TestCase_with_swe_countries.xiidm"));
+        Network network = Network.read("TestCase_with_swe_countries.xiidm", networkIs);
+        InputStream raoResultFile = getClass().getResourceAsStream("/security_evaluator/rao_result_fr_es.json");
+        InputStream cracFile = getClass().getResourceAsStream("/security_evaluator/crac_fr_es_1.json");
+        Crac crac = Crac.read("crac_fr_es_1.json", cracFile, network);
         RaoResult raoResult = new RaoResultJsonImporter().importData(raoResultFile, crac);
 
         RaoResult raoResultWithCounterTrading = new RaoResultWithCounterTradeRangeActions(raoResult, counterTradingResult);

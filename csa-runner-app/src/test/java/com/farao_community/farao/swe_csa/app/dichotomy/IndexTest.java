@@ -3,10 +3,13 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import com.powsybl.iidm.network.Country;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
+
+import java.util.Map;
 
 class IndexTest {
 
@@ -28,7 +31,8 @@ class IndexTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        index = new Index(0, 0, 10, 10);
+        index = new Index(0, 0, 10, 10,
+                Map.of(Country.ES.getName(), -1., Country.FR.getName(), 1., Country.PT.getName(), 2.));
     }
 
     @Test

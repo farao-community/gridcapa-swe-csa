@@ -55,7 +55,7 @@ public class ResultHelper {
 
         switch (border) {
             case "PT-ES" -> {
-                double value = Math.abs(index.getPtEsLowestSecureStep().getLeft());
+                double value = index.getSignedPtEsLowestSecureStepValue();
                 CounterTradeRangeAction ctRaPtes = findCounterTradingAction(ctActions, Country.PT, Country.ES);
                 resultMap.put(ctRaPtes, new CounterTradeRangeActionResult(ctRaPtes.getId(), value, flowCnecs));
 
@@ -63,7 +63,7 @@ public class ResultHelper {
                 resultMap.put(ctRaEsPt, new CounterTradeRangeActionResult(ctRaEsPt.getId(), -value, flowCnecs));
             }
             case "FR-ES" -> {
-                double value = Math.abs(index.getFrEsLowestSecureStep().getLeft());
+                double value = index.getSignedFrEsLowestSecureStepValue();
                 CounterTradeRangeAction ctRaFrEs = findCounterTradingAction(ctActions, Country.FR, Country.ES);
                 resultMap.put(ctRaFrEs, new CounterTradeRangeActionResult(ctRaFrEs.getId(), value, flowCnecs));
                 CounterTradeRangeAction ctRaEsFr = findCounterTradingAction(ctActions, Country.ES, Country.FR);
@@ -77,7 +77,7 @@ public class ResultHelper {
 
     private static CounterTradeRangeAction findCounterTradingAction(Set<CounterTradeRangeAction> ctActions, Country exportingCountry, Country importingCountry) {
         return ctActions.stream()
-                .filter(action -> action.getExportingCountry() == exportingCountry && action.getImportingCountry() == importingCountry)
+                .filter(action -> action.getExportingArea().equals(exportingCountry.toString()) && action.getImportingArea().equals(importingCountry.toString()))
                 .findFirst()
                 .orElseThrow(() -> new CsaInvalidDataException(MDC.get("gridcapaTaskId"), String.format("No CounterTradeRangeAction found for '%s' → '%s'", exportingCountry.getName(), importingCountry.getName())));
     }

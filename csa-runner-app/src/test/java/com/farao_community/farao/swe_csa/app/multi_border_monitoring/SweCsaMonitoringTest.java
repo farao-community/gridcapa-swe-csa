@@ -6,12 +6,16 @@ import com.farao_community.farao.rao_runner.api.resource.AbstractRaoResponse;
 import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
 import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.api.resource.Status;
+import com.farao_community.farao.swe_csa.api.results.CounterTradeRangeActionResult;
+import com.farao_community.farao.swe_csa.api.results.CounterTradingResult;
 import com.farao_community.farao.swe_csa.app.FileExporter;
 import com.farao_community.farao.swe_csa.app.FileImporter;
 import com.farao_community.farao.swe_csa.app.InterruptionService;
 import com.farao_community.farao.swe_csa.app.dichotomy.*;
+import com.farao_community.farao.swe_csa.app.rao_result.RaoResultWithCounterTradeRangeActions;
 import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
 import com.farao_community.farao.swe_csa.app.shift.SweCsaZonalData;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.ContingencyElementType;
 import com.powsybl.contingency.LineContingency;
 import com.farao_community.farao.swe_csa.app.multi_border_monitoring.MultiBorderMonitoringInput.BorderMonitoringInput;
@@ -24,8 +28,11 @@ import com.powsybl.openrao.commons.PhysicalParameter;
 import com.powsybl.openrao.commons.Unit;
 import com.powsybl.openrao.data.crac.api.Crac;
 import com.powsybl.openrao.data.crac.api.State;
+import com.powsybl.openrao.data.crac.api.cnec.AngleCnec;
 import com.powsybl.openrao.data.crac.api.cnec.Cnec;
+import com.powsybl.openrao.data.crac.api.cnec.VoltageCnec;
 import com.powsybl.openrao.data.crac.api.networkaction.NetworkAction;
+import com.powsybl.openrao.data.crac.api.rangeaction.CounterTradeRangeAction;
 import com.powsybl.openrao.data.crac.api.rangeaction.RangeAction;
 import com.powsybl.openrao.data.raoresult.api.RaoResult;
 import com.powsybl.openrao.data.raoresult.io.json.RaoResultJsonImporter;
@@ -35,6 +42,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -44,10 +53,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.stream.function.StreamBridge;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.time.Instant;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
@@ -105,7 +115,7 @@ class SweCsaMonitoringTest {
         // Results of flowCnecs, angleCnecs and VoltageCnecs, no RA activated
         ptEsRaoResult = new RaoResultJsonImporter().importData(getClass().getResourceAsStream("/security_evaluator/rao_result_pt_es.json"), ptEsCrac);
 
-        RaoParameters raoParameters = RaoParameters.load();
+        RaoParameters raoParameters = RaoParameters.load(ReportNode.NO_OP);
         loadFlowProvider =  LoadFlowAndSensitivityParameters.getLoadFlowProvider(raoParameters);
         loadFlowParameters = LoadFlowAndSensitivityParameters.getSensitivityWithLoadFlowParameters(raoParameters).getLoadFlowParameters();
     }
@@ -143,6 +153,16 @@ class SweCsaMonitoringTest {
         assertNotNull(validatedParallelDichotomiesResult.getFrEsResult().getRaoResult());
         assertEquals(isFrEsSecure, validatedParallelDichotomiesResult.getFrEsResult().isSecure());
         assertEquals(isPtEsSecure, validatedParallelDichotomiesResult.getPtEsResult().isSecure());
+    }
+
+    private void assertSerDeser(RaoResult raoResult, Crac crac) {
+        Properties props = new Properties();
+        props.setProperty("rao-result.export.json.flows-in-amperes", "true");
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        assertDoesNotThrow(() -> raoResult.write("JSON", crac, props, baos));
+        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+        RaoResult imported = assertDoesNotThrow(() -> RaoResult.read(bais, crac));
+        assertNotNull(imported);
     }
 
     /**
@@ -251,7 +271,6 @@ class SweCsaMonitoringTest {
         assertFalse(frEsActivatedActionIds.contains("Network-action-fr-es-2"));
     }
 
-
     /**
      * Data description:
      * - One common CO in two Cracs
@@ -310,8 +329,6 @@ class SweCsaMonitoringTest {
         assertFalse(frEsActivatedActionIds.contains("Network-action-fr-es-2"));
     }
 
-
-
     /**
      * Data description:
      * - One common CO in two Cracs
@@ -355,7 +372,7 @@ class SweCsaMonitoringTest {
     }
 
     /**
-     * The computation is failed at the when trying to redispatch the network
+     * The computation is failed when trying to redispatch the network
      * due to the bad input data of glsk document file
      * The angleMontioring at state "CO-Es-1" - Curative 3 failed for two borders
      * So Angle monitoring unsecure for both borders
@@ -495,6 +512,44 @@ class SweCsaMonitoringTest {
         assertSecurity(validatedParallelDichotomiesResult, false, false);
         assertTrue(validatedParallelDichotomiesResult.getFrEsResult().getRaoResult().isSecure(PhysicalParameter.FLOW));
         assertFalse(validatedParallelDichotomiesResult.getFrEsResult().getRaoResult().isSecure(PhysicalParameter.VOLTAGE));
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "false, false",  // flow+angle+voltage monitoring
+            "true,  false",  // flow+angle monitoring
+            "false, true",   // flow+voltage monitoring
+            "true,  true"    // flow monitoring
+    })
+    void serDeserPostMonitoring(boolean removeAngle, boolean removeVoltage) {
+        ptEsCrac = fileImporter.importCrac("taskId", Objects.requireNonNull(getClass().getResource("/security_evaluator/crac_pt_es_3.json")).toString(), network);
+        ptEsRaoResult = new RaoResultJsonImporter().importData(getClass().getResourceAsStream("/security_evaluator/rao_result_pt_es_3.json"), ptEsCrac);
+
+        Set<String> angleIds = ptEsCrac.getAngleCnecs().stream()
+                .map(AngleCnec::getId)
+                .collect(Collectors.toSet());
+        Set<String> voltageIds = ptEsCrac.getVoltageCnecs().stream()
+                .map(VoltageCnec::getId)
+                .collect(Collectors.toSet());
+        if (removeAngle) {
+            ptEsCrac.removeAngleCnecs(angleIds);
+        }
+        if (removeVoltage) {
+            ptEsCrac.removeVoltageCnecs(voltageIds);
+        }
+
+        ParallelDichotomiesResult validated = runRaoResultValidation();
+        RaoResult ptEsMonitoringRaoResult = validated.getPtEsResult().getRaoResult();
+        RaoResult frEsMonitoringRaoResult = validated.getFrEsResult().getRaoResult();
+
+        // base-case ser/deser
+        assertSerDeser(ptEsMonitoringRaoResult, ptEsCrac);
+        assertSerDeser(frEsMonitoringRaoResult, frEsCrac);
+
+        // CT ser/deser
+        CounterTradingResult emptyCt = new CounterTradingResult(new HashMap<>());
+        assertSerDeser(new RaoResultWithCounterTradeRangeActions(ptEsMonitoringRaoResult, emptyCt), ptEsCrac);
+        assertSerDeser(new RaoResultWithCounterTradeRangeActions(frEsMonitoringRaoResult, emptyCt), frEsCrac);
     }
 
 }

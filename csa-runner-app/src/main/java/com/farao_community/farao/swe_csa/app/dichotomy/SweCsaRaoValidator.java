@@ -12,9 +12,9 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
  */
 
 import com.farao_community.farao.rao_runner.api.exceptions.RaoRunnerException;
-import com.farao_community.farao.rao_runner.api.resource.RaoRequest;
 import com.farao_community.farao.rao_runner.api.resource.AbstractRaoResponse;
 import com.farao_community.farao.rao_runner.api.resource.RaoFailureResponse;
+import com.farao_community.farao.rao_runner.api.resource.RaoRequest;
 import com.farao_community.farao.rao_runner.api.resource.RaoSuccessResponse;
 import com.farao_community.farao.rao_runner.starter.RaoRunnerClient;
 import com.farao_community.farao.swe_csa.api.exception.CsaInternalException;
@@ -43,6 +43,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class SweCsaRaoValidator {
+    private static final Unit FLOW_CNECS_UNIT = Unit.AMPERE;
 
     private final FileExporter fileExporter;
     private final RaoRunnerClient raoRunnerClient;
@@ -95,27 +96,36 @@ public class SweCsaRaoValidator {
 
     private void logBorderOverload(RaoResult raoResult, Crac crac, String borderName) {
         if (raoResult.isSecure(PhysicalParameter.FLOW)) {
-            businessLogger.info("There is no overload on '{}' border during parallel RAO", borderName);
+            businessLogger.info("There are no overloads on '{}' border during parallel RAO", borderName);
         } else {
-            businessLogger.info("There is overloads on '{}' border, network is not secure during parallel RAO", borderName);
+            businessLogger.info("There are overloads on '{}' border, network was not secure during parallel RAO", borderName);
             Set<FlowCnec> flowCnecs = getBorderFlowCnecs(crac, borderName);
             Pair<String, Double> flowCnecSmallestMargin = getFlowCnecSmallestMargin(raoResult, flowCnecs);
-            businessLogger.info("On the '{}' border, the most limiting CNEC during parallel RAO is {}, with a margin of {}", borderName, flowCnecSmallestMargin.getLeft(), flowCnecSmallestMargin.getRight());
-
+            businessLogger.info("On the '{}' border, the most limiting CNEC during parallel RAO is {}, with a margin of {} {}", borderName, flowCnecSmallestMargin.getLeft(), flowCnecSmallestMargin.getRight(), FLOW_CNECS_UNIT);
         }
     }
 
     static Set<FlowCnec> getBorderFlowCnecs(Crac crac, String border) {
         return crac.getFlowCnecs().stream()
-            .filter(flowCnec -> flowCnec.isOptimized() && flowCnec.getBorder().equals(border))
+            .filter(flowCnec -> flowCnec.isOptimized() && normalizeBorder(border).equals(flowCnec.getBorder()))
             .collect(Collectors.toSet());
+    }
+
+    static String normalizeBorder(String border) {
+        if (border.contains("ES") && border.contains("PT")) {
+            return "ES-PT";
+        }
+        if (border.contains("ES") && border.contains("FR")) {
+            return "ES-FR";
+        }
+        return border;
     }
 
     Pair<String, Double> getFlowCnecSmallestMargin(RaoResult raoResult, Set<FlowCnec> flowCnecs) {
         String flowCnecId = "";
         double smallestMargin = Double.MAX_VALUE;
         for (FlowCnec flowCnec : flowCnecs) {
-            double margin = raoResult.getMargin(flowCnec.getState().getInstant(), flowCnec, Unit.AMPERE);
+            double margin = raoResult.getMargin(flowCnec.getState().getInstant(), flowCnec, FLOW_CNECS_UNIT);
             if (margin < smallestMargin) {
                 flowCnecId = flowCnec.getId();
                 smallestMargin = margin;

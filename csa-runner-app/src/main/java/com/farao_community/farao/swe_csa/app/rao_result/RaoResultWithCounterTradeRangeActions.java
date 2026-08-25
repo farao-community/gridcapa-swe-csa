@@ -1,7 +1,11 @@
 package com.farao_community.farao.swe_csa.app.rao_result;
 
+import com.powsybl.openrao.commons.Unit;
+import com.powsybl.openrao.data.crac.api.Instant;
 import com.powsybl.openrao.data.crac.api.RemedialAction;
 import com.powsybl.openrao.data.crac.api.State;
+import com.powsybl.openrao.data.crac.api.cnec.AngleCnec;
+import com.powsybl.openrao.data.crac.api.cnec.VoltageCnec;
 import com.powsybl.openrao.data.crac.api.rangeaction.CounterTradeRangeAction;
 import com.powsybl.openrao.data.crac.api.rangeaction.RangeAction;
 import com.powsybl.openrao.data.raoresult.api.RaoResult;
@@ -67,4 +71,35 @@ public class RaoResultWithCounterTradeRangeActions extends RaoResultClone {
         counterTradingResult.counterTradeRangeActionResults().keySet().forEach(counterTradeRangeAction -> optimizedSetPointsOnState.put(counterTradeRangeAction, counterTradingResult.getOptimizedSetPointOnState(counterTradeRangeAction)));
         return optimizedSetPointsOnState;
     }
+
+    // RaoResultClone does not delegate voltage/angle cnec results to the wrapped RaoResult:
+    // it inherits RaoResult's default methods, which throw. Without these overrides, voltage
+    // monitoring results computed upstream (see ResultHelper#updateRaoResultWithVoltageMonitoring)
+    // would be lost when wrapped here, causing empty results (OpenRAO 7.1.0) or a serialization
+    // exception (OpenRAO 7.3.0+, since VoltageCnecResultArraySerializer no longer swallows it).
+    @Override
+    public double getMinVoltage(Instant optimizedInstant, VoltageCnec voltageCnec, Unit unit) {
+        return raoResult.getMinVoltage(optimizedInstant, voltageCnec, unit);
+    }
+
+    @Override
+    public double getMaxVoltage(Instant optimizedInstant, VoltageCnec voltageCnec, Unit unit) {
+        return raoResult.getMaxVoltage(optimizedInstant, voltageCnec, unit);
+    }
+
+    @Override
+    public double getMargin(Instant optimizedInstant, VoltageCnec voltageCnec, Unit unit) {
+        return raoResult.getMargin(optimizedInstant, voltageCnec, unit);
+    }
+
+    @Override
+    public double getAngle(Instant optimizedInstant, AngleCnec angleCnec, Unit unit) {
+        return raoResult.getAngle(optimizedInstant, angleCnec, unit);
+    }
+
+    @Override
+    public double getMargin(Instant optimizedInstant, AngleCnec angleCnec, Unit unit) {
+        return raoResult.getMargin(optimizedInstant, angleCnec, unit);
+    }
+
 }

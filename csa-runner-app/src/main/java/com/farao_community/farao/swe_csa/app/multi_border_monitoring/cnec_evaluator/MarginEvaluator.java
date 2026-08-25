@@ -69,7 +69,6 @@ public class MarginEvaluator implements CnecEvaluator {
             }
             Cnec.SecurityStatus borderStatus = anyUnsecure ? Cnec.SecurityStatus.HIGH_CONSTRAINT : Cnec.SecurityStatus.SECURE;
             resultPerBorder.put(border, new MonitoringResult(physicalParameter, results, Collections.emptyMap(), borderStatus));
-            //businessLogger.info("Border [{}] – {} margins at state '{}' -> security status: {}",border, physicalParameter, state, borderStatus);
         }
         return new MultiBorderMonitoringResult(resultPerBorder);
     }

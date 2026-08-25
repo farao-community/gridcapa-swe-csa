@@ -86,6 +86,7 @@ public final class MonitoringUtils {
             Set<String> networkElementsToBeExcluded = new HashSet();
 
             for (NetworkAction na : availableNetworkActions) {
+                networkActionOk = true;
                 EnumMap<Country, Double> tempPowerToBeRedispatched = new EnumMap(powerToBeRedispatched);
 
                 for (Action ea : na.getElementaryActions()) {
@@ -174,8 +175,8 @@ public final class MonitoringUtils {
             return network.getIdentifiable(generatorAction.getGeneratorId());
         } else if (ea instanceof LoadAction loadAction) {
             return network.getIdentifiable(loadAction.getLoadId());
-        } else if (ea instanceof DanglingLineAction danglingLineAction) {
-            return network.getIdentifiable(danglingLineAction.getDanglingLineId());
+        } else if (ea instanceof BoundaryLine boundaryLineAction) {
+            return network.getIdentifiable(boundaryLineAction.getId());
         } else if (ea instanceof ShuntCompensatorPositionAction shuntCompensatorPositionAction) {
             return network.getIdentifiable(shuntCompensatorPositionAction.getShuntCompensatorId());
         } else {
@@ -270,16 +271,10 @@ public final class MonitoringUtils {
     }
 
     public static void printResults(MultiBorderMonitoringResult monitoringResult, PhysicalParameter physicalParameter, Logger businessLogger) {
-        monitoringResult.getResultsForAllBorders().forEach((border, result) -> {
-            if (physicalParameter == PhysicalParameter.VOLTAGE || physicalParameter == PhysicalParameter.ANGLE) {
-                result.printConstraints().forEach(msg -> businessLogger.info("Border [{}] {}", border, msg));
-            } else {
-                printFlowConstraints(border, result, businessLogger);
-            }
-        });
+        monitoringResult.getResultsForAllBorders().forEach((border, result) -> printConstraints(border, result, businessLogger));
     }
 
-    private static void printFlowConstraints(Border border, MonitoringResult monitoringResult, Logger businessLogger) {
+    private static void printConstraints(Border border, MonitoringResult monitoringResult, Logger businessLogger) {
         if (Objects.equals(monitoringResult.getStatus(), Cnec.SecurityStatus.FAILURE)) {
             businessLogger.info("Border [{}] {} monitoring failed due to a load flow divergence or an inconsistency in the crac or in the parameters.",
                     border, monitoringResult.getPhysicalParameter());
@@ -295,9 +290,6 @@ public final class MonitoringUtils {
             businessLogger.info("Border [{}] All {} CNECs are secure.", border, monitoringResult.getPhysicalParameter());
             return;
         }
-        businessLogger.info("Border [{}] Some {} CNECs are not secure:", border, monitoringResult.getPhysicalParameter());
-        for (CnecResult cnec : unsecureCnecs) {
-            businessLogger.info("Border [{}] CNEC {} margin={} status={}", border, cnec.getId(), cnec.getMargin(), cnec.getCnecSecurityStatus());
-        }
+        businessLogger.info("Border [{}], Some {} CNECs are not secure.", border, monitoringResult.getPhysicalParameter());
     }
 }

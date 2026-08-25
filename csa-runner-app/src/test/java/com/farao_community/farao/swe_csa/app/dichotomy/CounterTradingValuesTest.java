@@ -11,6 +11,6 @@ class CounterTradingValuesTest {
         CounterTradingValues counterTradingValues = new CounterTradingValues(2.5, 9999.004);
         assertEquals(9999.004, counterTradingValues.frEsCt());
         assertEquals(2.5, counterTradingValues.ptEsCt());
-        assertEquals("PT-ES-scaled-by-3_and_FR-ES-scaled-by-9999", counterTradingValues.print());
+        assertEquals("PT-ES-scaled-by-3-MW_and_FR-ES-scaled-by-9999-MW", counterTradingValues.print());
     }
 }

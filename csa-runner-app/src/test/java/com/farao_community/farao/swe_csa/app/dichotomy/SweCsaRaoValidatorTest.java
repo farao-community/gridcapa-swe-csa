@@ -7,6 +7,7 @@ import com.farao_community.farao.swe_csa.api.resource.CsaRequest;
 import com.farao_community.farao.swe_csa.app.FileExporter;
 import com.farao_community.farao.swe_csa.app.FileImporter;
 import com.farao_community.farao.swe_csa.app.s3.S3AdapterUtil;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.data.crac.api.Crac;
 import com.powsybl.openrao.data.crac.api.Instant;
@@ -99,7 +100,7 @@ class SweCsaRaoValidatorTest {
 
         SweCsaRaoValidator sweCsaRaoValidator = new SweCsaRaoValidator(fileExporter, raoRunnerClient, LoggerFactory.getLogger(S3AdapterUtil.class));
         Mockito.when(raoRunnerClient.runRao(any())).thenReturn(new RaoFailureResponse.Builder().withId("id").withErrorMessage("errorMessage").build());
-        assertThrows(CsaInternalException.class, () -> sweCsaRaoValidator.validateNetworkForPortugueseBorder(network, crac, "", null, new RaoParameters(),
+        assertThrows(CsaInternalException.class, () -> sweCsaRaoValidator.validateNetworkForPortugueseBorder(network, crac, "", null, new RaoParameters(ReportNode.NO_OP),
             new CsaRequest("id", "2024-12-01T15:30:00Z", "", "", "", "", ""), "raoParametersUrl", new CounterTradingValues(0.0, 0.0)));
     }
 }
