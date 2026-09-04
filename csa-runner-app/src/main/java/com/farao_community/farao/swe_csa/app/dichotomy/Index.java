@@ -2,6 +2,12 @@ package com.farao_community.farao.swe_csa.app.dichotomy;
 
 import org.apache.commons.lang3.tuple.Pair;
 
+import java.util.Map;
+
+import static com.farao_community.farao.swe_csa.app.dichotomy.DichotomyRunner.ES_FR;
+import static com.farao_community.farao.swe_csa.app.dichotomy.DichotomyRunner.ES_PT;
+import static java.lang.Math.signum;
+
 public class Index {
     private final double ptEsMinValue;
     private final double frEsMinValue;
@@ -15,12 +21,14 @@ public class Index {
     private ParallelDichotomiesResult bestValidDichotomyStepResult;
     private int frEsDichotomyCount = 0;
     private int ptEsDichotomyCount = 0;
+    private final Map<String, Double> initialExchanges;
 
-    public Index(double ptEsMinValue, double frEsMinValue, double precision, double maxDichotomiesByBorder) {
+    public Index(double ptEsMinValue, double frEsMinValue, double precision, double maxDichotomiesByBorder, Map<String, Double> initialExchanges) {
         this.ptEsMinValue = ptEsMinValue;
         this.frEsMinValue = frEsMinValue;
         this.precision = precision;
         this.maxDichotomiesByBorder = maxDichotomiesByBorder;
+        this.initialExchanges = initialExchanges;
     }
 
     public Pair<Double, DichotomyStepResult> getFrEsHighestUnsecureStep() {
@@ -35,8 +43,16 @@ public class Index {
         return frEsLowestSecureStep;
     }
 
+    public Double getSignedFrEsLowestSecureStepValue() {
+        return -frEsLowestSecureStep.getLeft() * signum(initialExchanges.get(ES_FR));
+    }
+
     public Pair<Double, DichotomyStepResult> getPtEsLowestSecureStep() {
         return ptEsLowestSecureStep;
+    }
+
+    public Double getSignedPtEsLowestSecureStepValue() {
+        return -ptEsLowestSecureStep.getLeft() * signum(initialExchanges.get(ES_PT));
     }
 
     public boolean addPtEsDichotomyStepResult(double ptEsCtStepValue, DichotomyStepResult stepResult) {
