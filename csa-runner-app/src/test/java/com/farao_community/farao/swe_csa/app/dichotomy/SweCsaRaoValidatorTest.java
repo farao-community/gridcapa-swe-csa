@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.net.URISyntaxException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Objects;
@@ -45,8 +46,8 @@ class SweCsaRaoValidatorTest {
     RaoRunnerClient raoRunnerClient;
 
     @Test
-    void testGetBorderFlowCnecs() throws URISyntaxException {
-        Network network = Network.read(Paths.get(Objects.requireNonNull(getClass().getResource("/rao_inputs/network.xiidm")).toURI()).toString());
+    void testGetBorderFlowCnecs() {
+        Network network = Network.read(getResource("/rao_inputs/network.xiidm"));
         Crac crac = fileImporter.importCrac("taskId", Objects.requireNonNull(getClass().getResource("/rao_inputs/crac.json")).toString(), network);
 
         Set<FlowCnec> cnecsPtEs = SweCsaRaoValidator.getBorderFlowCnecs(crac, "PT-ES");
@@ -93,8 +94,8 @@ class SweCsaRaoValidatorTest {
     }
 
     @Test
-    void testValidateNetworkRaoFailureResponse() throws URISyntaxException {
-        Network network = Network.read(Paths.get(Objects.requireNonNull(getClass().getResource("/rao_inputs/network.xiidm")).toURI()).toString());
+    void testValidateNetworkRaoFailureResponse() {
+        Network network = Network.read(getResource("/rao_inputs/network.xiidm"));
         Crac crac = fileImporter.importCrac("taskId", Objects.requireNonNull(getClass().getResource("/rao_inputs/crac.json")).toString(), network);
 
         SweCsaRaoValidator sweCsaRaoValidator = new SweCsaRaoValidator(fileExporter, raoRunnerClient, LoggerFactory.getLogger(S3AdapterUtil.class));
@@ -102,4 +103,13 @@ class SweCsaRaoValidatorTest {
         assertThrows(CsaInternalException.class, () -> sweCsaRaoValidator.validateNetworkForPortugueseBorder(network, crac, "", null, new RaoParameters(),
             new CsaRequest("id", "2024-12-01T15:30:00Z", "", "", "", "", ""), "raoParametersUrl", new CounterTradingValues(0.0, 0.0)));
     }
+
+    private Path getResource(String res) {
+        try {
+            return Paths.get(getClass().getResource(res).toURI());
+        } catch (URISyntaxException e) {
+            throw new RuntimeException("Invalid resource", e);
+        }
+    }
+
 }
