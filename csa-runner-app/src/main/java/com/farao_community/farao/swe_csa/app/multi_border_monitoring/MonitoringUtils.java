@@ -187,12 +187,8 @@ public final class MonitoringUtils {
     public static boolean computeLoadFlow(Network network, String loadFlowProvider, LoadFlowParameters loadFlowParameters) {
         OpenRaoLoggerProvider.TECHNICAL_LOGS.info("Load-flow computation [start]");
         LoadFlowResult loadFlowResult = LoadFlow.find(loadFlowProvider).run(network, loadFlowParameters);
-        if (loadFlowResult.isFailed()) {
-            OpenRaoLoggerProvider.BUSINESS_WARNS.warn("LoadFlow error.");
-        }
-
         OpenRaoLoggerProvider.TECHNICAL_LOGS.info("Load-flow computation [end]");
-        return loadFlowResult.isFullyConverged();
+        return !loadFlowResult.isFailed();
     }
 
     public static Set<NetworkAction> getNetworkActionsAssociatedToCnec(State state, Crac crac, Cnec cnec, PhysicalParameter physicalParameter) {

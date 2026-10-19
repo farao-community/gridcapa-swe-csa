@@ -203,8 +203,8 @@ public class DichotomyRunner {
                 if (ptEsCtSecure && frEsCtSecure) {
                     index.setBestValidDichotomyStepResult(parallelDichotomiesResult);
                     // enhance rao result with monitoring result + CT values and send notification
-                    uploadFinalResult(raoParameters, network, cracPtEs, index, ptEsCtStepResult.getRaoResult(), ptEsRaoResultDestinationPath, "PT-ES");
-                    uploadFinalResult(raoParameters, network, cracFrEs, index, frEsCtStepResult.getRaoResult(), frEsRaoResultDestinationPath, "FR-ES");
+                    uploadFinalResult(cracPtEs, index, index.getBestValidDichotomyStepResult().getPtEsResult().getRaoResult(), ptEsRaoResultDestinationPath, "PT-ES");
+                    uploadFinalResult(cracFrEs, index, index.getBestValidDichotomyStepResult().getFrEsResult().getRaoResult(), frEsRaoResultDestinationPath, "FR-ES");
                     CsaResponse csaResponse = new CsaResponse(csaRequest.getId(), Status.STILL_RUNNING_SECURE.toString(), s3ArtifactsAdapter.generatePreSignedUrl(ptEsRaoResultDestinationPath), Status.STILL_RUNNING_SECURE.toString(), s3ArtifactsAdapter.generatePreSignedUrl(frEsRaoResultDestinationPath));
                     streamBridge.send(RESPONSE_BRIDGE_NAME, jsonApiConverter.toJsonMessage(csaResponse, CsaResponse.class));
                 }
@@ -227,18 +227,14 @@ public class DichotomyRunner {
 
         }
         businessLogger.info("Dichotomy stop criterion reached. Optimal counter-trading volumes: CT PT-ES: {} MW, CT FR-ES: {} MW", Math.round(index.getBestValidDichotomyStepResult().getCounterTradingValues().ptEsCt()), Math.round(index.getBestValidDichotomyStepResult().getCounterTradingValues().frEsCt()));
-        uploadFinalResult(raoParameters, network, cracPtEs, index, index.getBestValidDichotomyStepResult().getPtEsResult().getRaoResult(), ptEsRaoResultDestinationPath, "PT-ES");
-        uploadFinalResult(raoParameters, network, cracFrEs, index, index.getBestValidDichotomyStepResult().getFrEsResult().getRaoResult(), frEsRaoResultDestinationPath, "FR-ES");
+        uploadFinalResult(cracPtEs, index, index.getBestValidDichotomyStepResult().getPtEsResult().getRaoResult(), ptEsRaoResultDestinationPath, "PT-ES");
+        uploadFinalResult(cracFrEs, index, index.getBestValidDichotomyStepResult().getFrEsResult().getRaoResult(), frEsRaoResultDestinationPath, "FR-ES");
 
         return new FinalResult(getRaoResultStatusPair(index.getBestValidDichotomyStepResult().getPtEsResult().getRaoResult(), index, interrupted), getRaoResultStatusPair(index.getBestValidDichotomyStepResult().getFrEsResult().getRaoResult(), index, interrupted));
     }
 
-    private void uploadFinalResult(RaoParameters raoParameters, Network network, Crac crac, Index index, RaoResult raoResult, String uploadPath, String border) {
-        RaoResult finalRaoResult = raoResult;
-        if (!crac.getVoltageCnecs().isEmpty()) {
-            finalRaoResult = resultHelper.updateRaoResultWithVoltageMonitoring(network, crac, raoResult, raoParameters);
-        }
-        finalRaoResult = resultHelper.updateRaoResultWithCounterTradingRangeActions(crac, index, finalRaoResult, border);
+    private void uploadFinalResult(Crac crac, Index index, RaoResult raoResult, String uploadPath, String border) {
+        RaoResult finalRaoResult = resultHelper.updateRaoResultWithCounterTradingRangeActions(crac, index, raoResult, border);
         fileExporter.saveRaoResultInArtifact(uploadPath, finalRaoResult, crac);
     }
 
