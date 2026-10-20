@@ -54,13 +54,13 @@ class ResultHelperTest {
         Crac crac = mock(Crac.class);
         CounterTradeRangeAction counterTradeRangeActionPtEs = mock(CounterTradeRangeAction.class);
         when(counterTradeRangeActionPtEs.getId()).thenReturn("CT_RA_PTES");
-        when(counterTradeRangeActionPtEs.getExportingCountry()).thenReturn(Country.valueOf("PT"));
-        when(counterTradeRangeActionPtEs.getImportingCountry()).thenReturn(Country.valueOf("ES"));
+        when(counterTradeRangeActionPtEs.getExportingCountry()).thenReturn(Country.PT);
+        when(counterTradeRangeActionPtEs.getImportingCountry()).thenReturn(Country.ES);
         when(crac.getCounterTradeRangeAction("CT_RA_PTES")).thenReturn(counterTradeRangeActionPtEs);
         CounterTradeRangeAction counterTradeRangeActionEsPt = mock(CounterTradeRangeAction.class);
         when(counterTradeRangeActionEsPt.getId()).thenReturn("CT_RA_ESPT");
-        when(counterTradeRangeActionEsPt.getExportingCountry()).thenReturn(Country.valueOf("ES"));
-        when(counterTradeRangeActionEsPt.getImportingCountry()).thenReturn(Country.valueOf("PT"));
+        when(counterTradeRangeActionEsPt.getExportingCountry()).thenReturn(Country.ES);
+        when(counterTradeRangeActionEsPt.getImportingCountry()).thenReturn(Country.PT);
         when(crac.getCounterTradeRangeAction("CT_RA_ESPT")).thenReturn(counterTradeRangeActionEsPt);
         when(crac.getCounterTradeRangeActions()).thenReturn(Set.of(counterTradeRangeActionPtEs, counterTradeRangeActionEsPt));
 
@@ -75,8 +75,9 @@ class ResultHelperTest {
         when(index.getSignedPtEsLowestSecureStepValue()).thenReturn(50.);
 
         RaoResult raoResult = mock(RaoResult.class);
+        String border = "PT-ES";
         ResultHelper resultHelper = new ResultHelper();
-        RaoResultWithCounterTradeRangeActions updatedRaoResult = resultHelper.updateRaoResultWithCounterTradingRangeActions(crac, index, raoResult, "PT-ES");
+        RaoResultWithCounterTradeRangeActions updatedRaoResult = resultHelper.updateRaoResultWithCounterTradingRangeActions(crac, index, raoResult, border);
 
         assertNotNull(updatedRaoResult);
         State state = mock(State.class);
