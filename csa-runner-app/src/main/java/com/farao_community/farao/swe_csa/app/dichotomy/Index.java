@@ -102,4 +102,12 @@ public class Index {
     public ParallelDichotomiesResult getBestValidDichotomyStepResult() {
         return bestValidDichotomyStepResult;
     }
+
+    public double getSignedPtEsValue(double ptEsCt) {
+        return -ptEsCt * signum(initialExchanges.get(ES_PT));
+    }
+
+    public double getSignedFrEsValue(double frEsCt) {
+        return -frEsCt * signum(initialExchanges.get(ES_FR));
+    }
 }

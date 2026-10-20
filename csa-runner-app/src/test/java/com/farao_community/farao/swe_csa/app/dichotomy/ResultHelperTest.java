@@ -6,6 +6,7 @@ import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.data.crac.api.Crac;
+import com.powsybl.openrao.data.crac.api.State;
 import com.powsybl.openrao.data.crac.api.rangeaction.CounterTradeRangeAction;
 import com.powsybl.openrao.data.raoresult.api.RaoResult;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -61,14 +63,26 @@ class ResultHelperTest {
         when(counterTradeRangeActionEsPt.getImportingCountry()).thenReturn(Country.PT);
         when(crac.getCounterTradeRangeAction("CT_RA_ESPT")).thenReturn(counterTradeRangeActionEsPt);
         when(crac.getCounterTradeRangeActions()).thenReturn(Set.of(counterTradeRangeActionPtEs, counterTradeRangeActionEsPt));
+
+        // best valid step: PT-ES = 100 MW, FR-ES = 300 MW
+        ParallelDichotomiesResult bestValidStep = mock(ParallelDichotomiesResult.class);
+        when(bestValidStep.getCounterTradingValues()).thenReturn(new CounterTradingValues(100, 300));
         Index index = mock(Index.class);
-        when(index.getPtEsLowestSecureStep()).thenReturn(Pair.of(100., null));
+        when(index.getBestValidDichotomyStepResult()).thenReturn(bestValidStep);
+        when(index.getSignedPtEsValue(100.)).thenReturn(100.);
+        // a later iteration secured PT-ES alone at 50 MW: this value must NOT be used
+        when(index.getPtEsLowestSecureStep()).thenReturn(Pair.of(50., null));
+        when(index.getSignedPtEsLowestSecureStepValue()).thenReturn(50.);
+
         RaoResult raoResult = mock(RaoResult.class);
         String border = "PT-ES";
         ResultHelper resultHelper = new ResultHelper();
         RaoResultWithCounterTradeRangeActions updatedRaoResult = resultHelper.updateRaoResultWithCounterTradingRangeActions(crac, index, raoResult, border);
 
         assertNotNull(updatedRaoResult);
-
+        State state = mock(State.class);
+        // the CT values come from the best valid step, i.e. the same step as the Rao result
+        assertEquals(100., updatedRaoResult.getOptimizedSetPointOnState(state, counterTradeRangeActionPtEs), 1e-6);
+        assertEquals(-100., updatedRaoResult.getOptimizedSetPointOnState(state, counterTradeRangeActionEsPt), 1e-6);
     }
 }

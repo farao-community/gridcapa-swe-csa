@@ -9,6 +9,7 @@ import com.farao_community.farao.swe_csa.api.resource.Status;
 import com.farao_community.farao.swe_csa.app.FileExporter;
 import com.farao_community.farao.swe_csa.app.FileImporter;
 import com.farao_community.farao.swe_csa.app.InterruptionService;
+import com.farao_community.farao.swe_csa.app.rao_result.RaoResultWithCounterTradeRangeActions;
 import com.farao_community.farao.swe_csa.app.s3.S3ArtifactsAdapter;
 import com.farao_community.farao.swe_csa.app.shift.SweCsaZonalData;
 import com.powsybl.glsk.commons.ZonalData;
@@ -16,17 +17,21 @@ import com.powsybl.iidm.modification.scalable.Scalable;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openrao.data.crac.api.Crac;
+import com.powsybl.openrao.data.crac.api.cnec.VoltageCnec;
 import com.powsybl.openrao.data.crac.impl.CounterTradeRangeActionImpl;
+import com.powsybl.openrao.data.raoresult.api.RaoResult;
 import com.powsybl.openrao.raoapi.parameters.RaoParameters;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
+import org.mockito.MockedConstruction;
 import org.mockito.Mockito;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.cloud.stream.function.StreamBridge;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
 import java.util.Set;
@@ -34,6 +39,8 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
 
 @SpringBootTest
 class SweCsaDichotomyRunnerTest {
@@ -137,6 +144,30 @@ class SweCsaDichotomyRunnerTest {
         assertEquals(300.0, resultMaxCT2);
     }
 
+    @Test
+    void uploadFinalResultDoesNotRunVoltageMonitoringAgainWhenCracHasVoltageCnecs() {
+        try (MockedConstruction<ResultHelper> mockedResultHelper = Mockito.mockConstruction(ResultHelper.class)) {
+            FileExporter exporter = Mockito.mock(FileExporter.class);
+            DichotomyRunner runner = newDichotomyRunnerWithMocks(exporter);
+            ResultHelper resultHelper = mockedResultHelper.constructed().getFirst();
+
+            Crac crac = Mockito.mock(Crac.class);
+            Index index = Mockito.mock(Index.class);
+            RaoResult monitoredRaoResult = Mockito.mock(RaoResult.class);
+            RaoResultWithCounterTradeRangeActions ctEnrichedRaoResult = Mockito.mock(RaoResultWithCounterTradeRangeActions.class);
+            Mockito.when(crac.getVoltageCnecs()).thenReturn(Set.of(Mockito.mock(VoltageCnec.class)));
+            Mockito.when(resultHelper.updateRaoResultWithCounterTradingRangeActions(crac, index, monitoredRaoResult, "PT-ES")).thenReturn(ctEnrichedRaoResult);
+
+            ReflectionTestUtils.invokeMethod(runner, "uploadFinalResult", crac, index, monitoredRaoResult, "pt-es-rao-result-path", "PT-ES");
+
+            // voltage monitoring is already done in SweCsaMonitoring: it must not be run again here
+            verify(resultHelper, never()).updateRaoResultWithVoltageMonitoring(any(), any(), any(), any());
+            verify(resultHelper).updateRaoResultWithCounterTradingRangeActions(crac, index, monitoredRaoResult, "PT-ES");
+            verifyNoMoreInteractions(resultHelper);
+            verify(exporter).saveRaoResultInArtifact("pt-es-rao-result-path", ctEnrichedRaoResult, crac);
+        }
+    }
+
     private static CounterTradeRangeActionImpl mockCtAction(Country exporting, Country importing) {
         CounterTradeRangeActionImpl action = Mockito.mock(CounterTradeRangeActionImpl.class);
         Mockito.when(action.getExportingCountry()).thenReturn(exporting);
@@ -146,4 +177,15 @@ class SweCsaDichotomyRunnerTest {
         return action;
     }
 
+    private static DichotomyRunner newDichotomyRunnerWithMocks(FileExporter exporter) {
+        return new DichotomyRunner(
+                Mockito.mock(SweCsaRaoValidator.class),
+                Mockito.mock(FileImporter.class),
+                exporter,
+                Mockito.mock(InterruptionService.class),
+                Mockito.mock(StreamBridge.class),
+                Mockito.mock(S3ArtifactsAdapter.class),
+                LoggerFactory.getLogger(SweCsaDichotomyRunnerTest.class),
+                Mockito.mock(ParallelDichotomiesRunner.class));
+    }
 }
